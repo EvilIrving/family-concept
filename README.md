@@ -229,6 +229,209 @@ Phase 2 — 认证
 
 - 验收：可注册、登录、登出，profiles 表数据正确
 
+---
+
+## Phase 1-2 详细操作指南
+
+### Step 1: 创建 Supabase 项目
+
+1. 打开 https://supabase.com 并登录（没有账号先注册）
+2. 点击 "New Project"
+3. 填写项目信息：
+   - Name: `family-menu`（或你喜欢的名称）
+   - Database Password: 设置一个强密码（记下来！）
+   - Region: 选择离你最近的区域
+4. 点击 "Create new project"，等待 2-3 分钟
+
+### Step 2: 执行数据库 DDL
+
+1. 在 Supabase 控制台左侧菜单，点击 "SQL Editor"
+2. 点击 "New query"
+3. 复制 `database.sql` 文件的全部内容，粘贴到编辑器
+4. 点击 "Run" 执行
+5. 如果看到绿色成功提示，表示数据库表已创建完成
+
+**验证方法：**
+- 点击左侧 "Table Editor"
+- 应该能看到 5 张表：profiles, dishes, orders, order_members, order_items
+
+### Step 3: 配置 Storage Bucket
+
+1. 点击左侧菜单 "Storage"
+2. 点击 "New bucket"
+3. 填写：
+   - Name: `dishes`
+   - Public bucket: 打开（开关变绿）
+4. 点击 "Create bucket"
+
+**设置 Storage 策略（允许上传图片）：**
+
+1. 点击刚创建的 `dishes` bucket
+2. 点击上方 "Policies" 标签
+3. 点击 "New policy" → "For full customization"
+4. 创建以下策略：
+
+**策略 1 - 允许所有人查看图片：**
+- Policy name: `Public read access`
+- Allowed operation: SELECT
+- Target roles: 选择 `authenticated`
+- Policy definition: `true`
+- 点击 "Review" → "Save policy"
+
+**策略 2 - 允许管理员上传图片：**
+- 点击 "New policy" → "For full customization"
+- Policy name: `Admin upload`
+- Allowed operation: INSERT
+- Target roles: 选择 `authenticated`
+- Policy definition: `(SELECT is_admin FROM profiles WHERE id = auth.uid()) = true`
+- 点击 "Review" → "Save policy"
+
+### Step 4: 开启 Realtime
+
+1. 点击左侧菜单 "Database"
+2. 点击子菜单 "Replication"
+3. 找到 "supabase_realtime" 这一行
+4. 点击 "0 tables" 进入配置
+5. 找到并勾选以下两张表：
+   - `orders`
+   - `order_items`
+6. 点击 "Save"
+
+### Step 5: 获取 Supabase 密钥
+
+1. 点击左侧菜单 "Project Settings"（齿轮图标）
+2. 点击 "API"
+3. 记录以下两个值（后面 Flutter 配置需要用）：
+   - **Project URL**: 形如 `https://xxxxx.supabase.co`
+   - **anon public key**: 一串很长的字符串
+
+---
+
+### Step 6: 创建 Flutter 项目
+
+打开终端，执行以下命令：
+
+```bash
+# 进入你的工作目录
+cd /Users/cain/Documents/code/flutter-family-concept
+
+# 创建 Flutter 项目
+flutter create --org com.yourname family_menu
+
+# 进入项目目录
+cd family_menu
+```
+
+### Step 7: 添加依赖
+
+编辑 `family_menu/pubspec.yaml`，在 `dependencies:` 下添加：
+
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  supabase_flutter: ^2.5.0
+  go_router: ^14.0.0
+  flutter_riverpod: ^2.5.0
+  riverpod_annotation: ^2.3.0
+```
+
+然后在终端执行：
+
+```bash
+cd family_menu
+flutter pub get
+```
+
+### Step 8: 创建项目目录结构
+
+在 `family_menu/lib/` 下创建以下文件夹：
+
+```
+lib/
+├── core/
+│   ├── supabase/
+│   ├── router/
+│   ├── theme/
+│   └── utils/
+├── features/
+│   ├── auth/
+│   │   ├── data/
+│   │   ├── presentation/
+│   │   └── providers/
+│   ├── menu/
+│   ├── order/
+│   ├── join/
+│   └── setting/
+└── shared/
+    ├── widgets/
+    └── models/
+```
+
+**终端命令（可选，手动创建也可以）：**
+
+```bash
+cd family_menu/lib
+mkdir -p core/supabase core/router core/theme core/utils
+mkdir -p features/auth/data features/auth/presentation features/auth/providers
+mkdir -p features/menu features/order features/join features/setting
+mkdir -p shared/widgets shared/models
+```
+
+### Step 9: 配置 Supabase 客户端
+
+告诉我，我会帮你创建 `lib/core/supabase/supabase_client.dart` 文件。
+
+需要用到 Step 5 记录的：
+- Project URL
+- anon public key
+
+### Step 10: 创建数据模型
+
+告诉我，我会帮你创建 `lib/shared/models/` 下的 5 个模型文件：
+- profile.dart
+- dish.dart
+- order.dart
+- order_member.dart
+- order_item.dart
+
+### Step 11: 配置路由
+
+告诉我，我会帮你创建 `lib/core/router/app_router.dart`。
+
+### Step 12: 配置主题
+
+告诉我，我会帮你创建 `lib/core/theme/app_theme.dart`。
+
+---
+
+### Phase 2: 认证功能
+
+完成 Phase 1 后，告诉我，我会帮你实现：
+- 注册页面
+- 登录页面
+- auth_provider（登录状态管理）
+
+---
+
+### 当前进度检查清单
+
+- [ ] Step 1: Supabase 项目创建完成
+- [ ] Step 2: 数据库 DDL 执行成功
+- [ ] Step 3: Storage bucket 配置完成
+- [ ] Step 4: Realtime 开启完成
+- [ ] Step 5: 已记录 Project URL 和 anon key
+- [ ] Step 6: Flutter 项目创建完成
+- [ ] Step 7: 依赖添加完成
+- [ ] Step 8: 目录结构创建完成
+- [ ] Step 9: Supabase 客户端配置完成
+- [ ] Step 10: 数据模型创建完成
+- [ ] Step 11: 路由配置完成
+- [ ] Step 12: 主题配置完成
+- [ ] Phase 2: 认证功能完成
+
+**完成一步后，回来告诉我，我会指导你下一步。**
+
 Phase 3 — 菜单核心
   6. dish_repository（read all、按 category 过滤）
   7. menu_screen + dish_card + category_filter_bar
