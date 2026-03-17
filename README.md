@@ -51,7 +51,7 @@ User → Order → Dish
 - 管理员可更新单道菜状态（等待中 → 制作中 → 制作完成）
 - 管理员可直接结束订单
 
-### 3. Setting（Drawer）
+### 3. 设置页（Setting）
 
 - 个人信息
 - 管理用户（管理员专用）：查看用户列表、设置 / 取消管理员
@@ -189,7 +189,7 @@ lib/
 │       ├── data/
 │       │   └── user_repository.dart       # 查询用户、设置 is_admin
 │       ├── presentation/
-│       │   ├── setting_drawer.dart
+│       │   ├── setting_screen.dart        # 设置主页面
 │       │   ├── manage_users_screen.dart   # 管理员专用
 │       │   └── history_orders_screen.dart
 │       └── providers/
@@ -257,7 +257,7 @@ Phase 6 — 分享 + 实时同步
 - 验收：多设备同时点菜，状态实时同步
 
 Phase 7 — Setting
-  17. setting_drawer
+  17. setting_screen（设置主页面）
   18. manage_users_screen（管理员授权）
   19. history_orders_screen（已结束订单列表）
 
