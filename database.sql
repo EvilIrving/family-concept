@@ -2,11 +2,10 @@
 -- 目标：
 -- 1. Family 作为租户边界
 -- 2. 业务权限落在 family_members.role
--- 3. 访客通过受控 RPC / Edge Function 进入订单，不开放宽松裸表写入
+-- 3. 只有家庭活跃成员可以加入订单并参与点菜
 --
 -- 说明：
 -- - 本脚本面向 fresh project 初始化执行
--- - 匿名访客的持续读写建议通过 Edge Function / service role 桥接
 -- - 已登录家庭成员可直接通过 RLS 访问其有权限的数据
 
 create schema if not exists extensions;
@@ -40,7 +39,6 @@ create type public.family_role as enum ('owner', 'admin', 'member');
 create type public.family_member_status as enum ('active', 'removed');
 create type public.order_status as enum ('ordering', 'placed', 'finished');
 create type public.item_status as enum ('waiting', 'cooking', 'done');
-create type public.order_member_type as enum ('family_member', 'guest');
 
 -- ===== Tables =====
 
@@ -103,9 +101,7 @@ create table public.orders (
 create table public.order_members (
   id uuid primary key default extensions.gen_random_uuid(),
   order_id uuid not null references public.orders(id) on delete cascade,
-  user_id uuid references public.profiles(id),
-  member_type public.order_member_type not null,
-  display_name text,
+  user_id uuid not null references public.profiles(id),
   joined_at timestamptz not null default now()
 );
 
@@ -135,8 +131,7 @@ create index dishes_family_category_idx on public.dishes (family_id, category);
 create index orders_family_idx on public.orders (family_id);
 create index orders_status_idx on public.orders (status);
 create unique index order_members_order_user_unique_idx
-  on public.order_members (order_id, user_id)
-  where user_id is not null;
+  on public.order_members (order_id, user_id);
 create index order_members_order_idx on public.order_members (order_id);
 create index order_members_user_idx on public.order_members (user_id);
 create index order_items_order_idx on public.order_items (order_id);
@@ -261,7 +256,6 @@ as $$
     where om.id = target_order_member_id
       and om.order_id = target_order_id
       and om.user_id = auth.uid()
-      and om.member_type = 'family_member'
   );
 $$;
 
@@ -292,30 +286,6 @@ begin
       and fm.status = 'active'
   ) then
     raise exception 'Order creator must be an active family member';
-  end if;
-
-  return new;
-end;
-$$;
-
-create or replace function public.ensure_order_member_shape()
-returns trigger
-language plpgsql
-set search_path = public, extensions
-as $$
-begin
-  if new.member_type = 'family_member' then
-    if new.user_id is null then
-      raise exception 'family_member requires user_id';
-    end if;
-    new.display_name = null;
-  elsif new.member_type = 'guest' then
-    if coalesce(btrim(new.display_name), '') = '' then
-      raise exception 'guest requires display_name';
-    end if;
-    new.user_id = null;
-  else
-    raise exception 'Unknown member_type';
   end if;
 
   return new;
@@ -409,10 +379,6 @@ create trigger trg_dishes_touch_updated_at
 create trigger trg_orders_creator_is_member
   before insert or update on public.orders
   for each row execute function public.ensure_order_created_by_family_member();
-
-create trigger trg_order_members_shape
-  before insert or update on public.order_members
-  for each row execute function public.ensure_order_member_shape();
 
 create trigger trg_order_members_one_active_order
   before insert or update on public.order_members
@@ -517,6 +483,8 @@ begin
         removed_at = null
     where id = v_member.id
     returning * into v_member;
+  else
+    raise exception 'User is already an active family member';
   end if;
 
   return query
@@ -558,6 +526,211 @@ begin
 end;
 $$;
 
+create or replace function public.update_family_member_role(
+  p_family_id uuid,
+  p_target_member_id uuid,
+  p_new_role public.family_role
+)
+returns table (
+  member_id uuid,
+  family_id uuid,
+  user_id uuid,
+  role public.family_role,
+  status public.family_member_status
+)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_actor public.family_members%rowtype;
+  v_target public.family_members%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  if p_new_role not in ('admin', 'member') then
+    raise exception 'Only admin/member roles can be assigned';
+  end if;
+
+  select *
+  into v_actor
+  from public.family_members fm
+  where fm.family_id = p_family_id
+    and fm.user_id = auth.uid()
+    and fm.status = 'active'
+  limit 1;
+
+  if v_actor.id is null or v_actor.role != 'owner' then
+    raise exception 'Only family owner can update member role';
+  end if;
+
+  select *
+  into v_target
+  from public.family_members fm
+  where fm.id = p_target_member_id
+    and fm.family_id = p_family_id
+    and fm.status = 'active'
+  limit 1;
+
+  if v_target.id is null then
+    raise exception 'Target member not found';
+  end if;
+
+  if v_target.role = 'owner' then
+    raise exception 'Owner role cannot be changed';
+  end if;
+
+  update public.family_members
+  set role = p_new_role
+  where id = v_target.id
+  returning
+    id,
+    family_id,
+    user_id,
+    role,
+    status
+  into member_id, family_id, user_id, role, status;
+
+  return next;
+end;
+$$;
+
+create or replace function public.remove_family_member(
+  p_family_id uuid,
+  p_target_member_id uuid
+)
+returns table (
+  member_id uuid,
+  family_id uuid,
+  user_id uuid,
+  role public.family_role,
+  status public.family_member_status,
+  removed_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_actor public.family_members%rowtype;
+  v_target public.family_members%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select *
+  into v_actor
+  from public.family_members fm
+  where fm.family_id = p_family_id
+    and fm.user_id = auth.uid()
+    and fm.status = 'active'
+  limit 1;
+
+  if v_actor.id is null then
+    raise exception 'Current user is not an active family member';
+  end if;
+
+  select *
+  into v_target
+  from public.family_members fm
+  where fm.id = p_target_member_id
+    and fm.family_id = p_family_id
+    and fm.status = 'active'
+  limit 1;
+
+  if v_target.id is null then
+    raise exception 'Target member not found';
+  end if;
+
+  if v_target.role = 'owner' then
+    raise exception 'Owner cannot be removed';
+  end if;
+
+  if v_target.user_id = auth.uid() then
+    raise exception 'Use leave_family() to remove yourself';
+  end if;
+
+  if v_actor.role = 'owner' then
+    null;
+  elsif v_actor.role = 'admin' and v_target.role = 'member' then
+    null;
+  else
+    raise exception 'Insufficient permission to remove this member';
+  end if;
+
+  update public.family_members
+  set status = 'removed',
+      removed_at = now()
+  where id = v_target.id
+  returning
+    id,
+    family_id,
+    user_id,
+    role,
+    status,
+    removed_at
+  into member_id, family_id, user_id, role, status, removed_at;
+
+  return next;
+end;
+$$;
+
+create or replace function public.leave_family(p_family_id uuid)
+returns table (
+  member_id uuid,
+  family_id uuid,
+  user_id uuid,
+  role public.family_role,
+  status public.family_member_status,
+  removed_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_member public.family_members%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select *
+  into v_member
+  from public.family_members fm
+  where fm.family_id = p_family_id
+    and fm.user_id = auth.uid()
+    and fm.status = 'active'
+  limit 1;
+
+  if v_member.id is null then
+    raise exception 'Current user is not an active family member';
+  end if;
+
+  if v_member.role = 'owner' then
+    raise exception 'Owner cannot leave family in v1';
+  end if;
+
+  update public.family_members
+  set status = 'removed',
+      removed_at = now()
+  where id = v_member.id
+  returning
+    id,
+    family_id,
+    user_id,
+    role,
+    status,
+    removed_at
+  into member_id, family_id, user_id, role, status, removed_at;
+
+  return next;
+end;
+$$;
+
 create or replace function public.create_order_for_family(p_family_id uuid)
 returns table (
   order_id uuid,
@@ -585,8 +758,8 @@ begin
   values (p_family_id, auth.uid())
   returning * into v_order;
 
-  insert into public.order_members (order_id, user_id, member_type)
-  values (v_order.id, auth.uid(), 'family_member')
+  insert into public.order_members (order_id, user_id)
+  values (v_order.id, auth.uid())
   returning * into v_member;
 
   return query
@@ -598,15 +771,11 @@ begin
 end;
 $$;
 
-create or replace function public.join_order_by_share_token(
-  p_token text,
-  p_display_name text default null
-)
+create or replace function public.join_order_by_share_token(p_token text)
 returns table (
   order_id uuid,
   family_id uuid,
-  order_member_id uuid,
-  member_type public.order_member_type
+  order_member_id uuid
 )
 language plpgsql
 security definer
@@ -617,6 +786,10 @@ declare
   v_existing_member public.order_members%rowtype;
   v_member public.order_members%rowtype;
 begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
   select *
   into v_order
   from public.orders o
@@ -628,54 +801,35 @@ begin
     raise exception 'Invalid or expired order share token';
   end if;
 
-  if auth.uid() is not null then
-    if not public.is_active_family_member(v_order.family_id) then
-      raise exception 'Authenticated user must already belong to the order family';
-    end if;
-
-    select *
-    into v_existing_member
-    from public.order_members om
-    where om.order_id = v_order.id
-      and om.user_id = auth.uid()
-    limit 1;
-
-    if v_existing_member.id is not null then
-      return query
-      select
-        v_order.id,
-        v_order.family_id,
-        v_existing_member.id,
-        v_existing_member.member_type;
-      return;
-    end if;
-
-    insert into public.order_members (order_id, user_id, member_type)
-    values (v_order.id, auth.uid(), 'family_member')
-    returning * into v_member;
-
-    return query
-    select
-      v_order.id,
-      v_order.family_id,
-      v_member.id,
-      v_member.member_type;
-  else
-    if coalesce(btrim(p_display_name), '') = '' then
-      raise exception 'Guest display_name is required';
-    end if;
-
-    insert into public.order_members (order_id, member_type, display_name)
-    values (v_order.id, 'guest', btrim(p_display_name))
-    returning * into v_member;
-
-    return query
-    select
-      v_order.id,
-      v_order.family_id,
-      v_member.id,
-      v_member.member_type;
+  if not public.is_active_family_member(v_order.family_id) then
+    raise exception 'Current user must belong to the order family';
   end if;
+
+  select *
+  into v_existing_member
+  from public.order_members om
+  where om.order_id = v_order.id
+    and om.user_id = auth.uid()
+  limit 1;
+
+  if v_existing_member.id is not null then
+    return query
+    select
+      v_order.id,
+      v_order.family_id,
+      v_existing_member.id;
+    return;
+  end if;
+
+  insert into public.order_members (order_id, user_id)
+  values (v_order.id, auth.uid())
+  returning * into v_member;
+
+  return query
+  select
+    v_order.id,
+    v_order.family_id,
+    v_member.id;
 end;
 $$;
 
@@ -852,12 +1006,15 @@ create policy "order_items_delete_owner_before_placed_or_family_admin"
 
 -- ===== Grants =====
 
-grant usage on schema public to anon, authenticated;
+grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
 
 grant execute on function public.create_family_with_owner(text) to authenticated;
 grant execute on function public.join_family_by_code(text) to authenticated;
 grant execute on function public.rotate_family_join_code(uuid) to authenticated;
+grant execute on function public.update_family_member_role(uuid, uuid, public.family_role) to authenticated;
+grant execute on function public.remove_family_member(uuid, uuid) to authenticated;
+grant execute on function public.leave_family(uuid) to authenticated;
 grant execute on function public.create_order_for_family(uuid) to authenticated;
-grant execute on function public.join_order_by_share_token(text, text) to anon, authenticated;
+grant execute on function public.join_order_by_share_token(text) to authenticated;

@@ -9,7 +9,6 @@
 - 数据模型与租户边界
 - 角色与权限模型
 - 注册后 onboarding 流程
-- 访客加入订单与生命周期
 - RLS 设计原则与矩阵
 - Phase 0-2 实施清单
 - README 改写提纲
@@ -24,8 +23,6 @@
 - 业务权限采用家庭级角色，不再使用全局管理员承载业务授权。
 - `profiles.is_admin` 如保留，仅表示平台运维角色，不参与家庭业务权限判断。
 - 菜品管理权限仅授予 `family_owner` 和 `family_admin`。
-- 访客是订单级临时参与者，不自动成为家庭成员。
-- 访客在订单结束后默认失去该订单访问入口，不保留历史访问能力。
 - 家庭邀请码支持刷新，刷新后旧码失效。
 - 用户退出家庭或被移出家庭后，历史记录保留，但失去该家庭后续访问权限。
 - 家庭自助解散不纳入 v1，只允许平台侧人工处理。
@@ -44,7 +41,7 @@
 
 - `Family` 是租户边界，菜单、订单、成员都从属于家庭。
 - 业务权限属于家庭成员关系，不属于全局用户。
-- 访客不是家庭成员，只是订单级临时参与者。
+- 只有家庭活跃成员可以加入订单并参与点菜。
 
 ## 3. 领域模型
 
@@ -54,7 +51,6 @@
 - `family_member_status`: `active | removed`
 - `order_status`: `ordering | placed | finished`
 - `item_status`: `waiting | cooking | done`
-- `order_member_type`: `family_member | guest`
 
 ### 3.2 表结构
 
@@ -162,27 +158,20 @@
 
 #### `order_members`
 
-用途：订单参与者列表，兼容家庭成员与访客。
+用途：订单参与成员列表。
 
 字段：
 
 - `id uuid primary key default gen_random_uuid()`
 - `order_id uuid not null references orders(id) on delete cascade`
-- `user_id uuid null references profiles(id)`
-- `member_type order_member_type not null`
-- `display_name text null`
+- `user_id uuid not null references profiles(id)`
 - `joined_at timestamptz not null default now()`
 
 约束与规则：
 
-- 家庭成员加入订单时：`member_type = 'family_member'`，`user_id` 必填。
-- 访客加入订单时：`member_type = 'guest'`，`display_name` 必填，`user_id` 可空。
-- 建议增加检查约束：
-  - `family_member` 必须满足 `user_id is not null`
-  - `guest` 必须满足 `display_name is not null`
-- 唯一性建议：
-  - `unique (order_id, user_id)` where `user_id is not null`
-- 访客不进入 `profiles` / `family_members`。
+- 一个订单成员必须是该订单所属家庭的活跃成员。
+- 唯一性约束：
+  - `unique (order_id, user_id)`
 
 #### `order_items`
 
@@ -203,7 +192,100 @@
 
 - 不直接存 `family_id`，通过 `orders.family_id` 归属家庭。
 - `dish_id` 必须属于该订单所在家庭。
-- `added_by_member_id` 指向 `order_members`，这样可同时支持家庭成员和访客加菜。
+- `added_by_member_id` 指向 `order_members`，用于记录是哪位成员加的菜。
+
+### 3.3 Family v1 ER 图
+
+```mermaid
+erDiagram
+    PROFILES {
+        uuid id PK
+        text username
+        text avatar_url
+        boolean is_admin
+        timestamptz created_at
+    }
+
+    FAMILIES {
+        uuid id PK
+        text name
+        uuid created_by FK
+        text join_code
+        timestamptz join_code_rotated_at
+        timestamptz created_at
+        timestamptz archived_at
+    }
+
+    FAMILY_MEMBERS {
+        uuid id PK
+        uuid family_id FK
+        uuid user_id FK
+        family_role role
+        family_member_status status
+        timestamptz joined_at
+        timestamptz removed_at
+        uuid invited_by FK
+    }
+
+    DISHES {
+        uuid id PK
+        uuid family_id FK
+        text name
+        text category
+        text image_url
+        jsonb ingredients
+        uuid created_by FK
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz archived_at
+    }
+
+    ORDERS {
+        uuid id PK
+        uuid family_id FK
+        order_status status
+        text share_token
+        uuid created_by FK
+        int current_round
+        timestamptz created_at
+        timestamptz placed_at
+        timestamptz finished_at
+    }
+
+    ORDER_MEMBERS {
+        uuid id PK
+        uuid order_id FK
+        uuid user_id FK
+        timestamptz joined_at
+    }
+
+    ORDER_ITEMS {
+        uuid id PK
+        uuid order_id FK
+        uuid dish_id FK
+        uuid added_by_member_id FK
+        int quantity
+        item_status status
+        int order_round
+        timestamptz created_at
+    }
+
+    PROFILES ||--o{ FAMILIES : creates
+    PROFILES ||--o{ FAMILY_MEMBERS : joins
+    PROFILES ||--o{ DISHES : creates
+    PROFILES ||--o{ ORDERS : creates
+    PROFILES ||--o{ ORDER_MEMBERS : joins
+
+    FAMILIES ||--o{ FAMILY_MEMBERS : contains
+    FAMILIES ||--o{ DISHES : owns
+    FAMILIES ||--o{ ORDERS : owns
+
+    ORDERS ||--o{ ORDER_MEMBERS : contains
+    ORDERS ||--o{ ORDER_ITEMS : contains
+
+    DISHES ||--o{ ORDER_ITEMS : referenced_by
+    ORDER_MEMBERS ||--o{ ORDER_ITEMS : adds
+```
 
 ## 4. 关键业务规则
 
@@ -233,15 +315,7 @@
   - 参与下单
   - 查看家庭内自己有权限查看的信息
 
-### 4.3 访客模型
-
-- 访客通过订单分享链接加入，不通过家庭邀请码加入。
-- v1 允许访客不注册直接加入订单。
-- 访客只存在于 `order_members`，不进入 `profiles` 和 `family_members`。
-- 订单结束后，访客默认失去访问入口。
-- 家庭成员可查看历史订单；访客不可查看历史订单。
-
-### 4.4 活跃订单约束
+### 4.3 活跃订单约束
 
 - 同一已登录用户同一时间只能参与一个 `status != 'finished'` 的订单。
 - 该规则对 `order_members.user_id is not null` 生效。
@@ -286,24 +360,81 @@
 - 创建 `orders`
 - 自动把当前用户加入 `order_members`
 
-### 5.5 `join_order_by_share_token(token text, display_name text default null)`
+### 5.5 `join_order_by_share_token(token text)`
 
 职责：
 
 - 校验订单存在且未结束
-- 对登录用户：
-  - 校验其没有其他活跃订单
-  - 若属于订单家庭，则以 `family_member` 加入
-  - 若不属于订单家庭，则拒绝或按产品策略决定是否允许外部账号访客身份加入
-- 对未登录访客：
-  - 创建 `guest` 类型 `order_members`
-  - 要求 `display_name`
+- 校验当前用户已登录
+- 校验其没有其他活跃订单
+- 校验其属于订单家庭
+- 以家庭成员身份加入 `order_members`
 
 v1 建议收敛为：
 
 - 家庭成员使用登录身份加入订单
-- 非家庭用户以匿名访客加入订单
-- 不支持“外部账号用户以长期账号身份跨家庭挂靠订单”
+- 不支持匿名访客加入订单
+- 不支持外部账号跨家庭加入订单
+
+### 5.6 家庭管理 RPC 边界
+
+以下 RPC 属于已登录家庭成员的业务写接口，建议纳入 Phase 1 后端实现范围。
+
+#### `rename_family(family_id uuid, name text)`
+
+职责：
+
+- 校验当前用户为该家庭 `owner/admin`
+- 校验 `name` 非空
+- 更新 `families.name`
+
+边界：
+
+- 普通 `member` 无权修改家庭名称
+
+#### `update_family_member_role(family_id uuid, target_member_id uuid, new_role family_role)`
+
+职责：
+
+- 校验当前用户为该家庭 `owner`
+- 校验目标成员属于该家庭且处于 `active`
+- 仅允许在 `admin` 和 `member` 之间变更
+- 更新目标成员角色
+
+边界：
+
+- v1 不支持通过业务接口转移 `owner`
+- `admin` 无权提升或降级其他 `admin`
+- 不允许修改 `owner` 角色
+
+#### `remove_family_member(family_id uuid, target_member_id uuid)`
+
+职责：
+
+- 校验目标成员属于该家庭且处于 `active`
+- 将目标成员标记为 `removed`
+- 写入 `removed_at`
+
+权限边界：
+
+- `owner` 可移除 `admin` / `member`
+- `admin` 仅可移除 `member`
+- 任何人都不能通过该接口移除 `owner`
+- 移除自己不走该接口，走 `leave_family()`
+
+#### `leave_family(family_id uuid)`
+
+职责：
+
+- 校验当前用户是该家庭活跃成员
+- 将自己的 `family_members.status` 标记为 `removed`
+- 写入 `removed_at`
+
+边界：
+
+- `member` 和 `admin` 可主动退出
+- `owner` 在 v1 不允许主动退出
+- `owner` 的退出、转移所有权、家庭解散均交由平台侧处理
 
 ## 6. RLS 设计原则
 
@@ -311,7 +442,6 @@ v1 建议收敛为：
 
 - 不再允许 `read all` 这类全局读策略。
 - 所有业务表默认按家庭边界或订单参与关系授权。
-- 访客加入订单优先走 RPC，不开放宽松裸表 `insert policy`。
 - “能否读” 与 “能否写” 分开设计，避免因为方便 UI 展示而扩大写权限。
 
 ### 6.2 访问辅助判断
@@ -330,20 +460,18 @@ v1 建议收敛为：
 | 表 | SELECT | INSERT | UPDATE | DELETE | 备注 |
 |---|---|---|---|---|---|
 | `profiles` | 自己；同家庭活跃成员的基础信息 | 注册/初始化档案时由本人或受控流程创建 | 仅本人可更新基础字段；`is_admin` 仅平台侧 | 不开放 | 禁止全局读取全部用户 |
-| `families` | 仅活跃成员可读 | 通过 `create_family_with_owner()` | 不开放裸表更新，名称编辑与邀请码刷新走 RPC | 不开放 | v1 不支持自助解散 |
-| `family_members` | 同家庭活跃成员可读 | 通过 `create_family_with_owner()` / `join_family_by_code()` | `owner/admin` 可改成员角色与状态；本人可主动退出家庭 | 不开放硬删 | 历史优先保留，使用 `status/removed_at` |
+| `families` | 仅活跃成员可读 | 通过 `create_family_with_owner()` | 不开放裸表更新，名称编辑走 `rename_family()`，邀请码刷新走 `rotate_family_join_code()` | 不开放 | v1 不支持自助解散 |
+| `family_members` | 同家庭活跃成员可读 | 通过 `create_family_with_owner()` / `join_family_by_code()` | 角色调整走 `update_family_member_role()`；移除走 `remove_family_member()`；主动退出走 `leave_family()` | 不开放硬删 | 历史优先保留，使用 `status/removed_at` |
 | `dishes` | 仅家庭活跃成员可读 | 仅 `owner/admin` | 仅 `owner/admin` | 仅 `owner/admin` | 建议优先归档，不直接硬删 |
-| `orders` | 家庭活跃成员可读；访客仅可通过受控流程读取自己参与的活跃订单上下文 | 仅家庭活跃成员，通过 `create_order_for_family()` | 仅家庭 `owner/admin` 可更新状态；部分字段走 RPC | 不开放 | 订单历史对家庭成员保留 |
-| `order_members` | 家庭活跃成员可读本家庭订单成员；访客仅可读取自身必要上下文 | 通过 `create_order_for_family()` / `join_order_by_share_token()` | 不开放裸表更新；访客名修改如需要走 RPC | 不开放 | 不做开放式 insert policy |
-| `order_items` | 家庭活跃成员可读；访客可读自己参与订单中的菜品列表 | 家庭成员和访客均通过受控规则添加 | 家庭 `owner/admin` 可改 `status`；发起人可在 `ordering` 删除/调整自己菜品 | 发起人仅在 `ordering` 可删自己条目；管理员可按策略处理 | 写入前需校验 `dish` 属于同一家族 |
+| `orders` | 家庭活跃成员可读 | 仅家庭活跃成员，通过 `create_order_for_family()` | 仅家庭 `owner/admin` 可更新状态 | 不开放 | 订单历史对家庭成员保留 |
+| `order_members` | 家庭活跃成员可读本家庭订单成员 | 家庭成员通过 `create_order_for_family()` 和 `join_order_by_share_token()` | 不开放裸表更新 | 不开放 | 仅家庭成员可加入订单 |
+| `order_items` | 家庭活跃成员可读 | 家庭成员通过 RLS | 家庭 `owner/admin` 可改 `status` | 家庭成员可按规则删自己条目 | 写入前需校验 `dish` 属于同一家族 |
 
 ### 7.1 v1 的务实实现建议
 
-如果匿名访客 RLS 成本过高，v1 可以进一步收敛：
-
-- 访客加入订单接口走 Edge Function 或 RPC
-- 访客端只消费最小化订单视图
-- Flutter v1 先优先完成“家庭成员 + 受控匿名访客”闭环，不追求复杂访客编辑权限
+- 家庭成员直接走受 RLS 保护的数据库访问
+- 不引入匿名访客桥接层
+- 订单分享链接仅用于家庭成员之间快速加入订单
 
 ## 8. Onboarding 流程
 
@@ -382,7 +510,6 @@ v1 建议收敛为：
 任务清单：
 
 - 确认家庭级角色模型与字段命名
-- 确认访客生命周期与订单结束后的可见性
 - 确认家庭邀请码与订单分享链接是两套机制
 - 确认活跃订单唯一约束的触发器实现
 - 移除不可执行 partial index
@@ -390,7 +517,7 @@ v1 建议收敛为：
 
 验收标准：
 
-- 数据模型、权限、访客规则没有未决 open item
+- 数据模型与权限规则没有未决 open item
 - SQL 草案不包含已知不可执行 DDL
 - RLS 策略能映射到每张表
 
@@ -400,7 +527,7 @@ v1 建议收敛为：
 
 任务清单：
 
-- 创建枚举：`family_role`、`family_member_status`、`order_status`、`item_status`、`order_member_type`
+- 创建枚举：`family_role`、`family_member_status`、`order_status`、`item_status`
 - 创建表：`profiles`、`families`、`family_members`、`dishes`、`orders`、`order_members`、`order_items`
 - 建立关键约束与索引
 - 实现活跃订单唯一约束 trigger
@@ -414,7 +541,7 @@ v1 建议收敛为：
 
 - `database.sql` 可直接执行成功
 - 家庭成员只能访问本家庭数据
-- 非家庭成员无法读取他人家庭菜单与订单
+- 非家庭成员无法读取或加入他人家庭订单
 - 关键 RPC 能覆盖建家、入家、建单、入单路径
 
 ## Phase 2 - Auth & Onboarding
@@ -440,122 +567,3 @@ v1 建议收敛为：
 - 可创建家庭并成为 `owner`
 - 可通过邀请码加入家庭
 - 家庭上下文可被后续菜单页与订单页复用
-
-## 10. README 改写提纲
-
-README 不再直接承担完整设计稿，建议改为产品说明 + 开发入口，并把 Family 方案链接到独立文档。
-
-### 10.1 需要重写的章节
-
-#### `二、核心抽象`
-
-改为：
-
-- `User -> Family -> Order -> OrderItem -> Dish`
-- 明确 `Family` 是租户边界
-
-#### `三、用户与角色`
-
-改为两层角色：
-
-- 平台角色：`profiles.is_admin`，仅平台运维使用
-- 家庭角色：`family_members.role = owner | admin | member`
-
-同时删除或改写：
-
-- “管理员是全局角色，不限定于某个订单”
-- “管理员可管理所有用户、菜品、订单”
-
-#### `四、页面结构`
-
-新增或改写：
-
-- onboarding / create family / join family 页面
-- setting 页中的成员管理改为“家庭成员管理”
-
-#### `五、订单机制`
-
-补充：
-
-- 订单从属于家庭
-- 分享链接用于加入订单，不用于加入家庭
-- 家庭邀请码用于加入家庭，不用于加入订单
-
-#### `八、菜品管理`
-
-补充：
-
-- 菜品是家庭级资源
-- 仅家庭 `owner/admin` 可管理
-
-#### `开发顺序`
-
-重排为：
-
-- `Phase 0 — Tenant Foundation`
-- `Phase 1 — Backend Foundation`
-- `Phase 2 — Auth & Onboarding`
-
-#### `Phase 1-2 详细操作指南`
-
-必须改写：
-
-- 不再要求直接执行旧版 `database.sql`
-- 改为执行 Family 版可执行 SQL
-- 明确验收需要验证家庭隔离与 onboarding
-
-### 10.2 建议新增的 README 链接
-
-- `docs/family_v1_design.md`
-- `docs/rls_matrix.md`
-- `docs/onboarding_flow.md`
-
-## 11. 对现有仓库文件的直接影响
-
-### `database.sql`
-
-必须重写，不应在当前文件基础上小修。
-
-原因：
-
-- 表结构缺少 `families` / `family_members`
-- 现有 RLS 以全局读写为主
-- 包含不可执行 partial index
-- 无法承载访客订单模型
-
-### `datamodel.dart`
-
-必须重写为 Family 版数据契约，至少补齐：
-
-- `Family`
-- `FamilyMember`
-- `family_role`
-- `family_member_status`
-- `order_member_type`
-- `OrderMember.display_name`
-- `OrderItem.added_by_member_id`
-
-### `README.md`
-
-必须从单租户 PRD 改成多家庭 v1 PRD，并把细节设计下沉到 `docs/`。
-
-## 12. v1 范围外事项
-
-以下能力明确不纳入本轮：
-
-- 家庭自助解散
-- 跨家庭聚合视图
-- 复杂邀请审批流
-- 多角色审计日志
-- 访客订单结束后历史回看
-- 外部账号用户跨家庭长期挂靠订单
-
-## 13. 下一步建议
-
-按顺序执行：
-
-1. 以本文为准，先重写 `datamodel.dart`
-2. 基于本文重写可执行 `database.sql`
-3. 补 `docs/rls_matrix.md`
-4. 再改 `README.md`
-5. 然后进入 Flutter Phase 1-2 实现

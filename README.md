@@ -1,5 +1,9 @@
 # 私厨点菜 App — Product Requirements Document
 
+> 事实来源：[`docs/family_v1_design.md`](docs/family_v1_design.md)
+>
+> 本文件仅提供项目介绍、开发顺序与文档导航，不作为权限、数据模型和流程的最终定义。
+
 ## 一、产品定位
 
 面向私厨 / 家庭 / 小型聚餐场景的点菜工具。
@@ -9,7 +13,7 @@
 - 厨师或家庭成员先进入一个家庭空间
 - 家庭管理员维护本家庭菜单
 - 食客通过家庭上下文创建订单或加入订单
-- 家庭成员与访客围绕同一个订单协作点菜
+- 家庭成员围绕同一个订单协作点菜
 - 厨师驱动制作流程并最终结束订单
 
 非目标：
@@ -22,20 +26,14 @@
 
 `User -> Family -> Order -> OrderItem -> Dish`
 
-说明：
-
-- `Family` 是租户边界
-- 菜单、订单、成员都从属于家庭
-- `Order` 是家庭内可分享的协作容器
-- `Dish` 是家庭级菜单资源，不再是全局资源
+更完整的权限、租户边界、状态流转与约束，请以 [docs/family_v1_design.md](docs/family_v1_design.md) 为准。
 
 ## 三、核心设计原则
 
-- 业务权限属于家庭成员关系，不属于全局用户。
-- `profiles.is_admin` 如保留，仅表示平台运维角色，不参与业务授权。
-- 新用户注册后必须先创建家庭或加入家庭，才能进入主应用。
-- 访客不是家庭成员，只是订单级临时参与者。
-- 家庭邀请码与订单分享链接是两套不同机制。
+- 业务权限属于家庭成员关系，不属于全局用户
+- `profiles.is_admin` 如保留，仅表示平台运维角色，不参与业务授权
+- 新用户注册后必须先创建家庭或加入家庭，才能进入主应用
+- 家庭邀请码与订单分享链接是两套不同机制
 
 ## 四、用户与角色
 
@@ -105,7 +103,7 @@
 
 - 家庭成员在家庭上下文中创建订单
 - 订单分享链接格式：`/app/join/{share_token}`
-- 分享链接只用于加入订单，不用于加入家庭
+- 分享链接只用于家庭成员加入订单，不用于加入家庭
 
 ### 订单状态流转
 
@@ -120,7 +118,6 @@
 - `finished`
   - 订单结束
   - 家庭成员保留历史可见性
-  - 访客失去访问入口
 
 ### 追加下单
 
@@ -128,15 +125,7 @@
 - `orders.current_round` 表示当前轮次
 - 采购清单高亮最新轮次新增食材
 
-## 七、访客机制
-
-- 访客通过订单分享链接加入订单，不进入家庭
-- 访客只存在于 `order_members`
-- 访客不写入 `profiles`、`family_members`
-- 访客在订单结束后默认失去该订单访问能力
-- v1 中访客相关写操作应走 RPC / Edge Function，不开放宽松裸表写入
-
-## 八、菜品与采购清单
+## 七、菜品与采购清单
 
 ### 菜品管理
 
@@ -163,36 +152,11 @@
 - 相同食材合并计量
 - 高亮最新 `order_round` 新增条目
 
-## 九、核心数据模型
+## 八、核心数据模型
 
-### 表
+核心表、枚举与约束见 [docs/family_v1_design.md](docs/family_v1_design.md)。
 
-- `profiles`
-  - 用户基础档案
-- `families`
-  - 家庭租户
-- `family_members`
-  - 家庭成员与角色
-- `dishes`
-  - 家庭菜单
-- `orders`
-  - 家庭订单
-- `order_members`
-  - 订单参与者，兼容家庭成员与访客
-- `order_items`
-  - 订单中的菜品项
-
-### 枚举
-
-- `family_role`: `owner | admin | member`
-- `family_member_status`: `active | removed`
-- `order_status`: `ordering | placed | finished`
-- `item_status`: `waiting | cooking | done`
-- `order_member_type`: `family_member | guest`
-
-详细设计见 [docs/family_v1_design.md](docs/family_v1_design.md)。
-
-## 十、技术栈
+## 九、技术栈
 
 - 前端：Flutter（iOS + Android）
 - 后端：Supabase
@@ -203,7 +167,7 @@
 - 路由：GoRouter
 - 状态管理：Riverpod
 
-## 十一、Flutter 项目结构
+## 十、Flutter 项目结构
 
 ```text
 lib/
@@ -233,187 +197,5 @@ lib/
 - `order.dart`
 - `order_member.dart`
 - `order_item.dart`
-
-## 十二、开发顺序
-
-### Phase 0 — Tenant Foundation
-
-目标：冻结多家庭规则并输出可执行规格。
-
-- 确认家庭级角色模型
-- 确认访客生命周期
-- 确认家庭邀请码与订单分享链接策略
-- 输出 Family 版 ER 图
-- 输出可执行 SQL 草案
-- 输出 RLS 矩阵
-
-### Phase 1 — Backend Foundation
-
-目标：建立多家庭数据库底座。
-
-- 执行 `database.sql`
-- 创建 7 张核心表
-- 建立索引、trigger、helper function、RPC
-- 启用 RLS
-- 配置 Storage bucket
-- 开启 Realtime
-
-### Phase 2 — Auth & Onboarding
-
-目标：完成注册 / 登录 / 入家闭环。
-
-- 注册页
-- 登录页
-- `profiles` 初始化
-- onboarding
-  - 创建家庭
-  - 输入邀请码加入家庭
-- 家庭上下文 provider
-
-### Phase 3 — Family Context & Shell
-
-- 主应用壳层
-- 当前家庭切换
-- 空家庭 / 无订单状态处理
-
-### Phase 4 — Menu
-
-- 家庭菜单查询
-- 分类筛选
-- 管理员菜品 CRUD
-- 图片上传
-
-### Phase 5 — Order Core
-
-- 创建订单
-- 加入订单
-- 点菜 / 删菜
-- 订单状态流转
-- 菜品制作状态更新
-
-### Phase 6 — Guest Join & Sharing
-
-- 分享链接
-- 二维码展示
-- 访客加入订单
-- 受控 guest flow
-
-### Phase 7 — Shopping List & Realtime
-
-- 食材聚合
-- 当前轮次高亮
-- Realtime 订阅订单与菜品状态
-
-### Phase 8 — Setting & History
-
-- 个人信息
-- 家庭成员管理
-- 历史订单
-- 错误状态与空状态收尾
-
-## 十三、Phase 0-2 验收重点
-
-### Phase 0
-
-- 不再存在未收敛的租户边界问题
-- 不再使用“全局管理员承载业务权限”
-- 数据模型、RLS、访客规则形成单一事实源
-
-### Phase 1
-
-- `database.sql` 可直接执行成功
-- 家庭成员只能访问本家庭数据
-- 非家庭成员无法读取他人家庭菜单与订单
-- 活跃订单唯一约束由 trigger / RPC 保证
-
-### Phase 2
-
-- 可注册、登录、登出
-- 未入家的用户不会进入主应用
-- 可创建家庭并成为 `owner`
-- 可通过邀请码加入家庭
-
-## 十四、Phase 1-2 实施指南
-
-### Step 1：阅读设计文档
-
-先阅读：
-
-- [docs/family_v1_design.md](docs/family_v1_design.md)
-- [database.sql](database.sql)
-- [datamodel.dart](datamodel.dart)
-
-### Step 2：创建 Supabase 项目
-
-1. 登录 Supabase
-2. 创建新项目
-3. 记录以下信息：
-   - Project URL
-   - anon public key
-
-### Step 3：执行数据库脚本
-
-1. 打开 Supabase SQL Editor
-2. 复制 [database.sql](database.sql) 全部内容
-3. 执行脚本
-
-执行后应能看到以下核心表：
-
-- `profiles`
-- `families`
-- `family_members`
-- `dishes`
-- `orders`
-- `order_members`
-- `order_items`
-
-### Step 4：验证 RPC 与 RLS
-
-重点验证：
-
-- 已登录用户只能读到同家庭资料与菜单
-- 通过 `create_family_with_owner()` 能创建家庭并自动写入 owner
-- 通过 `join_family_by_code()` 能加入家庭
-- 通过 `create_order_for_family()` 能创建订单并自动入单
-- 活跃订单唯一约束生效
-
-### Step 5：配置 Storage
-
-建议：
-
-- bucket 名称：`dishes`
-- 对象路径按家庭维度组织
-- 上传权限仅给家庭 `owner/admin`
-
-Storage 细粒度策略应在图片上传能力落地时一并实现，避免先写出与家庭边界不一致的宽松策略。
-
-### Step 6：开启 Realtime
-
-至少开启：
-
-- `orders`
-- `order_items`
-
-如后续家庭成员页需要实时变化，可再评估是否订阅 `family_members`。
-
-### Step 7：开始 Flutter Phase 1-2
-
-优先完成：
-
-- Supabase 初始化
-- 路由与鉴权重定向
-- shared models
-- auth state
-- family context provider
-- onboarding 流程
-
-## 十五、v1 明确不做
-
-- 邮箱 / 第三方登录
-- 找回密码
-- 家庭自助解散
-- 跨家庭聚合视图
-- 复杂邀请审批流
-- 访客订单结束后历史回看
-- 多语言
-- 商业化功能
+ 
+ 

@@ -24,11 +24,6 @@ enum ItemStatus {
   done,
 }
 
-enum OrderMemberType {
-  familyMember,
-  guest,
-}
-
 // 用户档案
 Profile {
   id: UUID                     // 对应 Supabase auth.users.id
@@ -82,7 +77,7 @@ Order {
   id: UUID
   family_id: UUID              // -> Family.id
   status: OrderStatus          // ordering | placed | finished
-  share_token: String          // 订单分享链接 token
+  share_token: String          // 家庭成员加入订单的分享链接 token
   created_by: UUID             // -> Profile.id
   current_round: Int           // 当前下单轮次，初始 1
   created_at: Timestamp
@@ -90,18 +85,13 @@ Order {
   finished_at: Timestamp?
 }
 
-// 订单成员（兼容家庭成员与访客）
+// 订单成员（仅家庭成员）
 OrderMember {
   id: UUID
   order_id: UUID               // -> Order.id
-  user_id: UUID?               // family_member 时指向 Profile.id
-  member_type: OrderMemberType // family_member | guest
-  display_name: String?        // guest 展示名
+  user_id: UUID                // -> Profile.id
   joined_at: Timestamp
-  // 约束：
-  // - family_member 必须有 user_id
-  // - guest 必须有 display_name
-  // - unique(order_id, user_id) where user_id is not null
+  // 约束：unique(order_id, user_id)
 }
 
 // 订单菜品项
@@ -123,4 +113,4 @@ OrderItem {
 // 规则：
 // 1. Family 是租户边界，菜单、订单、成员都归属于家庭
 // 2. 业务权限属于 FamilyMember.role，不属于 Profile.is_admin
-// 3. 访客不是家庭成员，只在 OrderMember 中以 guest 身份短期存在
+// 3. 只有家庭活跃成员可以加入订单并参与点菜
