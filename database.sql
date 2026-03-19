@@ -526,6 +526,40 @@ begin
 end;
 $$;
 
+create or replace function public.rename_family(
+  p_family_id uuid,
+  p_name text
+)
+returns table (
+  family_id uuid,
+  family_name text
+)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  if coalesce(btrim(p_name), '') = '' then
+    raise exception 'Family name is required';
+  end if;
+
+  if not public.is_family_admin(p_family_id) then
+    raise exception 'Only family owner/admin can rename family';
+  end if;
+
+  update public.families
+  set name = btrim(p_name)
+  where id = p_family_id
+  returning id, name into family_id, family_name;
+
+  return next;
+end;
+$$;
+
 create or replace function public.update_family_member_role(
   p_family_id uuid,
   p_target_member_id uuid,
@@ -1013,6 +1047,7 @@ grant usage, select on all sequences in schema public to authenticated;
 grant execute on function public.create_family_with_owner(text) to authenticated;
 grant execute on function public.join_family_by_code(text) to authenticated;
 grant execute on function public.rotate_family_join_code(uuid) to authenticated;
+grant execute on function public.rename_family(uuid, text) to authenticated;
 grant execute on function public.update_family_member_role(uuid, uuid, public.family_role) to authenticated;
 grant execute on function public.remove_family_member(uuid, uuid) to authenticated;
 grant execute on function public.leave_family(uuid) to authenticated;

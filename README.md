@@ -133,8 +133,9 @@
 - 仅 `owner` / `admin` 可添加、编辑、删除或归档菜品
 - 菜品字段：`name`、`category`、`image_url`、`ingredients`
 - 分类仍由 `dishes.category` 动态生成，无独立分类表
-- 建议图片路径按家庭维度组织，例如：
-  - `families/{family_id}/dishes/{dish_id}/cover.jpg`
+- Storage bucket 固定为 `dishes`
+- 图片路径必须为：
+  - `{family_id}/{dish_id}.jpg`
 
 ### 菜品状态
 
@@ -171,6 +172,9 @@
 
 ```text
 lib/
+├── app/
+│   ├── app.dart
+│   └── bootstrap.dart
 ├── core/
 │   ├── supabase/
 │   ├── router/
@@ -181,21 +185,58 @@ lib/
 │   ├── family/
 │   ├── menu/
 │   ├── order/
-│   ├── join/
-│   └── setting/
+│   └── settings/
 └── shared/
+    ├── repositories/
     ├── widgets/
     └── models/
 ```
 
-建议模型文件至少包含：
+当前实现说明：
 
-- `profile.dart`
-- `family.dart`
-- `family_member.dart`
-- `dish.dart`
-- `order.dart`
-- `order_member.dart`
-- `order_item.dart`
- 
+- 所有共享模型合并在 `lib/shared/models/app_models.dart`
+- Supabase 访问封装在 `lib/shared/repositories/`
+- 路由入口在 `lib/core/router/app_router.dart`
+- 三个底部导航页为 `Menu / Orders / Setting`
+- `join_order_page` 通过 `/app/join/:shareToken` 进入
+
+## 十一、运行项目
+
+### 必需环境变量
+
+通过 `--dart-define` 提供：
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `APP_BASE_URL`
+  - 可选，用于生成完整订单分享链接
+- `USERNAME_AUTH_DOMAIN`
+  - 可选，默认 `family.local`
+
+示例：
+
+```bash
+flutter run \
+  --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY \
+  --dart-define=APP_BASE_URL=https://YOUR_APP_HOST
+```
+
+### Supabase 侧约束
+
+- 先执行根目录 [database.sql](database.sql)
+- 需要创建 Storage bucket：`dishes`
+- Storage 上传路径必须为 `{family_id}/{dish_id}.jpg`
+- 若采用当前 `username + password` 方案，建议关闭邮箱确认
+  - Flutter 端会把用户名映射为伪邮箱，用于承载 Supabase Auth 登录
+
+### 已实现范围
+
+- 登录 / 注册
+- onboarding：创建家庭、邀请码加入家庭
+- 当前家庭上下文持久化切换
+- 菜单页、菜品新增/编辑/归档、图片上传
+- 订单页、创建订单、加入订单、分享链接加入
+- 订单详情、加菜、删自己条目、管理员推进状态、采购清单
+- 设置页、个人资料、家庭改名、成员管理、历史订单、退出家庭、退出登录
  
