@@ -1,353 +1,211 @@
 # 私厨点菜 App — Product Requirements Document
 
-# Version: 1.0.0
-
 ## 一、产品定位
 
 面向私厨 / 家庭 / 小型聚餐场景的点菜工具。
-核心场景：厨师（管理员）创建菜单，食客扫码加入订单、自主点菜，厨师驱动制作流程。
-非目标：不是菜谱工具、不是家庭管理系统、不是对外商业餐饮系统。
+
+核心场景：
+
+- 厨师或家庭成员先进入一个家庭空间
+- 家庭管理员维护本家庭菜单
+- 食客通过家庭上下文创建订单或加入订单
+- 家庭成员与访客围绕同一个订单协作点菜
+- 厨师驱动制作流程并最终结束订单
+
+非目标：
+
+- 不是菜谱工具
+- 不是通用家庭管理系统
+- 不是对外商业餐饮系统
 
 ## 二、核心抽象
 
-User → Order → Dish
+`User -> Family -> Order -> OrderItem -> Dish`
 
-订单是一个可分享的协作容器。
-用户通过创建或扫码加入同一个订单，协作完成点菜。
+说明：
 
-## 三、用户与角色
+- `Family` 是租户边界
+- 菜单、订单、成员都从属于家庭
+- `Order` 是家庭内可分享的协作容器
+- `Dish` 是家庭级菜单资源，不再是全局资源
+
+## 三、核心设计原则
+
+- 业务权限属于家庭成员关系，不属于全局用户。
+- `profiles.is_admin` 如保留，仅表示平台运维角色，不参与业务授权。
+- 新用户注册后必须先创建家庭或加入家庭，才能进入主应用。
+- 访客不是家庭成员，只是订单级临时参与者。
+- 家庭邀请码与订单分享链接是两套不同机制。
+
+## 四、用户与角色
 
 ### 账号体系
 
-- 登录方式：username + password（username 全局唯一）
-- 用户信息：username、avatar、account_id（自动生成）
-- 无邮箱、无第三方登录
-- 风险说明：忘记 username/password 无法找回，v1 有意接受此限制
+- 登录方式：`username + password`
+- `username` 全局唯一
+- 用户基础信息：`username`、`avatar_url`、`account_id`
+- v1 不做邮箱、第三方登录、找回密码
 
-### 角色定义
+### 角色分层
 
-- 普通用户：加入订单、点菜、删除自己未下单的菜品
-- 管理员：在普通用户基础上，额外拥有菜品管理、订单状态管理、用户权限管理能力
-- 管理员是全局角色，不限定于某个订单
-- 初始管理员手动在数据库设置，后续管理员由现有管理员在 Setting → 管理用户 中授权
-- 管理员也可以作为普通用户下单点菜
+#### 平台角色
 
-## 四、页面结构
+- `profiles.is_admin`
+- 仅用于平台运维或手动数据处理
+- 不用于菜单管理、订单管理、家庭成员管理
 
-### 1. 菜单页（Menu）
+#### 家庭角色
 
-- 浏览全部菜品
-- 按 category 筛选（动态生成，无菜的分类自动消失）
-- 点菜加入当前订单
-- 管理模式（管理员专用）：添加 / 编辑 / 删除菜品
+- `family_members.role = owner | admin | member`
 
-### 2. 订单页（Orders）
+权限边界：
 
-- 展示当前活跃订单
-- 菜品列表，含每道菜的制作状态
-- 下单按钮（用户触发）
-- 每道菜可查看对应食材（bottom sheet）
-- 采购清单入口（bottom sheet，汇总全部食材，高亮当前轮次新增内容）
-- 管理员可更新单道菜状态（等待中 → 制作中 → 制作完成）
-- 管理员可直接结束订单
+- `owner`
+  - 管理家庭成员
+  - 设置 / 取消家庭管理员
+  - 刷新家庭邀请码
+  - 管理家庭菜品
+  - 创建和管理订单
+- `admin`
+  - 管理普通成员
+  - 刷新家庭邀请码
+  - 管理家庭菜品
+  - 创建和管理订单
+- `member`
+  - 浏览本家庭菜单
+  - 加入订单并点菜
+  - 查看自己有权限访问的家庭与订单信息
 
-### 3. 设置页（Setting）
+## 五、家庭机制
 
-- 个人信息
-- 管理用户（管理员专用）：查看用户列表、设置 / 取消管理员
-- 历史订单：查看所有已结束的订单
+### 家庭创建与加入
 
-## 五、订单机制
+- 新用户注册成功后，必须先完成以下二选一：
+  - 创建家庭
+  - 输入邀请码加入家庭
+- 用户未归属任何家庭时，不进入主应用壳层
+- 家庭邀请码由 `families.join_code` 表示
+- 家庭邀请码支持刷新，刷新后旧码失效
+
+### 家庭生命周期
+
+- 用户退出家庭或被移出家庭时，保留历史记录，不做硬删
+- 失去家庭后续访问权限，但历史订单和操作记录仍保留数据库层追踪
+- v1 不提供家庭自助解散，只允许平台侧人工处理
+
+## 六、订单机制
+
+### 订单归属
+
+- 每个订单必须属于一个家庭
+- 创建订单者必须是该家庭活跃成员
+- v1 保留约束：同一登录用户同一时间只能在一个活跃订单中
 
 ### 订单创建与加入
 
-- 首次进入且无活跃订单 → 自动创建新订单
-- 扫码 / 点击分享链接 → 加入对应订单
-- 同一链接 / 二维码 = 同一订单
-- 一个用户同一时间只能存在于一个活跃订单（数据库层约束）
-
-### 订单分享
-
-- 每个订单持有一个高随机性 share_token
-- 分享链接格式：/app/join/{token}
-- 未登录用户访问链接 → 先登录 → 自动加入订单
+- 家庭成员在家庭上下文中创建订单
+- 订单分享链接格式：`/app/join/{share_token}`
+- 分享链接只用于加入订单，不用于加入家庭
 
 ### 订单状态流转
 
-点单中 → 已下单 → 已结束
+`ordering -> placed -> finished`
 
-- 点单中：可自由加菜、删除自己的菜
-- 已下单：由食客触发；仍可继续加菜（标记新轮次）；不可撤销已有菜品
-- 已结束：由管理员触发；禁止任何操作
+- `ordering`
+  - 可加菜
+  - 可删除自己加的菜
+- `placed`
+  - 已触发下单
+  - 仍可继续加菜，但会进入新轮次
+- `finished`
+  - 订单结束
+  - 家庭成员保留历史可见性
+  - 访客失去访问入口
 
 ### 追加下单
 
-- 已下单后继续加菜，记录 order_round（整数，第几轮下单）
-- 采购清单中高亮最新轮次新增的食材
+- 继续加菜时写入 `order_round`
+- `orders.current_round` 表示当前轮次
+- 采购清单高亮最新轮次新增食材
 
-## 六、菜品状态
+## 七、访客机制
 
-状态属于 order_item（菜品级），与订单状态解耦。
+- 访客通过订单分享链接加入订单，不进入家庭
+- 访客只存在于 `order_members`
+- 访客不写入 `profiles`、`family_members`
+- 访客在订单结束后默认失去该订单访问能力
+- v1 中访客相关写操作应走 RPC / Edge Function，不开放宽松裸表写入
 
-等待中 → 制作中 → 制作完成
+## 八、菜品与采购清单
 
-- 状态由管理员手动更新
-- 管理员也可跳过中间状态直接结束订单
+### 菜品管理
 
-## 七、采购清单
+- 菜品属于家庭
+- 仅 `owner` / `admin` 可添加、编辑、删除或归档菜品
+- 菜品字段：`name`、`category`、`image_url`、`ingredients`
+- 分类仍由 `dishes.category` 动态生成，无独立分类表
+- 建议图片路径按家庭维度组织，例如：
+  - `families/{family_id}/dishes/{dish_id}/cover.jpg`
+
+### 菜品状态
+
+菜品状态属于 `order_items`，与订单状态解耦：
+
+`waiting -> cooking -> done`
+
+- 状态由家庭 `owner/admin` 更新
+- 管理员可结束订单，不要求所有菜品先到 `done`
+
+### 采购清单
 
 - 不独立存表，基于订单动态聚合
-- 汇总订单内所有菜品的食材，相同食材合并计量
-- 在订单页以 bottom sheet 展示
-- 高亮当前最新 order_round 新增的食材条目
+- 汇总订单内全部菜品的食材
+- 相同食材合并计量
+- 高亮最新 `order_round` 新增条目
 
-## 八、菜品管理
+## 九、核心数据模型
 
-- 无独立后台
-- 管理员在菜单页开启「管理模式」后操作
-- 菜品字段：名称、分类、图片、食材列表
-- 分类由 dishes.category 动态生成，无独立分类表
-- 图片存储于 Supabase Storage
+### 表
 
-## 九、技术栈
+- `profiles`
+  - 用户基础档案
+- `families`
+  - 家庭租户
+- `family_members`
+  - 家庭成员与角色
+- `dishes`
+  - 家庭菜单
+- `orders`
+  - 家庭订单
+- `order_members`
+  - 订单参与者，兼容家庭成员与访客
+- `order_items`
+  - 订单中的菜品项
+
+### 枚举
+
+- `family_role`: `owner | admin | member`
+- `family_member_status`: `active | removed`
+- `order_status`: `ordering | placed | finished`
+- `item_status`: `waiting | cooking | done`
+- `order_member_type`: `family_member | guest`
+
+详细设计见 [docs/family_v1_design.md](docs/family_v1_design.md)。
+
+## 十、技术栈
 
 - 前端：Flutter（iOS + Android）
 - 后端：Supabase
   - 数据库：PostgreSQL
-  - 认证：Supabase Auth（自定义 username 登录）
+  - 认证：Supabase Auth（username + password）
   - 存储：Supabase Storage（菜品图片）
-  - 实时同步：Supabase Realtime（订单状态、菜品状态同步）
+  - 实时同步：Supabase Realtime
+- 路由：GoRouter
+- 状态管理：Riverpod
 
-## 十、v1 明确不做
+## 十一、Flutter 项目结构
 
-- 邮箱 / 第三方登录
-- 账号找回
-- 菜品评论 / 评分
-- 多语言
-- 商业化相关功能
-
-## Flutter 项目结构
-
-lib/
-├── main.dart
-├── app.dart                        # MaterialApp、路由、主题配置
-│
-├── core/
-│   ├── supabase/
-│   │   ├── supabase_client.dart    # Supabase 初始化单例
-│   │   └── realtime_manager.dart  # 订阅管理（订单/菜品状态）
-│   ├── router/
-│   │   └── app_router.dart        # GoRouter 路由定义（含 /join/:token）
-│   ├── theme/
-│   │   └── app_theme.dart         # 颜色、字体、组件主题
-│   └── utils/
-│       ├── ingredient_aggregator.dart  # 食材聚合逻辑（采购清单计算）
-│       └── share_helper.dart          # 生成分享链接/二维码
-│
-├── features/
-│   ├── auth/
-│   │   ├── data/
-│   │   │   └── auth_repository.dart       # 登录、注册、登出
-│   │   ├── presentation/
-│   │   │   ├── login_screen.dart
-│   │   │   └── register_screen.dart
-│   │   └── providers/
-│   │       └── auth_provider.dart         # 当前用户状态
-│
-│   ├── menu/
-│   │   ├── data/
-│   │   │   └── dish_repository.dart       # CRUD dishes
-│   │   ├── presentation/
-│   │   │   ├── menu_screen.dart           # 主页面
-│   │   │   ├── components/
-│   │   │   │   ├── dish_card.dart
-│   │   │   │   ├── category_filter_bar.dart
-│   │   │   │   └── admin_dish_form.dart   # 添加/编辑菜品表单
-│   │   └── providers/
-│   │       └── dish_provider.dart
-│
-│   ├── order/
-│   │   ├── data/
-│   │   │   ├── order_repository.dart      # 订单 CRUD、状态流转
-│   │   │   └── order_item_repository.dart # 菜品项 CRUD、状态更新
-│   │   ├── presentation/
-│   │   │   ├── order_screen.dart          # 主页面
-│   │   │   ├── components/
-│   │   │   │   ├── order_item_tile.dart
-│   │   │   │   ├── item_status_badge.dart
-│   │   │   │   ├── shopping_list_sheet.dart    # 采购清单 bottom sheet
-│   │   │   │   └── place_order_button.dart
-│   │   └── providers/
-│   │       ├── order_provider.dart
-│   │       └── shopping_list_provider.dart     # 食材聚合 + 高亮逻辑
-│
-│   ├── join/
-│   │   └── presentation/
-│   │       └── join_screen.dart           # 扫码/链接进入时的中转页
-│
-│   └── setting/
-│       ├── data/
-│       │   └── user_repository.dart       # 查询用户、设置 is_admin
-│       ├── presentation/
-│       │   ├── setting_screen.dart        # 设置主页面
-│       │   ├── manage_users_screen.dart   # 管理员专用
-│       │   └── history_orders_screen.dart
-│       └── providers/
-│           └── user_management_provider.dart
-│
-└── shared/
-    ├── widgets/
-    │   ├── app_avatar.dart
-    │   ├── status_chip.dart
-    │   └── empty_state.dart
-    └── models/                            # Dart 数据类，对应数据库表
-        ├── profile.dart
-        ├── dish.dart
-        ├── order.dart
-        ├── order_member.dart
-        └── order_item.dart
-
-## 开发顺序
-
-Phase 1 — 地基（无 UI 可验证）
-
-  1. Supabase 项目初始化
-     - 执行数据库 DDL（建表、枚举、trigger、RLS）
-     - 配置 Storage bucket（dishes/images）
-     - 开启 Realtime（orders、order_items 两张表）
-
-  2. Flutter 基础配置
-     - 接入 Supabase Flutter SDK
-     - 配置 GoRouter（含未登录重定向、/join/:token 路由）
-     - 建立 shared/models（fromJson / toJson）
-     - 建立 app_theme
-
-Phase 2 — 认证
-  3. 注册页（username + password → 写入 profiles）
-  4. 登录页
-  5. auth_provider（持久化登录状态）
-
-- 验收：可注册、登录、登出，profiles 表数据正确
-
----
-
-## Phase 1-2 详细操作指南
-
-### Step 1: 创建 Supabase 项目
-
-1. 打开 https://supabase.com 并登录（没有账号先注册）
-2. 点击 "New Project"
-3. 填写项目信息：
-   - Name: `family-menu`（或你喜欢的名称）
-   - Database Password: 设置一个强密码（记下来！）
-   - Region: 选择离你最近的区域
-4. 点击 "Create new project"，等待 2-3 分钟
-
-### Step 2: 执行数据库 DDL
-
-1. 在 Supabase 控制台左侧菜单，点击 "SQL Editor"
-2. 点击 "New query"
-3. 复制 `database.sql` 文件的全部内容，粘贴到编辑器
-4. 点击 "Run" 执行
-5. 如果看到绿色成功提示，表示数据库表已创建完成
-
-**验证方法：**
-- 点击左侧 "Table Editor"
-- 应该能看到 5 张表：profiles, dishes, orders, order_members, order_items
-
-### Step 3: 配置 Storage Bucket
-
-1. 点击左侧菜单 "Storage"
-2. 点击 "New bucket"
-3. 填写：
-   - Name: `dishes`
-   - Public bucket: 打开（开关变绿）
-4. 点击 "Create bucket"
-
-**设置 Storage 策略（允许上传图片）：**
-
-1. 点击刚创建的 `dishes` bucket
-2. 点击上方 "Policies" 标签
-3. 点击 "New policy" → "For full customization"
-4. 创建以下策略：
-
-**策略 1 - 允许所有人查看图片：**
-- Policy name: `Public read access`
-- Allowed operation: SELECT
-- Target roles: 选择 `authenticated`
-- Policy definition: `true`
-- 点击 "Review" → "Save policy"
-
-**策略 2 - 允许管理员上传图片：**
-- 点击 "New policy" → "For full customization"
-- Policy name: `Admin upload`
-- Allowed operation: INSERT
-- Target roles: 选择 `authenticated`
-- Policy definition: `(SELECT is_admin FROM profiles WHERE id = auth.uid()) = true`
-- 点击 "Review" → "Save policy"
-
-### Step 4: 开启 Realtime
-
-1. 点击左侧菜单 "Database"
-2. 点击子菜单 "Replication"
-3. 找到 "supabase_realtime" 这一行
-4. 点击 "0 tables" 进入配置
-5. 找到并勾选以下两张表：
-   - `orders`
-   - `order_items`
-6. 点击 "Save"
-
-### Step 5: 获取 Supabase 密钥
-
-1. 点击左侧菜单 "Project Settings"（齿轮图标）
-2. 点击 "API"
-3. 记录以下两个值（后面 Flutter 配置需要用）：
-   - **Project URL**: 形如 `https://xxxxx.supabase.co`
-   - **anon public key**: 一串很长的字符串
-
----
-
-### Step 6: 创建 Flutter 项目
-
-打开终端，执行以下命令：
-
-```bash
-# 进入你的工作目录
-cd /Users/cain/Documents/code/flutter-family-concept
-
-# 创建 Flutter 项目
-flutter create --org com.yourname family_menu
-
-# 进入项目目录
-cd family_menu
-```
-
-### Step 7: 添加依赖
-
-编辑 `family_menu/pubspec.yaml`，在 `dependencies:` 下添加：
-
-```yaml
-dependencies:
-  flutter:
-    sdk: flutter
-  supabase_flutter: ^2.5.0
-  go_router: ^14.0.0
-  flutter_riverpod: ^2.5.0
-  riverpod_annotation: ^2.3.0
-```
-
-然后在终端执行：
-
-```bash
-cd family_menu
-flutter pub get
-```
-
-### Step 8: 创建项目目录结构
-
-在 `family_menu/lib/` 下创建以下文件夹：
-
-```
+```text
 lib/
 ├── core/
 │   ├── supabase/
@@ -356,9 +214,7 @@ lib/
 │   └── utils/
 ├── features/
 │   ├── auth/
-│   │   ├── data/
-│   │   ├── presentation/
-│   │   └── providers/
+│   ├── family/
 │   ├── menu/
 │   ├── order/
 │   ├── join/
@@ -368,107 +224,196 @@ lib/
     └── models/
 ```
 
-**终端命令（可选，手动创建也可以）：**
+建议模型文件至少包含：
 
-```bash
-cd family_menu/lib
-mkdir -p core/supabase core/router core/theme core/utils
-mkdir -p features/auth/data features/auth/presentation features/auth/providers
-mkdir -p features/menu features/order features/join features/setting
-mkdir -p shared/widgets shared/models
-```
+- `profile.dart`
+- `family.dart`
+- `family_member.dart`
+- `dish.dart`
+- `order.dart`
+- `order_member.dart`
+- `order_item.dart`
 
-### Step 9: 配置 Supabase 客户端
+## 十二、开发顺序
 
-告诉我，我会帮你创建 `lib/core/supabase/supabase_client.dart` 文件。
+### Phase 0 — Tenant Foundation
 
-需要用到 Step 5 记录的：
-- Project URL
-- anon public key
+目标：冻结多家庭规则并输出可执行规格。
 
-### Step 10: 创建数据模型
+- 确认家庭级角色模型
+- 确认访客生命周期
+- 确认家庭邀请码与订单分享链接策略
+- 输出 Family 版 ER 图
+- 输出可执行 SQL 草案
+- 输出 RLS 矩阵
 
-告诉我，我会帮你创建 `lib/shared/models/` 下的 5 个模型文件：
-- profile.dart
-- dish.dart
-- order.dart
-- order_member.dart
-- order_item.dart
+### Phase 1 — Backend Foundation
 
-### Step 11: 配置路由
+目标：建立多家庭数据库底座。
 
-告诉我，我会帮你创建 `lib/core/router/app_router.dart`。
+- 执行 `database.sql`
+- 创建 7 张核心表
+- 建立索引、trigger、helper function、RPC
+- 启用 RLS
+- 配置 Storage bucket
+- 开启 Realtime
 
-### Step 12: 配置主题
+### Phase 2 — Auth & Onboarding
 
-告诉我，我会帮你创建 `lib/core/theme/app_theme.dart`。
+目标：完成注册 / 登录 / 入家闭环。
 
----
+- 注册页
+- 登录页
+- `profiles` 初始化
+- onboarding
+  - 创建家庭
+  - 输入邀请码加入家庭
+- 家庭上下文 provider
 
-### Phase 2: 认证功能
+### Phase 3 — Family Context & Shell
 
-完成 Phase 1 后，告诉我，我会帮你实现：
-- 注册页面
-- 登录页面
-- auth_provider（登录状态管理）
+- 主应用壳层
+- 当前家庭切换
+- 空家庭 / 无订单状态处理
 
----
+### Phase 4 — Menu
 
-### 当前进度检查清单
+- 家庭菜单查询
+- 分类筛选
+- 管理员菜品 CRUD
+- 图片上传
 
-- [ ] Step 1: Supabase 项目创建完成
-- [ ] Step 2: 数据库 DDL 执行成功
-- [ ] Step 3: Storage bucket 配置完成
-- [ ] Step 4: Realtime 开启完成
-- [ ] Step 5: 已记录 Project URL 和 anon key
-- [ ] Step 6: Flutter 项目创建完成
-- [ ] Step 7: 依赖添加完成
-- [ ] Step 8: 目录结构创建完成
-- [ ] Step 9: Supabase 客户端配置完成
-- [ ] Step 10: 数据模型创建完成
-- [ ] Step 11: 路由配置完成
-- [ ] Step 12: 主题配置完成
-- [ ] Phase 2: 认证功能完成
+### Phase 5 — Order Core
 
-**完成一步后，回来告诉我，我会指导你下一步。**
+- 创建订单
+- 加入订单
+- 点菜 / 删菜
+- 订单状态流转
+- 菜品制作状态更新
 
-Phase 3 — 菜单核心
-  6. dish_repository（read all、按 category 过滤）
-  7. menu_screen + dish_card + category_filter_bar
-  8. 管理模式：admin_dish_form（添加/编辑/删除）+ 图片上传
+### Phase 6 — Guest Join & Sharing
 
-- 验收：管理员可管理菜品，普通用户可浏览
+- 分享链接
+- 二维码展示
+- 访客加入订单
+- 受控 guest flow
 
-Phase 4 — 订单核心
-  9. order_repository（创建订单、加入订单、状态流转）
-  10. order_item_repository（加菜、删菜、更新状态）
-  11. join_screen（token 解析 → 加入订单）
-  12. order_screen + order_item_tile + place_order_button
+### Phase 7 — Shopping List & Realtime
 
-- 验收：完整点菜→下单→管理员更新制作状态→结束订单 流程跑通
+- 食材聚合
+- 当前轮次高亮
+- Realtime 订阅订单与菜品状态
 
-Phase 5 — 采购清单
-  13. ingredient_aggregator（聚合逻辑 + order_round 高亮计算）
-  14. shopping_list_sheet
+### Phase 8 — Setting & History
 
-- 验收：食材正确合并，追加菜品后高亮新增食材
+- 个人信息
+- 家庭成员管理
+- 历史订单
+- 错误状态与空状态收尾
 
-Phase 6 — 分享 + 实时同步
-  15. share_helper（生成链接 + 二维码展示）
-  16. realtime_manager（订阅 order_items 状态变化，驱动 UI 更新）
+## 十三、Phase 0-2 验收重点
 
-- 验收：多设备同时点菜，状态实时同步
+### Phase 0
 
-Phase 7 — Setting
-  17. setting_screen（设置主页面）
-  18. manage_users_screen（管理员授权）
-  19. history_orders_screen（已结束订单列表）
+- 不再存在未收敛的租户边界问题
+- 不再使用“全局管理员承载业务权限”
+- 数据模型、RLS、访客规则形成单一事实源
 
-Phase 8 — 收尾
-  20. 图片压缩（上传前 client 端压缩，目标 < 300KB）
-  21. 错误处理 / loading 状态补全
-  22. 空状态 UI（无菜品、无订单）
-  23. 真机测试（iOS + Android）
+### Phase 1
 
+- `database.sql` 可直接执行成功
+- 家庭成员只能访问本家庭数据
+- 非家庭成员无法读取他人家庭菜单与订单
+- 活跃订单唯一约束由 trigger / RPC 保证
 
+### Phase 2
 
+- 可注册、登录、登出
+- 未入家的用户不会进入主应用
+- 可创建家庭并成为 `owner`
+- 可通过邀请码加入家庭
+
+## 十四、Phase 1-2 实施指南
+
+### Step 1：阅读设计文档
+
+先阅读：
+
+- [docs/family_v1_design.md](docs/family_v1_design.md)
+- [database.sql](database.sql)
+- [datamodel.dart](datamodel.dart)
+
+### Step 2：创建 Supabase 项目
+
+1. 登录 Supabase
+2. 创建新项目
+3. 记录以下信息：
+   - Project URL
+   - anon public key
+
+### Step 3：执行数据库脚本
+
+1. 打开 Supabase SQL Editor
+2. 复制 [database.sql](database.sql) 全部内容
+3. 执行脚本
+
+执行后应能看到以下核心表：
+
+- `profiles`
+- `families`
+- `family_members`
+- `dishes`
+- `orders`
+- `order_members`
+- `order_items`
+
+### Step 4：验证 RPC 与 RLS
+
+重点验证：
+
+- 已登录用户只能读到同家庭资料与菜单
+- 通过 `create_family_with_owner()` 能创建家庭并自动写入 owner
+- 通过 `join_family_by_code()` 能加入家庭
+- 通过 `create_order_for_family()` 能创建订单并自动入单
+- 活跃订单唯一约束生效
+
+### Step 5：配置 Storage
+
+建议：
+
+- bucket 名称：`dishes`
+- 对象路径按家庭维度组织
+- 上传权限仅给家庭 `owner/admin`
+
+Storage 细粒度策略应在图片上传能力落地时一并实现，避免先写出与家庭边界不一致的宽松策略。
+
+### Step 6：开启 Realtime
+
+至少开启：
+
+- `orders`
+- `order_items`
+
+如后续家庭成员页需要实时变化，可再评估是否订阅 `family_members`。
+
+### Step 7：开始 Flutter Phase 1-2
+
+优先完成：
+
+- Supabase 初始化
+- 路由与鉴权重定向
+- shared models
+- auth state
+- family context provider
+- onboarding 流程
+
+## 十五、v1 明确不做
+
+- 邮箱 / 第三方登录
+- 找回密码
+- 家庭自助解散
+- 跨家庭聚合视图
+- 复杂邀请审批流
+- 访客订单结束后历史回看
+- 多语言
+- 商业化功能
