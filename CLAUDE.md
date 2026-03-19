@@ -26,3 +26,31 @@
 - 通过 `--dart-define` 提供 `SUPABASE_URL` 与 `SUPABASE_ANON_KEY`
 - 可选 `APP_BASE_URL` 用于分享链接
 - 用户名登录基于 Supabase email/password 的映射方案
+
+
+
+## Flutter 
+
+
+不要动画，不要使用 
+
+
+交互设计：
+
+操作像现实一样直接（Direct Manipulation）
+
+反馈几乎是瞬时的（Immediate Feedback）
+
+出错可以轻松恢复（Forgiveness）
+
+整个过程连续无阻（Continuity）
+
+无阻塞（少弹窗）
+
+无中断（少等待）
+
+无跳跃（连续过渡）
+
+少一些page，可以多使用 sheet方式 填写信息
+
+

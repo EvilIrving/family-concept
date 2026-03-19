@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -32,7 +33,10 @@ class MenuRepository {
       return response
           .map((row) => Dish.fromJson(Map<String, dynamic>.from(row)))
           .toList();
-    } catch (error) {
+    } catch (error, stackTrace) {
+      debugPrint('fetchDishes failed: $error');
+      debugPrint('familyId: $familyId');
+      debugPrint('stackTrace: $stackTrace');
       throw AppException.from(error, fallbackMessage: '菜品加载失败，请稍后重试');
     }
   }
