@@ -39,16 +39,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingChoicePage(),
-        routes: [
-          GoRoute(
-            path: 'create-family',
-            builder: (context, state) => const CreateFamilyPage(),
-          ),
-          GoRoute(
-            path: 'join-family',
-            builder: (context, state) => const JoinFamilyPage(),
-          ),
-        ],
       ),
       GoRoute(
         path: '/app/join/:shareToken',

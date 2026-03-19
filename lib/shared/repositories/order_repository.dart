@@ -151,8 +151,28 @@ class OrderRepository {
         'status': ItemStatus.waiting.name,
         'order_round': order.currentRound,
       });
+      if (order.status == OrderStatus.placed) {
+        await _client
+            .from('orders')
+            .update({'status': OrderStatus.ordering.name})
+            .eq('id', order.id);
+      }
     } catch (error) {
       throw AppException.from(error, fallbackMessage: '加菜失败，请稍后重试');
+    }
+  }
+
+  Future<void> updateItemQuantity({
+    required String itemId,
+    required int quantity,
+  }) async {
+    try {
+      await _client
+          .from('order_items')
+          .update({'quantity': quantity})
+          .eq('id', itemId);
+    } catch (error) {
+      throw AppException.from(error, fallbackMessage: '数量更新失败，请稍后重试');
     }
   }
 

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/utils/app_exception.dart';
+import '../../core/utils/formatters.dart';
+import '../../shared/models/app_models.dart';
 import '../../shared/repositories/order_repository.dart';
 import '../../shared/widgets/app_widgets.dart';
 import '../family/family_providers.dart';
 import '../family/onboarding_pages.dart';
+import 'order_detail_page.dart';
 import 'order_providers.dart';
 
 class OrdersPage extends ConsumerWidget {
@@ -46,13 +48,6 @@ class OrdersPage extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              FamilyHeaderCard(
-                family: family,
-                onSwitch: () => showFamilySwitcherSheet(context, ref),
-              ),
-              const SizedBox(height: 24),
-              SectionTitle('当前订单'),
-              const SizedBox(height: 12),
               if (summary == null)
                 EmptyState(
                   title: '当前没有进行中的订单',
@@ -65,44 +60,36 @@ class OrdersPage extends ConsumerWidget {
                       : null,
                   icon: Icons.receipt_long_rounded,
                 )
-              else
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '订单 ${summary.order.id.substring(0, 8)}',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                          ),
-                          StatusChip.order(summary.order.status),
-                        ],
+              else ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '当前订单',
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '当前轮次 第${summary.order.currentRound}轮',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '参与人数 ${summary.participants.length}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 16),
-                      PrimaryButton(
-                        label: summary.isCurrentUserJoined ? '进入订单' : '去加入订单',
-                        icon: summary.isCurrentUserJoined
-                            ? Icons.open_in_new_rounded
-                            : Icons.group_add_rounded,
-                        onPressed: () =>
-                            context.push('/app/orders/${summary.order.id}'),
-                      ),
-                    ],
-                  ),
+                    ),
+                    AppIconButton(
+                      icon: Icons.shopping_basket_rounded,
+                      tooltip: '采购清单',
+                      onPressed: () async {
+                        final detail = await ref.read(
+                          orderDetailProvider(summary.order.id).future,
+                        );
+                        if (context.mounted) {
+                          await showAppBottomSheet<void>(
+                            context: context,
+                            builder: (_) =>
+                                _OrdersShoppingSheet(detail: detail),
+                          );
+                        }
+                      },
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 12),
+                OrderDetailBody(orderId: summary.order.id),
+              ],
               if (family.role.canManageMenu && summary == null) ...[
                 const SizedBox(height: 16),
                 SecondaryButton(
@@ -142,7 +129,7 @@ class OrdersPage extends ConsumerWidget {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('订单已创建')));
-        context.push('/app/orders/${summary.order.id}');
+        ref.invalidate(orderDetailProvider(summary.order.id));
       }
     } catch (error) {
       if (context.mounted) {
@@ -155,5 +142,94 @@ class OrdersPage extends ConsumerWidget {
         );
       }
     }
+  }
+}
+
+class _OrdersShoppingSheet extends StatelessWidget {
+  const _OrdersShoppingSheet({required this.detail});
+
+  final OrderDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = detail.groupShoppingListByRound();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('采购清单', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          if (groups.isEmpty)
+            const EmptyState(
+              title: '还没有可汇总的食材',
+              description: '等有人点菜后，这里会自动生成采购清单。',
+              icon: Icons.shopping_basket_outlined,
+            )
+          else
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 420),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: groups.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final group = groups[index];
+                  return AppCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '第${group.round}轮采购单',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                            ),
+                            Text(
+                              group.round == detail.order.currentRound
+                                  ? '当前轮次'
+                                  : '历史轮次',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        for (final entry in group.entries) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(
+                              children: [
+                                Expanded(child: Text(entry.name)),
+                                if (entry.isLatestRound)
+                                  const Padding(
+                                    padding: EdgeInsets.only(right: 8),
+                                    child: Icon(
+                                      Icons.fiber_new_rounded,
+                                      color: AppColors.primary,
+                                      size: 18,
+                                    ),
+                                  ),
+                                Text(
+                                  '${formatIngredientAmount(entry.amount)} ${entry.unit}',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 2),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

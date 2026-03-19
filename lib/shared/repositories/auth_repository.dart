@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/supabase/supabase_provider.dart';
 import '../../core/utils/app_exception.dart';
-import '../../core/utils/username_codec.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(ref.watch(supabaseClientProvider));
@@ -23,15 +22,15 @@ class AuthRepository {
     }
   }
 
-  Future<void> signIn({
-    required String username,
-    required String password,
-  }) async {
-    UsernameCodec.validate(username);
+  Future<void> signIn({required String email, required String password}) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.isEmpty) {
+      throw const AppException('请输入邮箱');
+    }
 
     try {
       await _client.auth.signInWithPassword(
-        email: UsernameCodec.emailFor(username),
+        email: normalizedEmail,
         password: password,
       );
     } catch (error) {
@@ -41,16 +40,24 @@ class AuthRepository {
 
   Future<void> register({
     required String username,
+    required String email,
     required String password,
   }) async {
-    UsernameCodec.validate(username);
-
-    final normalized = UsernameCodec.normalize(username);
-    final email = UsernameCodec.emailFor(normalized);
+    final normalized = username.trim().toLowerCase();
+    final normalizedEmail = email.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      throw const AppException('请输入用户名');
+    }
+    if (!RegExp(r'^[a-zA-Z0-9_]{3,20}$').hasMatch(normalized)) {
+      throw const AppException('用户名需为 3-20 位字母、数字或下划线');
+    }
+    if (normalizedEmail.isEmpty) {
+      throw const AppException('请输入邮箱');
+    }
 
     try {
       final response = await _client.auth.signUp(
-        email: email,
+        email: normalizedEmail,
         password: password,
         data: {'username': normalized},
       );
@@ -68,11 +75,11 @@ class AuthRepository {
 
       if (_client.auth.currentSession == null) {
         final signInResponse = await _client.auth.signInWithPassword(
-          email: email,
+          email: normalizedEmail,
           password: password,
         );
         if (signInResponse.session == null) {
-          throw const AppException('当前项目需要关闭邮箱确认，才能使用用户名模式');
+          throw const AppException('当前项目需要关闭邮箱确认，才能在注册后直接进入应用');
         }
       }
     } catch (error) {

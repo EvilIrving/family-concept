@@ -5,6 +5,19 @@ import '../../shared/models/app_models.dart';
 
 export '../../core/theme/app_theme.dart';
 
+class AppScrollBehavior extends MaterialScrollBehavior {
+  const AppScrollBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
+  }
+}
+
 class AppScaffold extends StatelessWidget {
   const AppScaffold({
     required this.title,
@@ -84,6 +97,35 @@ class AppScaffold extends StatelessWidget {
   }
 }
 
+class CenteredContent extends StatelessWidget {
+  const CenteredContent({required this.child, super.key, this.maxWidth = 440});
+
+  final Widget child;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 当处于无限高度约束时（如 SingleChildScrollView 内），不应用 minHeight
+        final hasFiniteHeight = constraints.maxHeight.isFinite;
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: hasFiniteHeight ? constraints.maxHeight : 0,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: child,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class AppCard extends StatelessWidget {
   const AppCard({
     required this.child,
@@ -123,6 +165,36 @@ class AppCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.lg),
       onTap: onTap,
       child: content,
+    );
+  }
+}
+
+class AppIconButton extends StatelessWidget {
+  const AppIconButton({
+    required this.icon,
+    required this.onPressed,
+    super.key,
+    this.tooltip,
+    this.isDanger = false,
+  });
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final String? tooltip;
+  final bool isDanger;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton.filledTonal(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      style: IconButton.styleFrom(
+        backgroundColor: isDanger
+            ? AppColors.dangerSoft
+            : AppColors.surfaceSoft,
+        foregroundColor: isDanger ? AppColors.danger : AppColors.primary,
+      ),
+      icon: Icon(icon),
     );
   }
 }

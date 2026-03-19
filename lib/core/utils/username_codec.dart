@@ -1,4 +1,3 @@
-import '../config/app_environment.dart';
 import 'app_exception.dart';
 
 /// Maps username + password UX onto Supabase email auth.
@@ -7,10 +6,6 @@ abstract final class UsernameCodec {
 
   static String normalize(String input) {
     return input.trim().toLowerCase();
-  }
-
-  static String emailFor(String username) {
-    return '${normalize(username)}@${AppEnvironment.usernameEmailDomain}';
   }
 
   static void validate(String input) {

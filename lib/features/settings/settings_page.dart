@@ -1,25 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../core/supabase/supabase_provider.dart';
 import '../../core/utils/app_exception.dart';
 import '../../core/utils/extensions.dart';
+import '../../core/utils/formatters.dart';
 import '../../shared/models/app_models.dart';
 import '../../shared/repositories/auth_repository.dart';
 import '../../shared/repositories/family_repository.dart';
+import '../../shared/repositories/profile_repository.dart';
 import '../../shared/widgets/app_widgets.dart';
 import '../family/family_providers.dart';
 import '../family/onboarding_pages.dart';
+import '../order/order_providers.dart';
 
-class SettingsPage extends ConsumerWidget {
+final familyMembersProvider =
+    FutureProvider.family<List<FamilyMembership>, String>(
+      (ref, familyId) =>
+          ref.watch(familyRepositoryProvider).fetchFamilyMembers(familyId),
+    );
+
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends ConsumerState<SettingsPage> {
+  bool _confirmLogout = false;
+
+  @override
+  Widget build(BuildContext context) {
     final session = ref.watch(appSessionProvider).valueOrNull;
     final family = session?.currentFamily;
     final profile = session?.profile;
+    final email =
+        ref.watch(supabaseClientProvider).auth.currentUser?.email ?? '';
 
     if (family == null || profile == null) {
       return const AppScaffold(
@@ -31,113 +49,85 @@ class SettingsPage extends ConsumerWidget {
     return AppScaffold(
       title: '设置',
       subtitle: family.name,
+      actions: [
+        IconButton(
+          onPressed: () => showFamilySwitcherSheet(context, ref),
+          icon: const Icon(Icons.swap_horiz_rounded),
+        ),
+      ],
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FamilyHeaderCard(
-            family: family,
-            onSwitch: () => showFamilySwitcherSheet(context, ref),
-          ),
-          const SizedBox(height: 16),
           AppCard(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('当前账号', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 12),
-                Text(
-                  profile.username,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  profile.avatarUrl?.isNotEmpty == true
-                      ? profile.avatarUrl!
-                      : '未设置头像地址',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 16),
-                SecondaryButton(
-                  label: '编辑个人信息',
-                  icon: Icons.account_circle_rounded,
-                  onPressed: () => context.push('/app/settings/profile'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '家庭信息',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
+                _SettingsRow(
+                  title: profile.username,
+                  subtitle: email.isEmpty ? '未读取到邮箱' : email,
+                  trailing: AppIconButton(
+                    icon: Icons.edit_rounded,
+                    tooltip: '编辑个人信息',
+                    onPressed: () => showAppBottomSheet<void>(
+                      context: context,
+                      builder: (_) => const _ProfileSheet(),
                     ),
-                    if (family.role.canManageMenu)
-                      IconButton(
-                        onPressed: () => _showRenameDialog(context, ref),
-                        icon: const Icon(Icons.edit_rounded),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '邀请码 ${family.family.joinCode}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '你当前是 ${family.role.label}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 16),
-                SecondaryButton(
-                  label: '复制邀请码',
-                  icon: Icons.copy_rounded,
-                  onPressed: () async {
-                    await Clipboard.setData(
-                      ClipboardData(text: family.family.joinCode),
-                    );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(const SnackBar(content: Text('邀请码已复制')));
-                    }
-                  },
+                const Divider(height: 20),
+                _SettingsRow(
+                  title: '邀请码',
+                  subtitle: family.family.joinCode,
+                  trailing: Wrap(
+                    spacing: 8,
+                    children: [
+                      AppIconButton(
+                        icon: Icons.copy_rounded,
+                        tooltip: '复制邀请码',
+                        onPressed: () async {
+                          await Clipboard.setData(
+                            ClipboardData(text: family.family.joinCode),
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('邀请码已复制')),
+                            );
+                          }
+                        },
+                      ),
+                      if (family.role.canManageMenu)
+                        AppIconButton(
+                          icon: Icons.refresh_rounded,
+                          tooltip: '刷新邀请码',
+                          onPressed: () => _rotateJoinCode(context, ref),
+                        ),
+                    ],
+                  ),
                 ),
-                if (family.role.canManageMenu) ...[
-                  const SizedBox(height: 12),
-                  SecondaryButton(
-                    label: '刷新邀请码',
-                    icon: Icons.refresh_rounded,
-                    onPressed: () => _rotateJoinCode(context, ref),
+                if (family.role.canManageMembers) ...[
+                  const Divider(height: 20),
+                  _SettingsRow(
+                    title: '成员管理',
+                    subtitle: '查看成员、调整角色、移除成员',
+                    onTap: () => showAppBottomSheet<void>(
+                      context: context,
+                      builder: (_) => _MembersSheet(family: family),
+                    ),
                   ),
                 ],
+                const Divider(height: 20),
+                _SettingsRow(
+                  title: '历史订单',
+                  subtitle: '查看已结束订单',
+                  onTap: () => showAppBottomSheet<void>(
+                    context: context,
+                    builder: (_) => _HistoryOrdersSheet(family: family),
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          if (family.role.canManageMembers)
-            SecondaryButton(
-              label: '成员管理',
-              icon: Icons.group_rounded,
-              onPressed: () => context.push('/app/settings/family-members'),
-            ),
-          if (family.role.canManageMembers) const SizedBox(height: 12),
-          SecondaryButton(
-            label: '历史订单',
-            icon: Icons.history_rounded,
-            onPressed: () => context.push('/app/settings/order-history'),
-          ),
           if (family.role != FamilyRole.owner) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             DangerButton(
               label: '退出家庭',
               icon: Icons.exit_to_app_rounded,
@@ -146,7 +136,7 @@ class SettingsPage extends ConsumerWidget {
           ],
           const SizedBox(height: 12),
           DangerButton(
-            label: '退出登录',
+            label: _confirmLogout ? '确认退出登录' : '退出登录',
             icon: Icons.logout_rounded,
             onPressed: () => _logout(context, ref),
           ),
@@ -172,62 +162,9 @@ class SettingsPage extends ConsumerWidget {
         ).showSnackBar(SnackBar(content: Text('邀请码已刷新：$code')));
       }
     } catch (error) {
-      if (!context.mounted) {
-        return;
-      }
-      _showError(context, error);
-    }
-  }
-
-  Future<void> _showRenameDialog(BuildContext context, WidgetRef ref) async {
-    final family = ref.read(currentFamilyProvider);
-    if (family == null) {
-      return;
-    }
-
-    final controller = TextEditingController(text: family.name);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('编辑家庭名称'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(labelText: '家庭名称'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text),
-              child: const Text('保存'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (result == null || result.trim().isEmpty) {
-      return;
-    }
-
-    try {
-      await ref
-          .read(familyRepositoryProvider)
-          .renameFamily(familyId: family.id, name: result);
-      invalidateSessionScope(ref);
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('家庭名称已更新')));
+        _showError(context, error);
       }
-    } catch (error) {
-      if (!context.mounted) {
-        return;
-      }
-      _showError(context, error);
     }
   }
 
@@ -253,33 +190,37 @@ class SettingsPage extends ConsumerWidget {
       await ref.read(currentFamilyIdProvider.notifier).clear();
       invalidateSessionScope(ref);
       if (context.mounted) {
-        context.go('/onboarding');
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (error) {
-      if (!context.mounted) {
-        return;
+      if (context.mounted) {
+        _showError(context, error);
       }
-      _showError(context, error);
     }
   }
 
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showConfirmDialog(
-      context: context,
-      title: '退出当前账号？',
-      message: '退出后需要重新登录才能继续使用。',
-      confirmLabel: '退出登录',
-      isDanger: true,
-    );
-    if (!confirmed) {
+    if (!_confirmLogout) {
+      setState(() {
+        _confirmLogout = true;
+      });
       return;
     }
 
-    await ref.read(currentFamilyIdProvider.notifier).clear();
-    await ref.read(authRepositoryProvider).signOut();
-    invalidateSessionScope(ref);
-    if (context.mounted) {
-      context.go('/login');
+    try {
+      await ref.read(authRepositoryProvider).signOut();
+      ref.read(currentFamilyIdProvider.notifier).clear();
+      invalidateSessionScope(ref);
+    } catch (error) {
+      if (context.mounted) {
+        _showError(context, error);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _confirmLogout = false;
+        });
+      }
     }
   }
 
@@ -291,5 +232,440 @@ class SettingsPage extends ConsumerWidget {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _SettingsRow extends StatelessWidget {
+  const _SettingsRow({
+    required this.title,
+    required this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            trailing ??
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textSecondary,
+                ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileSheet extends ConsumerStatefulWidget {
+  const _ProfileSheet();
+
+  @override
+  ConsumerState<_ProfileSheet> createState() => _ProfileSheetState();
+}
+
+class _ProfileSheetState extends ConsumerState<_ProfileSheet> {
+  late final TextEditingController _usernameController;
+  late final TextEditingController _avatarController;
+  bool _initialized = false;
+  bool _isSaving = false;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameController = TextEditingController();
+    _avatarController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _avatarController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profileAsync = ref.watch(currentUserProfileProvider);
+
+    return SizedBox(
+      width: double.infinity,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: profileAsync.when(
+          loading: () => const SizedBox(height: 280, child: LoadingView()),
+          error: (error, _) => ErrorStateView(
+            message: AppException.from(
+              error,
+              fallbackMessage: '用户信息加载失败，请稍后重试',
+            ).message,
+            onRetry: () => ref.invalidate(currentUserProfileProvider),
+          ),
+          data: (profile) {
+            if (profile == null) {
+              return const EmptyState(
+                title: '没有可编辑的资料',
+                description: '请重新登录后再试。',
+              );
+            }
+
+            if (!_initialized) {
+              _usernameController.text = profile.username;
+              _avatarController.text = profile.avatarUrl ?? '';
+              _initialized = true;
+            }
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('编辑个人信息', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                AppTextField(
+                  controller: _usernameController,
+                  label: '用户名',
+                  errorText: _errorText,
+                ),
+                const SizedBox(height: 16),
+                AppTextField(
+                  controller: _avatarController,
+                  label: '头像地址',
+                  hintText: '可选，输入图片 URL',
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 24),
+                PrimaryButton(
+                  label: '保存',
+                  onPressed: _save,
+                  icon: Icons.save_rounded,
+                  isLoading: _isSaving,
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    setState(() {
+      _isSaving = true;
+      _errorText = null;
+    });
+
+    try {
+      await ref
+          .read(profileRepositoryProvider)
+          .updateMyProfile(
+            username: _usernameController.text,
+            avatarUrl: _avatarController.text,
+          );
+      invalidateSessionScope(ref);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('已保存')));
+        Navigator.of(context).pop();
+      }
+    } catch (error) {
+      setState(() {
+        _errorText = AppException.from(
+          error,
+          fallbackMessage: '保存失败，请稍后重试',
+        ).message;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+}
+
+class _MembersSheet extends ConsumerWidget {
+  const _MembersSheet({required this.family});
+
+  final FamilySummary family;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final membersAsync = ref.watch(familyMembersProvider(family.id));
+    final currentUserId = ref
+        .watch(appSessionProvider)
+        .valueOrNull
+        ?.authenticatedUserId;
+
+    return SizedBox(
+      width: double.infinity,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: membersAsync.when(
+          loading: () => const SizedBox(height: 280, child: LoadingView()),
+          error: (error, _) => ErrorStateView(
+            message: AppException.from(
+              error,
+              fallbackMessage: '成员加载失败，请稍后重试',
+            ).message,
+            onRetry: () => ref.invalidate(familyMembersProvider(family.id)),
+          ),
+          data: (members) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('成员管理', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 520),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: members.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final member = members[index];
+                      final canAct =
+                          member.userId != currentUserId &&
+                          member.role != FamilyRole.owner;
+
+                      return SizedBox(
+                        width: double.infinity,
+                        child: AppCard(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      member.profile?.username ?? '未知用户',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '加入于 ${formatDate(member.joinedAt)}',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              StatusChip.role(member.role),
+                              if (canAct) ...[
+                                const SizedBox(width: 8),
+                                PopupMenuButton<String>(
+                                  onSelected: (value) => _handleMemberAction(
+                                    context,
+                                    ref,
+                                    family,
+                                    member,
+                                    value,
+                                  ),
+                                  itemBuilder: (context) {
+                                    final items = <PopupMenuEntry<String>>[];
+                                    if (family.role == FamilyRole.owner) {
+                                      items.add(
+                                        PopupMenuItem<String>(
+                                          value: member.role == FamilyRole.admin
+                                              ? 'member'
+                                              : 'admin',
+                                          child: Text(
+                                            member.role == FamilyRole.admin
+                                                ? '取消管理员'
+                                                : '设为管理员',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                    if (family.role == FamilyRole.owner ||
+                                        (family.role == FamilyRole.admin &&
+                                            member.role == FamilyRole.member)) {
+                                      items.add(
+                                        const PopupMenuItem<String>(
+                                          value: 'remove',
+                                          child: Text('移除成员'),
+                                        ),
+                                      );
+                                    }
+                                    return items;
+                                  },
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleMemberAction(
+    BuildContext context,
+    WidgetRef ref,
+    FamilySummary family,
+    FamilyMembership member,
+    String value,
+  ) async {
+    try {
+      if (value == 'remove') {
+        await ref
+            .read(familyRepositoryProvider)
+            .removeMember(familyId: family.id, memberId: member.id);
+      } else {
+        await ref
+            .read(familyRepositoryProvider)
+            .updateMemberRole(
+              familyId: family.id,
+              memberId: member.id,
+              role: value == 'admin' ? FamilyRole.admin : FamilyRole.member,
+            );
+      }
+      ref.invalidate(familyMembersProvider(family.id));
+      invalidateSessionScope(ref);
+    } catch (error) {
+      if (context.mounted) {
+        final message = AppException.from(
+          error,
+          fallbackMessage: '操作失败，请稍后重试',
+        ).message;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+    }
+  }
+}
+
+class _HistoryOrdersSheet extends ConsumerWidget {
+  const _HistoryOrdersSheet({required this.family});
+
+  final FamilySummary family;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final historyAsync = ref.watch(orderHistoryProvider(family.id));
+
+    return SizedBox(
+      width: double.infinity,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: historyAsync.when(
+          loading: () => const SizedBox(height: 280, child: LoadingView()),
+          error: (error, _) => ErrorStateView(
+            message: AppException.from(
+              error,
+              fallbackMessage: '历史订单加载失败，请稍后重试',
+            ).message,
+            onRetry: () => ref.invalidate(orderHistoryProvider(family.id)),
+          ),
+          data: (orders) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('历史订单', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                if (orders.isEmpty)
+                  const SizedBox(
+                    width: double.infinity,
+                    child: EmptyState(
+                      title: '还没有历史订单',
+                      description: '完成过的订单会显示在这里。',
+                      icon: Icons.history_rounded,
+                    ),
+                  )
+                else
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 520),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: orders.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final order = orders[index];
+                        return SizedBox(
+                          width: double.infinity,
+                          child: AppCard(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '订单 ${order.id.substring(0, 8)}',
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.titleMedium,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        order.finishedAt == null
+                                            ? formatDate(order.createdAt)
+                                            : formatDateTime(order.finishedAt!),
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                StatusChip.order(order.status),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 }

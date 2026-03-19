@@ -6,15 +6,12 @@ abstract final class AppEnvironment {
   );
   static const supabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBibHhvbXZkanpsdWptY3dqaWZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4OTE3MzUsImV4cCI6MjA4OTQ2NzczNX0.8Sxo9p-C82zO8F20UWyYczvHbWapAsUDMFgUnfKoYGo',
+    defaultValue:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBibHhvbXZkanpsdWptY3dqaWZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4OTE3MzUsImV4cCI6MjA4OTQ2NzczNX0.8Sxo9p-C82zO8F20UWyYczvHbWapAsUDMFgUnfKoYGo',
   );
   static const deepLinkBaseUrl = String.fromEnvironment(
     'APP_BASE_URL',
     defaultValue: '',
-  );
-  static const usernameEmailDomain = String.fromEnvironment(
-    'USERNAME_AUTH_DOMAIN',
-    defaultValue: 'family.local',
   );
   static const dishesBucket = 'dishes';
 

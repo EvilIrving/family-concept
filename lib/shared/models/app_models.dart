@@ -463,6 +463,20 @@ class ShoppingListEntry {
   final bool isLatestRound;
 }
 
+class ShoppingListRoundGroup {
+  const ShoppingListRoundGroup({required this.round, required this.entries});
+
+  final int round;
+  final List<ShoppingListEntry> entries;
+}
+
+class OrderRoundGroup {
+  const OrderRoundGroup({required this.round, required this.items});
+
+  final int round;
+  final List<OrderItemRecord> items;
+}
+
 class OrderDetail {
   const OrderDetail({
     required this.order,
@@ -475,7 +489,11 @@ class OrderDetail {
   final List<OrderItemRecord> items;
 
   bool get isFinished => order.status == OrderStatus.finished;
-  bool get isOrdering => order.status == OrderStatus.ordering;
+  bool get hasItemsInCurrentRound =>
+      items.any((item) => item.orderRound == order.currentRound);
+  bool get isOrdering =>
+      order.status == OrderStatus.ordering ||
+      (order.status == OrderStatus.placed && hasItemsInCurrentRound);
   int get latestRound =>
       items.isEmpty ? 1 : items.map((item) => item.orderRound).reduce(max);
 
@@ -517,6 +535,69 @@ class OrderDetail {
     final entries = buffer.values.toList()
       ..sort((left, right) => left.name.compareTo(right.name));
     return entries;
+  }
+
+  List<OrderRoundGroup> groupItemsByRound() {
+    final grouped = <int, List<OrderItemRecord>>{};
+    for (final item in items) {
+      grouped.putIfAbsent(item.orderRound, () => []).add(item);
+    }
+
+    final rounds = grouped.keys.toList()..sort();
+    return rounds
+        .map(
+          (round) => OrderRoundGroup(
+            round: round,
+            items: grouped[round]!
+              ..sort((left, right) {
+                final leftDish = left.dish?.name ?? '';
+                final rightDish = right.dish?.name ?? '';
+                final compareDish = leftDish.compareTo(rightDish);
+                if (compareDish != 0) {
+                  return compareDish;
+                }
+                return left.createdAt.compareTo(right.createdAt);
+              }),
+          ),
+        )
+        .toList();
+  }
+
+  List<ShoppingListRoundGroup> groupShoppingListByRound() {
+    final grouped = <int, Map<String, ShoppingListEntry>>{};
+
+    for (final item in items) {
+      final dish = item.dish;
+      if (dish == null) {
+        continue;
+      }
+
+      final roundBuffer = grouped.putIfAbsent(item.orderRound, () => {});
+      for (final ingredient in dish.ingredients) {
+        final key =
+            '${ingredient.name.toLowerCase()}|${ingredient.unit.toLowerCase()}';
+        final total = ingredient.amount * item.quantity;
+        final previous = roundBuffer[key];
+
+        roundBuffer[key] = ShoppingListEntry(
+          name: ingredient.name,
+          amount: (previous?.amount ?? 0.0) + total,
+          unit: ingredient.unit,
+          isLatestRound: item.orderRound == latestRound,
+        );
+      }
+    }
+
+    final rounds = grouped.keys.toList()..sort();
+    return rounds
+        .map(
+          (round) => ShoppingListRoundGroup(
+            round: round,
+            entries: grouped[round]!.values.toList()
+              ..sort((left, right) => left.name.compareTo(right.name)),
+          ),
+        )
+        .toList();
   }
 }
 

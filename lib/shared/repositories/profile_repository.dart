@@ -59,10 +59,7 @@ class ProfileRepository {
 
       if (current.username != normalized) {
         await _client.auth.updateUser(
-          UserAttributes(
-            email: UsernameCodec.emailFor(normalized),
-            data: {'username': normalized},
-          ),
+          UserAttributes(data: {'username': normalized}),
         );
       }
 

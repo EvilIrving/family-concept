@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/utils/app_exception.dart';
 import '../../shared/repositories/auth_repository.dart';
+import '../../shared/repositories/family_repository.dart';
 import '../../shared/widgets/app_widgets.dart';
+import '../family/family_providers.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -15,25 +17,32 @@ class RegisterPage extends ConsumerStatefulWidget {
 
 class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final _inviteCodeController = TextEditingController();
+  final _familyNameController = TextEditingController();
 
   bool _isSubmitting = false;
   bool _obscurePassword = true;
+  bool _isCreateFamilyExpanded = false;
   String? _errorText;
 
   @override
   void dispose() {
     _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _inviteCodeController.dispose();
+    _familyNameController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (_passwordController.text != _confirmPasswordController.text) {
+    final inviteCode = _inviteCodeController.text.trim();
+    final familyName = _familyNameController.text.trim();
+    if (inviteCode.isEmpty && familyName.isEmpty) {
       setState(() {
-        _errorText = '两次输入的密码不一致';
+        _errorText = '请输入邀请码，或展开创建家庭并填写家庭名称';
       });
       return;
     }
@@ -48,10 +57,20 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           .read(authRepositoryProvider)
           .register(
             username: _usernameController.text,
+            email: _emailController.text,
             password: _passwordController.text,
           );
+
+      final familyRepository = ref.read(familyRepositoryProvider);
+      final family = inviteCode.isNotEmpty
+          ? await familyRepository.joinFamilyByCode(inviteCode)
+          : await familyRepository.createFamily(familyName);
+
+      await ref.read(currentFamilyIdProvider.notifier).selectFamily(family.id);
+      invalidateSessionScope(ref);
+
       if (mounted) {
-        context.go('/onboarding');
+        context.go('/app/menu');
       }
     } catch (error) {
       setState(() {
@@ -73,72 +92,108 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       title: '注册',
-      subtitle: '先有账号，再进入家庭',
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '创建新账号',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '用户名仅支持字母、数字和下划线，注册成功后会直接进入 onboarding。',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 24),
-                AppTextField(
-                  controller: _usernameController,
-                  label: '用户名',
-                  hintText: '3-20 位字母、数字或下划线',
-                  errorText: _errorText,
-                ),
-                const SizedBox(height: 16),
-                AppTextField(
-                  controller: _passwordController,
-                  label: '密码',
-                  obscureText: _obscurePassword,
-                  suffixIcon: IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off_rounded
-                          : Icons.visibility_rounded,
-                    ),
+      subtitle: '创建账号并进入家庭',
+      useGradientHeader: false,
+      body: CenteredContent(
+        child: AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '开始使用 Family Kitchen',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '默认使用邀请码进入家庭；如果你要新建家庭，再展开创建家庭。',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
+              AppTextField(
+                controller: _usernameController,
+                label: '用户名',
+                hintText: '3-20 位字母、数字或下划线',
+                errorText: _errorText,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _emailController,
+                label: '邮箱',
+                hintText: 'name@example.com',
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _passwordController,
+                label: '密码',
+                obscureText: _obscurePassword,
+                textInputAction: TextInputAction.next,
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
                   ),
                 ),
-                const SizedBox(height: 16),
-                AppTextField(
-                  controller: _confirmPasswordController,
-                  label: '确认密码',
-                  obscureText: _obscurePassword,
-                  onSubmitted: (_) => _submit(),
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _inviteCodeController,
+                label: '邀请码',
+                hintText: '默认通过邀请码加入家庭',
+                helperText: '如果同时填写邀请码和家庭名称，会优先按邀请码加入家庭',
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(),
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isCreateFamilyExpanded = !_isCreateFamilyExpanded;
+                    });
+                  },
+                  child: Text(_isCreateFamilyExpanded ? '收起创建家庭' : '创建家庭'),
                 ),
-                const SizedBox(height: 24),
-                PrimaryButton(
-                  label: '注册',
-                  onPressed: _submit,
-                  icon: Icons.check_circle_rounded,
-                  isLoading: _isSubmitting,
+              ),
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 180),
+                crossFadeState: _isCreateFamilyExpanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                firstChild: const SizedBox.shrink(),
+                secondChild: Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: AppTextField(
+                    controller: _familyNameController,
+                    label: '家庭名称',
+                    hintText: '低频操作，可选填写',
+                    onSubmitted: (_) => _submit(),
+                  ),
                 ),
-              ],
-            ),
+              ),
+              PrimaryButton(
+                label: '注册',
+                onPressed: _submit,
+                icon: Icons.check_circle_rounded,
+                isLoading: _isSubmitting,
+              ),
+              const SizedBox(height: 12),
+              SecondaryButton(
+                label: '去登录',
+                icon: Icons.login_rounded,
+                onPressed: () => context.go('/login'),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          SecondaryButton(
-            label: '去登录',
-            icon: Icons.login_rounded,
-            onPressed: () => context.go('/login'),
-          ),
-        ],
+        ),
       ),
     );
   }

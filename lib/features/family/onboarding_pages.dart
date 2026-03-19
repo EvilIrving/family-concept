@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/utils/app_exception.dart';
 import '../../core/utils/extensions.dart';
@@ -9,215 +8,133 @@ import '../../shared/repositories/family_repository.dart';
 import '../../shared/widgets/app_widgets.dart';
 import 'family_providers.dart';
 
-class OnboardingChoicePage extends StatelessWidget {
+class OnboardingChoicePage extends ConsumerStatefulWidget {
   const OnboardingChoicePage({super.key});
+
+  @override
+  ConsumerState<OnboardingChoicePage> createState() =>
+      _OnboardingChoicePageState();
+}
+
+class _OnboardingChoicePageState extends ConsumerState<OnboardingChoicePage> {
+  final _inviteCodeController = TextEditingController();
+  final _familyNameController = TextEditingController();
+  bool _isSubmitting = false;
+  bool _isCreateFamilyExpanded = false;
+  String? _errorText;
+
+  @override
+  void dispose() {
+    _inviteCodeController.dispose();
+    _familyNameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final inviteCode = _inviteCodeController.text.trim();
+    final familyName = _familyNameController.text.trim();
+    if (inviteCode.isEmpty && familyName.isEmpty) {
+      setState(() {
+        _errorText = '请输入邀请码，或展开创建家庭并填写家庭名称';
+      });
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+    });
+
+    try {
+      final repository = ref.read(familyRepositoryProvider);
+      final family = inviteCode.isNotEmpty
+          ? await repository.joinFamilyByCode(inviteCode)
+          : await repository.createFamily(familyName);
+      await ref.read(currentFamilyIdProvider.notifier).selectFamily(family.id);
+      invalidateSessionScope(ref);
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (error) {
+      setState(() {
+        _errorText = AppException.from(
+          error,
+          fallbackMessage: '进入家庭失败，请稍后重试',
+        ).message;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
       title: '进入家庭',
       subtitle: '必须先创建或加入一个家庭',
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '选择进入方式',
-                  style: Theme.of(context).textTheme.headlineMedium,
+      useGradientHeader: false,
+      body: CenteredContent(
+        child: AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '先完成家庭归属',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '默认通过邀请码进入；如果你是第一次创建家庭，再展开创建家庭。',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
+              AppTextField(
+                controller: _inviteCodeController,
+                label: '邀请码',
+                hintText: '输入邀请码加入家庭',
+                errorText: _errorText,
+                onSubmitted: (_) => _submit(),
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isCreateFamilyExpanded = !_isCreateFamilyExpanded;
+                    });
+                  },
+                  child: Text(_isCreateFamilyExpanded ? '收起创建家庭' : '创建家庭'),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '创建家庭后，你会成为这个家庭的 owner；如果已经被邀请，直接输入邀请码即可。',
-                  style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 180),
+                crossFadeState: _isCreateFamilyExpanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                firstChild: const SizedBox.shrink(),
+                secondChild: Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: AppTextField(
+                    controller: _familyNameController,
+                    label: '家庭名称',
+                    hintText: '邀请码为空时按创建家庭处理',
+                    onSubmitted: (_) => _submit(),
+                  ),
                 ),
-              ],
-            ),
+              ),
+              PrimaryButton(
+                label: '进入家庭',
+                onPressed: _submit,
+                icon: Icons.check_circle_rounded,
+                isLoading: _isSubmitting,
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          PrimaryButton(
-            label: '创建家庭',
-            icon: Icons.add_home_rounded,
-            onPressed: () => context.push('/onboarding/create-family'),
-          ),
-          const SizedBox(height: 12),
-          SecondaryButton(
-            label: '加入家庭',
-            icon: Icons.group_add_rounded,
-            onPressed: () => context.push('/onboarding/join-family'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class CreateFamilyPage extends ConsumerStatefulWidget {
-  const CreateFamilyPage({super.key});
-
-  @override
-  ConsumerState<CreateFamilyPage> createState() => _CreateFamilyPageState();
-}
-
-class _CreateFamilyPageState extends ConsumerState<CreateFamilyPage> {
-  final _controller = TextEditingController();
-  bool _isSubmitting = false;
-  String? _errorText;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    setState(() {
-      _isSubmitting = true;
-      _errorText = null;
-    });
-
-    try {
-      final family = await ref
-          .read(familyRepositoryProvider)
-          .createFamily(_controller.text);
-      await ref.read(currentFamilyIdProvider.notifier).selectFamily(family.id);
-      invalidateSessionScope(ref);
-      if (mounted) {
-        context.go('/app/menu');
-      }
-    } catch (error) {
-      setState(() {
-        _errorText = AppException.from(
-          error,
-          fallbackMessage: '创建家庭失败，请稍后重试',
-        ).message;
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppScaffold(
-      title: '创建家庭',
-      subtitle: '成功后你会成为 owner',
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppTextField(
-                  controller: _controller,
-                  label: '家庭名称',
-                  hintText: '例如 Cain 家的小厨房',
-                  errorText: _errorText,
-                  onSubmitted: (_) => _submit(),
-                ),
-                const SizedBox(height: 24),
-                PrimaryButton(
-                  label: '创建家庭',
-                  onPressed: _submit,
-                  icon: Icons.check_rounded,
-                  isLoading: _isSubmitting,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class JoinFamilyPage extends ConsumerStatefulWidget {
-  const JoinFamilyPage({super.key});
-
-  @override
-  ConsumerState<JoinFamilyPage> createState() => _JoinFamilyPageState();
-}
-
-class _JoinFamilyPageState extends ConsumerState<JoinFamilyPage> {
-  final _controller = TextEditingController();
-  bool _isSubmitting = false;
-  String? _errorText;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    setState(() {
-      _isSubmitting = true;
-      _errorText = null;
-    });
-
-    try {
-      final family = await ref
-          .read(familyRepositoryProvider)
-          .joinFamilyByCode(_controller.text);
-      await ref.read(currentFamilyIdProvider.notifier).selectFamily(family.id);
-      invalidateSessionScope(ref);
-      if (mounted) {
-        context.go('/app/menu');
-      }
-    } catch (error) {
-      setState(() {
-        _errorText = AppException.from(
-          error,
-          fallbackMessage: '加入家庭失败，请稍后重试',
-        ).message;
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppScaffold(
-      title: '加入家庭',
-      subtitle: '输入家庭邀请码',
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppTextField(
-                  controller: _controller,
-                  label: '邀请码',
-                  hintText: '输入 10 位邀请码',
-                  helperText: '如果邀请码已失效，请联系管理员刷新',
-                  errorText: _errorText,
-                  onSubmitted: (_) => _submit(),
-                ),
-                const SizedBox(height: 24),
-                PrimaryButton(
-                  label: '确认加入',
-                  onPressed: _submit,
-                  icon: Icons.check_rounded,
-                  isLoading: _isSubmitting,
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

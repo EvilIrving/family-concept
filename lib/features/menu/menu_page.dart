@@ -46,6 +46,13 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     }
 
     final dishesAsync = ref.watch(dishesProvider(family.id));
+    final orderSummaryAsync = ref.watch(activeOrderSummaryProvider(family.id));
+    final currentOrderId = orderSummaryAsync.valueOrNull?.order.id;
+    final orderDetailAsync = currentOrderId == null
+        ? const AsyncValue<OrderDetail?>.data(null)
+        : ref
+              .watch(orderDetailProvider(currentOrderId))
+              .whenData((value) => value);
 
     return AppScaffold(
       title: '菜单',
@@ -80,28 +87,18 @@ class _MenuPageState extends ConsumerState<MenuPage> {
             final matchesCategory =
                 _selectedCategory == '全部' || dish.category == _selectedCategory;
             final matchesSearch =
-                search.isEmpty ||
-                dish.name.toLowerCase().contains(search) ||
-                dish.ingredients.any(
-                  (ingredient) =>
-                      ingredient.name.toLowerCase().contains(search),
-                );
+                search.isEmpty || dish.name.toLowerCase().contains(search);
             return matchesCategory && matchesSearch;
           }).toList();
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              FamilyHeaderCard(
-                family: family,
-                onSwitch: () => showFamilySwitcherSheet(context, ref),
-              ),
-              const SizedBox(height: 16),
               AppCard(
                 child: AppTextField(
                   controller: _searchController,
                   label: '搜索菜品',
-                  hintText: '搜菜名或食材',
+                  hintText: '搜菜名',
                   suffixIcon: search.isEmpty
                       ? null
                       : IconButton(
@@ -163,10 +160,12 @@ class _MenuPageState extends ConsumerState<MenuPage> {
                   icon: Icons.search_off_rounded,
                 )
               else
-                for (final dish in filtered) ...[
-                  _DishCard(dish: dish, family: family),
-                  const SizedBox(height: 12),
-                ],
+                _DishGrid(
+                  family: family,
+                  dishes: filtered,
+                  orderSummaryAsync: orderSummaryAsync,
+                  orderDetailAsync: orderDetailAsync,
+                ),
             ],
           );
         },
@@ -175,96 +174,391 @@ class _MenuPageState extends ConsumerState<MenuPage> {
   }
 }
 
-class _DishCard extends ConsumerWidget {
-  const _DishCard({required this.dish, required this.family});
+class _DishGrid extends StatelessWidget {
+  const _DishGrid({
+    required this.family,
+    required this.dishes,
+    required this.orderSummaryAsync,
+    required this.orderDetailAsync,
+  });
 
-  final Dish dish;
   final FamilySummary family;
+  final List<Dish> dishes;
+  final AsyncValue<OrderSummary?> orderSummaryAsync;
+  final AsyncValue<OrderDetail?> orderDetailAsync;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final imageAsync = ref.watch(dishImageProvider(dish.imageUrl));
+  Widget build(BuildContext context) {
+    final detail = orderDetailAsync.valueOrNull;
 
-    return AppCard(
-      onTap: () {
-        showAppBottomSheet<void>(
-          context: context,
-          builder: (_) => _DishDetailSheet(dish: dish, family: family),
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: dishes.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 0.78,
+      ),
+      itemBuilder: (context, index) {
+        final dish = dishes[index];
+        return _DishCard(
+          dish: dish,
+          family: family,
+          orderSummary: orderSummaryAsync.valueOrNull,
+          orderDetail: detail,
         );
       },
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: 84,
-              height: 84,
-              child: imageAsync.when(
-                loading: () => Container(
-                  color: AppColors.surfaceSoft,
-                  child: const Icon(Icons.image_rounded),
-                ),
-                error: (_, _) => Container(
-                  color: AppColors.surfaceSoft,
-                  child: const Icon(Icons.image_not_supported_rounded),
-                ),
-                data: (url) => url == null
-                    ? Container(
-                        color: AppColors.surfaceSoft,
-                        child: const Icon(Icons.rice_bowl_rounded),
-                      )
-                    : Image.network(url, fit: BoxFit.cover),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(dish.name, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(
-                  dish.category,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${dish.ingredients.length} 个食材',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded),
-        ],
-      ),
     );
   }
 }
 
-class _DishDetailSheet extends ConsumerStatefulWidget {
-  const _DishDetailSheet({required this.dish, required this.family});
+class _DishCard extends ConsumerStatefulWidget {
+  const _DishCard({
+    required this.dish,
+    required this.family,
+    required this.orderSummary,
+    required this.orderDetail,
+  });
 
   final Dish dish;
   final FamilySummary family;
+  final OrderSummary? orderSummary;
+  final OrderDetail? orderDetail;
 
   @override
-  ConsumerState<_DishDetailSheet> createState() => _DishDetailSheetState();
+  ConsumerState<_DishCard> createState() => _DishCardState();
 }
 
-class _DishDetailSheetState extends ConsumerState<_DishDetailSheet> {
-  int _quantity = 1;
-  bool _isSubmitting = false;
+class _DishCardState extends ConsumerState<_DishCard> {
+  bool _isUpdating = false;
 
   @override
   Widget build(BuildContext context) {
-    final orderAsync = ref.watch(activeOrderSummaryProvider(widget.family.id));
-    final session = ref.watch(appSessionProvider).valueOrNull;
-    final currentUserId = session?.authenticatedUserId;
     final imageAsync = ref.watch(dishImageProvider(widget.dish.imageUrl));
+    final currentRoundDishQuantity = _currentRoundDishQuantity();
+    final showBadge =
+        widget.orderDetail?.isOrdering == true && currentRoundDishQuantity > 0;
+
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            flex: 6,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: InkWell(
+                    onTap: () {
+                      showAppBottomSheet<void>(
+                        context: context,
+                        builder: (_) => _DishDetailSheet(dish: widget.dish),
+                      );
+                    },
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(AppRadius.lg),
+                      ),
+                      child: imageAsync.when(
+                        loading: () =>
+                            _DishPlaceholder(icon: Icons.image_rounded),
+                        error: (_, _) => const _DishPlaceholder(
+                          icon: Icons.image_not_supported_rounded,
+                        ),
+                        data: (url) => url == null
+                            ? const _DishPlaceholder(
+                                icon: Icons.rice_bowl_rounded,
+                              )
+                            : Image.network(url, fit: BoxFit.cover),
+                      ),
+                    ),
+                  ),
+                ),
+                if (showBadge)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning,
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                      ),
+                      child: Text(
+                        '$currentRoundDishQuantity',
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    widget.dish.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _QuantityStepper(
+                      isLoading: _isUpdating,
+                      onDecrease: () => _changeQuantity(isIncrement: false),
+                      onIncrease: () => _changeQuantity(isIncrement: true),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _changeQuantity({required bool isIncrement}) async {
+    if (_isUpdating) {
+      return;
+    }
+
+    final orderSummary = widget.orderSummary;
+    if (orderSummary == null) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.family.role.canManageMenu ? '请先创建订单，再开始点菜' : '当前没有进行中的订单',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final repository = ref.read(orderRepositoryProvider);
+    final detail = widget.orderDetail;
+    var currentMemberId = detail?.currentMemberIdForUser(
+      ref.read(appSessionProvider).valueOrNull?.authenticatedUserId ?? '',
+    );
+
+    setState(() {
+      _isUpdating = true;
+    });
+
+    try {
+      if (currentMemberId == null) {
+        final joined = await repository.joinOrderByShareToken(
+          orderSummary.order.shareToken,
+        );
+        ref.invalidate(orderDetailProvider(joined.orderId));
+        ref.invalidate(activeOrderSummaryProvider(joined.familyId));
+      }
+
+      final refreshedDetail = await repository.fetchOrderDetail(
+        orderSummary.order.id,
+      );
+      currentMemberId = refreshedDetail.currentMemberIdForUser(
+        ref.read(appSessionProvider).valueOrNull?.authenticatedUserId ?? '',
+      );
+      if (currentMemberId == null) {
+        throw const AppException('加入订单失败，请稍后重试');
+      }
+
+      if (isIncrement) {
+        final existing = refreshedDetail.items
+            .where(
+              (item) =>
+                  item.dishId == widget.dish.id &&
+                  item.addedByMemberId == currentMemberId &&
+                  item.orderRound == refreshedDetail.order.currentRound,
+            )
+            .lastOrNull;
+        if (existing == null) {
+          await repository.addDishToOrder(
+            order: refreshedDetail.order,
+            dishId: widget.dish.id,
+            orderMemberId: currentMemberId,
+            quantity: 1,
+          );
+        } else {
+          await repository.updateItemQuantity(
+            itemId: existing.id,
+            quantity: existing.quantity + 1,
+          );
+        }
+      } else {
+        final existing = refreshedDetail.items
+            .where(
+              (item) =>
+                  item.dishId == widget.dish.id &&
+                  item.addedByMemberId == currentMemberId &&
+                  item.orderRound == refreshedDetail.order.currentRound,
+            )
+            .lastOrNull;
+        if (existing == null) {
+          return;
+        }
+        if (existing.quantity > 1) {
+          await repository.updateItemQuantity(
+            itemId: existing.id,
+            quantity: existing.quantity - 1,
+          );
+        } else {
+          await repository.deleteItem(existing.id);
+        }
+      }
+
+      ref.invalidate(orderDetailProvider(orderSummary.order.id));
+      ref.invalidate(activeOrderSummaryProvider(widget.family.id));
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppException.from(
+                error,
+                fallbackMessage: isIncrement ? '加菜失败，请稍后重试' : '减菜失败，请稍后重试',
+              ).message,
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdating = false;
+        });
+      }
+    }
+  }
+
+  int _currentRoundDishQuantity() {
+    final detail = widget.orderDetail;
+    if (detail == null) {
+      return 0;
+    }
+
+    final currentRound = detail.order.currentRound;
+    return detail.items
+        .where(
+          (item) =>
+              item.dishId == widget.dish.id && item.orderRound == currentRound,
+        )
+        .fold(0, (sum, item) => sum + item.quantity);
+  }
+}
+
+class _DishPlaceholder extends StatelessWidget {
+  const _DishPlaceholder({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.surfaceSoft,
+      child: Center(child: Icon(icon, size: 38, color: AppColors.primary)),
+    );
+  }
+}
+
+class _QuantityStepper extends StatelessWidget {
+  const _QuantityStepper({
+    required this.onDecrease,
+    required this.onIncrease,
+    required this.isLoading,
+  });
+
+  final VoidCallback onDecrease;
+  final VoidCallback onIncrease;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _PlainAction(
+          onTap: isLoading ? null : onDecrease,
+          child: const Text(
+            '−',
+            style: TextStyle(
+              fontSize: 22,
+              height: 1,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        _PlainAction(
+          onTap: isLoading ? null : onIncrease,
+          child: isLoading
+              ? const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text(
+                  '+',
+                  style: TextStyle(
+                    fontSize: 22,
+                    height: 1,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlainAction extends StatelessWidget {
+  const _PlainAction({required this.child, this.onTap});
+
+  final Widget child;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: SizedBox(width: 28, height: 28, child: Center(child: child)),
+    );
+  }
+}
+
+class _DishDetailSheet extends ConsumerWidget {
+  const _DishDetailSheet({required this.dish});
+
+  final Dish dish;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final imageAsync = ref.watch(dishImageProvider(dish.imageUrl));
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -276,30 +570,24 @@ class _DishDetailSheetState extends ConsumerState<_DishDetailSheet> {
             borderRadius: BorderRadius.circular(16),
             child: SizedBox(
               width: double.infinity,
-              height: 180,
+              height: 220,
               child: imageAsync.when(
-                loading: () => Container(
-                  color: AppColors.surfaceSoft,
-                  child: const LoadingView(label: '图片加载中'),
-                ),
-                error: (_, _) => Container(
-                  color: AppColors.surfaceSoft,
-                  child: const Icon(Icons.image_not_supported_rounded),
+                loading: () =>
+                    const _DishPlaceholder(icon: Icons.image_rounded),
+                error: (_, _) => const _DishPlaceholder(
+                  icon: Icons.image_not_supported_rounded,
                 ),
                 data: (url) => url == null
-                    ? Container(
-                        color: AppColors.surfaceSoft,
-                        child: const Icon(Icons.rice_bowl_rounded, size: 48),
-                      )
+                    ? const _DishPlaceholder(icon: Icons.rice_bowl_rounded)
                     : Image.network(url, fit: BoxFit.cover),
               ),
             ),
           ),
           const SizedBox(height: 16),
-          Text(widget.dish.name, style: Theme.of(context).textTheme.titleLarge),
+          Text(dish.name, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 4),
           Text(
-            widget.dish.category,
+            dish.category,
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
@@ -307,133 +595,30 @@ class _DishDetailSheetState extends ConsumerState<_DishDetailSheet> {
           const SizedBox(height: 16),
           Text('食材', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          for (final ingredient in widget.dish.ingredients)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.eco_rounded,
-                    size: 16,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(ingredient.name)),
-                  Text('${ingredient.amount} ${ingredient.unit}'),
-                ],
+          if (dish.ingredients.isEmpty)
+            Text(
+              '暂未填写食材',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            )
+          else
+            for (final ingredient in dish.ingredients)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.eco_rounded,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(ingredient.name)),
+                    Text('${ingredient.amount} ${ingredient.unit}'),
+                  ],
+                ),
               ),
-            ),
-          const SizedBox(height: 16),
-          orderAsync.when(
-            loading: () => const SecondaryButton(
-              label: '正在检查订单',
-              onPressed: null,
-              icon: Icons.hourglass_top_rounded,
-            ),
-            error: (error, _) => ErrorStateView(
-              message: AppException.from(
-                error,
-                fallbackMessage: '订单状态加载失败，请稍后重试',
-              ).message,
-            ),
-            data: (summary) {
-              if (summary == null) {
-                return SecondaryButton(
-                  label: '当前没有进行中的订单',
-                  icon: Icons.receipt_long_rounded,
-                  onPressed: () => context.go('/app/orders'),
-                );
-              }
-
-              if (!summary.isCurrentUserJoined) {
-                return SecondaryButton(
-                  label: '先加入订单',
-                  icon: Icons.group_add_rounded,
-                  onPressed: () =>
-                      context.go('/app/orders/${summary.order.id}'),
-                );
-              }
-
-              final orderMemberId = summary.participants
-                  .firstWhere(
-                    (participant) => participant.userId == currentUserId,
-                  )
-                  .id;
-
-              return Column(
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: _quantity > 1
-                            ? () => setState(() {
-                                _quantity -= 1;
-                              })
-                            : null,
-                        icon: const Icon(Icons.remove_circle_outline_rounded),
-                      ),
-                      Text(
-                        '$_quantity 份',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      IconButton(
-                        onPressed: () => setState(() {
-                          _quantity += 1;
-                        }),
-                        icon: const Icon(Icons.add_circle_outline_rounded),
-                      ),
-                    ],
-                  ),
-                  PrimaryButton(
-                    label: '加一道',
-                    icon: Icons.add_shopping_cart_rounded,
-                    isLoading: _isSubmitting,
-                    onPressed: () async {
-                      setState(() {
-                        _isSubmitting = true;
-                      });
-                      try {
-                        await ref
-                            .read(orderRepositoryProvider)
-                            .addDishToOrder(
-                              order: summary.order,
-                              dishId: widget.dish.id,
-                              orderMemberId: orderMemberId,
-                              quantity: _quantity,
-                            );
-                        ref.invalidate(orderDetailProvider(summary.order.id));
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('已加入订单')),
-                          );
-                          Navigator.of(context).pop();
-                        }
-                      } catch (error) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                AppException.from(
-                                  error,
-                                  fallbackMessage: '加菜失败，请稍后重试',
-                                ).message,
-                              ),
-                            ),
-                          );
-                        }
-                      } finally {
-                        if (mounted) {
-                          setState(() {
-                            _isSubmitting = false;
-                          });
-                        }
-                      }
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
         ],
       ),
     );

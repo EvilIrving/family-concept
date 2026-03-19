@@ -38,9 +38,7 @@ Auth
 └── register_page
 
 Onboarding
-├── onboarding_choice_page
-├── create_family_page
-└── join_family_page
+└── onboarding_choice_page
 
 App Shell
 ├── menu_page
@@ -49,9 +47,6 @@ App Shell
 
 Detail / Flow
 ├── dish_form_page
-├── family_members_page
-├── profile_page
-├── order_history_page
 ├── order_detail_page
 ├── join_order_page
 ├── empty_family_page
@@ -60,10 +55,10 @@ Detail / Flow
 Overlay
 ├── dish_detail_sheet
 ├── shopping_list_sheet
-├── create_order_sheet
-├── add_dish_sheet
 ├── family_switcher_sheet
-├── share_order_sheet
+├── profile_sheet
+├── family_members_sheet
+├── order_history_sheet
 └── confirm_dialog
 ```
 
@@ -75,8 +70,6 @@ Overlay
 /login
 /register
 /onboarding
-/onboarding/create-family
-/onboarding/join-family
 /app/menu
 /app/orders
 /app/settings
@@ -93,7 +86,7 @@ Overlay
 
 - 底部导航页全部挂在 `/app/*`
 - 订单分享入口使用 `/app/join/:shareToken`
-- sheet 不单独做浏览器式深链接
+- sheet 不单独做浏览器式深链接，除历史兼容路由外不再新增次级设置页入口
 - 需要分享和恢复状态的内容，才做独立路由
 
 ## 5. Shell 结构
@@ -129,8 +122,9 @@ Shell 内的页面头部统一包含：
 建议：
 
 - `menu_page` 右上角是菜品管理入口
-- `orders_page` 右上角是创建订单或分享入口
-- `settings_page` 右上角默认无强操作
+- `orders_page` 右上角保留家庭切换入口
+- `settings_page` 右上角保留家庭切换入口
+- 页面内容区不再重复渲染家庭切换卡片
 
 ## 6. 页面责任边界
 
@@ -138,7 +132,7 @@ Shell 内的页面头部统一包含：
 
 职责：
 
-- 用户名登录
+- 邮箱登录
 - 跳转注册
 - 展示基础错误提示
 
@@ -152,49 +146,37 @@ Shell 内的页面头部统一包含：
 
 职责：
 
-- 用户注册
-- 注册成功后进入 onboarding
+- 在单页内完成用户注册
+- 默认输入邀请码加入家庭
+- 低频展开“创建家庭”
+- 成功后直接进入主应用
 
 不负责：
 
-- 自动进入主应用
+- 纯注册不归属家庭
 
 ### 6.3 `onboarding_choice_page`
 
 职责：
 
-- 明确告知用户必须先进入一个家庭
-- 提供“创建家庭”和“输入邀请码加入”两条路径
+- 为已登录但未入家的用户提供兜底家庭归属表单
+- 继续采用“邀请码优先，创建家庭低频展开”的单模块交互
 
-### 6.4 `create_family_page`
-
-职责：
-
-- 创建家庭
-- 创建成功后写入家庭上下文并进入 Shell
-
-### 6.5 `join_family_page`
-
-职责：
-
-- 输入 join code
-- 校验邀请码
-- 加入家庭并进入 Shell
-
-### 6.6 `menu_page`
+### 6.4 `menu_page`
 
 职责：
 
 - 浏览家庭菜品
 - 搜索和分类筛选
+- 双列卡片直接加减菜
+- 点击菜品图片查看详情 sheet
 - 管理员查看新增/编辑入口
-- 普通成员查看菜品详情和加菜入口
 
 不负责：
 
 - 直接承载大表单编辑
 
-### 6.7 `dish_form_page`
+### 6.5 `dish_form_page`
 
 职责：
 
@@ -207,24 +189,26 @@ Shell 内的页面头部统一包含：
 
 - 这是完整表单页面，不建议使用 sheet
 
-### 6.8 `orders_page`
+### 6.6 `orders_page`
 
 职责：
 
-- 展示当前家庭订单概况
-- 提供创建订单、加入当前订单、分享订单入口
-- 展示订单状态和当前轮次
+- 直接展示当前家庭当前订单详情
+- 无订单时提供创建订单入口
+- 展示订单状态、按轮分组的菜品项与管理操作
 
-### 6.9 `order_detail_page`
+### 6.7 `order_detail_page`
 
 职责：
 
-- 展示订单菜品项
-- 点菜、删菜
-- 管理员更新菜品制作状态
+- 承载独立路由下的订单详情
+- 复用 Orders tab 的详情主体
+- 以渐进式披露方式更新菜品制作状态
 - 触发下单和结束订单
+- 下单和结束订单都使用按钮二次点击确认，交互与退出登录一致
+- 结束订单以全宽、更紧凑的危险按钮呈现，作为页面底部的主要破坏性动作
 
-### 6.10 `join_order_page`
+### 6.8 `join_order_page`
 
 职责：
 
@@ -232,12 +216,22 @@ Shell 内的页面头部统一包含：
 - 校验当前用户属于该订单家庭
 - 承接链接失效和订单结束态
 
-### 6.11 `shopping_list_sheet`
+### 6.9 `shopping_list_sheet`
 
 职责：
 
-- 展示当前订单的食材聚合
+- 按轮次展示当前订单的食材聚合
 - 高亮最新轮次新增食材
+
+### 6.10 `settings_page`
+
+职责：
+
+- 展示当前账号与家庭信息
+- 打开个人资料 sheet
+- 打开成员管理 sheet
+- 打开历史订单 sheet
+- 处理退出家庭与退出登录
 
 说明：
 
@@ -296,8 +290,11 @@ Shell 内的页面头部统一包含：
 - 删除菜品
 - 移除成员
 - 退出家庭
-- 结束订单
 - 登出
+
+以下场景使用按钮二次点击确认：
+
+- 结束订单
 
 ## 8. 返回与跳转规则
 

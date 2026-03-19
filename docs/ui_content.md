@@ -54,6 +54,8 @@
 - 注册：`注册`
 - 去注册：`去注册`
 - 去登录：`去登录`
+- 创建家庭：`创建家庭`
+- 收起创建家庭：`收起创建家庭`
 
 ### 3.2 Onboarding
 
@@ -66,8 +68,8 @@
 - 新增菜品：`新增菜品`
 - 编辑菜品：`编辑菜品`
 - 保存菜品：`保存`
-- 加入订单：`加入订单`
-- 加一道：`加一道`
+- 加一道：`+`
+- 少一道：`-`
 
 ### 3.4 Orders
 
@@ -105,11 +107,11 @@
 - success
   - 已登录则跳转 onboarding 或 shell
 - error
-  - 用户名或密码错误
+  - 邮箱或密码错误
 
 文案：
 
-- error.invalidCredential：`用户名或密码不正确`
+- error.invalidCredential：`邮箱或密码不正确`
 - error.network：`网络连接失败，请稍后重试`
 
 ## 4.2 `register_page`
@@ -119,14 +121,17 @@
 - loading
   - 点击注册后按钮 loading
 - success
-  - 注册成功跳 onboarding
+  - 注册成功并直接进入主应用
 - error
   - 用户名已存在
+  - 邮箱已存在
   - 注册失败
 
 文案：
 
 - error.usernameExists：`这个用户名已经被使用`
+- error.emailExists：`这个邮箱已经被使用`
+- error.missingFamilyTarget：`请输入邀请码，或展开创建家庭并填写家庭名称`
 - error.default：`注册失败，请稍后再试`
 
 ## 4.3 `onboarding_choice_page`
@@ -134,54 +139,19 @@
 状态：
 
 - success
-  - 正常展示创建或加入家庭两入口
+  - 正常展示邀请码输入与创建家庭展开入口
 - error
   - 拉取当前用户状态失败
 
 文案：
 
-- helper.createFamily：`创建家庭后，你会成为这个家庭的 owner。`
-- helper.joinFamily：`如果是受邀加入，请输入家庭邀请码。`
-
-## 4.4 `create_family_page`
-
-状态：
-
-- editing
-  - 默认输入态
-- submitting
-  - 提交创建
-- success
-  - 成功进入 shell
-- error
-  - 家庭创建失败
-
-文案：
-
-- error.default：`创建家庭失败，请稍后重试`
-
-## 4.5 `join_family_page`
-
-状态：
-
-- editing
-  - 默认输入邀请码
-- submitting
-  - 正在校验 join code
-- success
-  - 成功进入 shell
-- error
-  - 邀请码无效
-  - 邀请码失效
-  - 已经在家庭中
-
-文案：
-
+- helper.createFamily：`默认使用邀请码进入家庭；如果你要新建家庭，再展开创建家庭。`
+- helper.joinFamily：`如果同时填写邀请码和家庭名称，会优先按邀请码加入家庭。`
 - error.invalidCode：`邀请码无效，请检查后重试`
 - error.expiredCode：`邀请码已失效，请向管理员获取新邀请码`
-- error.default：`加入家庭失败，请稍后重试`
+- error.default：`进入家庭失败，请稍后重试`
 
-## 4.6 `menu_page`
+## 4.4 `menu_page`
 
 状态：
 
@@ -208,9 +178,10 @@
 - emptySearch.description：`试试换个关键词，或者切换分类。`
 - emptySearch.action：`清空搜索`
 - error.default：`菜品加载失败，请稍后重试`
-- error.noPermission：`你没有管理菜品的权限`
+- info.noActiveOrderAdmin：`请先创建订单，再开始点菜`
+- info.noActiveOrderMember：`当前没有进行中的订单`
 
-## 4.7 `dish_form_page`
+## 4.5 `dish_form_page`
 
 状态：
 
@@ -234,7 +205,7 @@
 - delete.confirm：`删除`
 - delete.cancel：`取消`
 
-## 4.8 `orders_page`
+## 4.6 `orders_page`
 
 状态：
 
@@ -243,9 +214,10 @@
 - empty
   - 没有活跃订单
 - success ordering
-  - 当前订单可继续点菜
+  - Orders tab 直接展示当前订单详情
 - success placed
   - 已下单，可继续追加轮次
+  - 追加轮次一旦产生新菜品，订单重新视为 `ordering`
 - permission limited
   - member 看不到创建订单和推进状态按钮
 - error
@@ -259,25 +231,26 @@
 - empty.memberAction：`等待管理员创建`
 - error.default：`订单加载失败，请稍后重试`
 - helper.roundRule：`已下单后新增菜品会自动进入下一轮。`
-- helper.shoppingList：`采购清单会自动汇总订单里的全部食材。`
+- helper.shoppingList：`采购清单会按下单轮次分组展示全部食材。`
 
-确认弹窗：
+确认交互：
 
 - place.title：`确认本轮下单？`
 - place.message：`下单后新增菜品会进入下一轮。`
+- place.primary：`下单`
 - place.confirm：`确认下单`
-- place.cancel：`取消`
-- finish.title：`结束当前订单？`
+- place.note：`采用按钮二次点击确认，交互与退出登录一致。`
+- finish.primary：`结束订单`
+- finish.confirm：`确认结束订单`
 - finish.message：`结束后该订单将进入历史记录，不能再继续点菜。`
-- finish.confirm：`结束订单`
-- finish.cancel：`取消`
+- finish.note：`采用按钮二次点击确认，交互与退出登录一致。`
 
 Toast：
 
 - success.created：`订单已创建`
 - success.copiedShareLink：`分享链接已复制`
 
-## 4.9 `order_detail_page`
+## 4.7 `order_detail_page`
 
 状态：
 
@@ -304,7 +277,6 @@ Toast：
 
 - empty.title：`还没人点菜`
 - empty.description：`从菜单里选几道菜，订单就会出现在这里。`
-- empty.action：`去点菜`
 - error.invalidToken：`分享链接无效`
 - error.finished：`订单已结束，无法继续加入`
 - error.conflictActiveOrder：`你当前已经在另一个进行中的订单里`
@@ -315,7 +287,7 @@ Toast：
 
 - success.joined：`已加入订单`
 
-## 4.10 `join_order_page`
+## 4.8 `join_order_page`
 
 状态：
 
@@ -345,7 +317,7 @@ Toast：
 - loading
   - 聚合食材中
 - success
-  - 展示聚合列表
+  - 按轮次展示聚合列表
 - empty
   - 当前订单还没有食材
 - error
@@ -354,7 +326,7 @@ Toast：
 文案：
 
 - empty.title：`还没有可汇总的食材`
-- empty.description：`等有人点菜后，这里会自动生成采购清单。`
+- empty.description：`等有人点菜后，这里会自动生成按轮次分组的采购清单。`
 - empty.action：`关闭`
 - error.default：`采购清单加载失败，请稍后重试`
 
