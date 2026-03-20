@@ -259,6 +259,33 @@ abstract final class AppColors {
 - 正文默认使用 15
 - 辅助说明和标签使用 12 到 14
 
+## 8. 儿童绘本风插画规范
+
+为了让“家庭厨房”主题更有亲和力，v1 补充一套独立于界面组件的插画语言。该插画不替代全局绿色主题，而是在首页头图、空状态、引导位中提供更强的情绪表达。
+
+素材位置：
+
+- `design/illustrations/home_storybook_hero.svg`
+- `design/illustrations/empty_menu_storybook.svg`
+- `design/illustrations/empty_family_storybook.svg`
+- `design/illustrations/empty_orders_storybook.svg`
+
+使用原则：
+
+- 主色仍然遵循绿色主题系统，插画只引入奶油黄、蜂蜜橙、柔和粉作为陪衬色。
+- 描边统一使用偏棕色软线条，避免黑色硬描边破坏绘本感。
+- 人物不追求写实比例，允许头身比偏大、五官简化、表情明确。
+- 场景道具优先围绕厨房、餐桌、便签、餐盘、锅具、家庭成员协作展开。
+- 页面同屏只放一张主插画，避免与信息卡片竞争注意力。
+- 空状态插画优先放在文案上方，并保留足够留白，不应压缩到过窄比例。
+
+推荐落点：
+
+- 首页顶部欢迎区使用 `home_storybook_hero.svg`
+- 菜单为空时使用 `empty_menu_storybook.svg`
+- 家庭或成员为空时使用 `empty_family_storybook.svg`
+- 当前无订单或历史为空时使用 `empty_orders_storybook.svg`
+
 ### 7.4 Icon Size
 
 - `iconSm = 16`

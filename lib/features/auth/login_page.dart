@@ -62,65 +62,74 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+    final authPadding = EdgeInsets.fromLTRB(
+      AppSpacing.lg,
+      viewportHeight * 0.028,
+      AppSpacing.lg,
+      viewportHeight * 0.04,
+    );
+
     return AppScaffold(
       title: '登录',
       subtitle: '邮箱 + 密码',
+      scrollable: true,
+      showAppBar: false,
       useGradientHeader: false,
+      bodyPadding: authPadding,
       body: CenteredContent(
-        child: AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('回到家庭厨房', style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 8),
-              Text(
-                '登录后会自动进入你当前的家庭空间。',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 24),
-              AppTextField(
-                controller: _emailController,
-                label: '邮箱',
-                hintText: 'name@example.com',
-                keyboardType: TextInputType.emailAddress,
-                errorText: _errorText,
-                textInputAction: TextInputAction.next,
-              ),
-              const SizedBox(height: 16),
-              AppTextField(
-                controller: _passwordController,
-                label: '密码',
-                obscureText: _obscurePassword,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submit(),
-                suffixIcon: IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off_rounded
-                        : Icons.visibility_rounded,
-                  ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('回到家庭厨房', style: Theme.of(context).textTheme.headlineMedium),
+            const SizedBox(height: 8),
+            Text(
+              '登录后会自动进入你当前的家庭空间。',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 24),
+            AppTextField(
+              controller: _emailController,
+              label: '邮箱',
+              hintText: 'name@example.com',
+              keyboardType: TextInputType.emailAddress,
+              errorText: _errorText,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: _passwordController,
+              label: '密码',
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
+              suffixIcon: IconButton(
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
                 ),
               ),
-              const SizedBox(height: 24),
-              PrimaryButton(
-                label: '登录',
-                onPressed: _submit,
-                icon: Icons.login_rounded,
-                isLoading: _isSubmitting,
-              ),
-              const SizedBox(height: 12),
-              SecondaryButton(
-                label: '去注册',
-                icon: Icons.person_add_alt_1_rounded,
-                onPressed: () => context.go('/register'),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 24),
+            PrimaryButton(
+              label: '登录',
+              onPressed: _submit,
+              icon: Icons.login_rounded,
+              isLoading: _isSubmitting,
+            ),
+            const SizedBox(height: 12),
+            SecondaryButton(
+              label: '去注册',
+              icon: Icons.person_add_alt_1_rounded,
+              onPressed: () => context.go('/register'),
+            ),
+          ],
         ),
       ),
     );

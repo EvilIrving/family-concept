@@ -134,8 +134,6 @@
 - error.missingFamilyTarget：`请输入邀请码，或展开创建家庭并填写家庭名称`
 - error.default：`注册失败，请稍后再试`
 
-## 4.3 `onboarding_choice_page`
-
 状态：
 
 - success
@@ -145,8 +143,7 @@
 
 文案：
 
-- helper.createFamily：`默认使用邀请码进入家庭；如果你要新建家庭，再展开创建家庭。`
-- helper.joinFamily：`如果同时填写邀请码和家庭名称，会优先按邀请码加入家庭。`
+- helper.joinFamily：`如果同时填写邀请码和家庭名称，会优先按邀请码加入家庭。`（仅在展开“创建家庭”后显示）
 - error.invalidCode：`邀请码无效，请检查后重试`
 - error.expiredCode：`邀请码已失效，请向管理员获取新邀请码`
 - error.default：`进入家庭失败，请稍后重试`

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../../core/theme/app_theme.dart';
 import '../../shared/models/app_models.dart';
 
@@ -26,6 +25,7 @@ class AppScaffold extends StatelessWidget {
     this.subtitle,
     this.actions,
     this.scrollable = true,
+    this.showAppBar = true,
     this.useGradientHeader = true,
     this.bottomNavigationBar,
     this.floatingActionButton,
@@ -37,6 +37,7 @@ class AppScaffold extends StatelessWidget {
   final Widget body;
   final List<Widget>? actions;
   final bool scrollable;
+  final bool showAppBar;
   final bool useGradientHeader;
   final Widget? bottomNavigationBar;
   final Widget? floatingActionButton;
@@ -44,64 +45,85 @@ class AppScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedPadding =
+        (bodyPadding ??
+                const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.section,
+                ))
+            .resolve(Directionality.of(context));
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title),
-            if (subtitle != null)
-              Text(
-                subtitle!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.9),
+      appBar: showAppBar
+          ? AppBar(
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title),
+                  if (subtitle != null)
+                    Text(
+                      subtitle!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                ],
+              ),
+              actions: actions,
+              flexibleSpace: Container(
+                decoration: BoxDecoration(
+                  gradient: useGradientHeader
+                      ? const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [AppColors.primary, AppColors.primaryAccent],
+                        )
+                      : const LinearGradient(
+                          colors: [AppColors.primary, AppColors.primary],
+                        ),
                 ),
               ),
-          ],
-        ),
-        actions: actions,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: useGradientHeader
-                ? const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [AppColors.primary, AppColors.primaryAccent],
-                  )
-                : const LinearGradient(
-                    colors: [AppColors.primary, AppColors.primary],
-                  ),
-          ),
-        ),
-      ),
+            )
+          : null,
       bottomNavigationBar: bottomNavigationBar,
       floatingActionButton: floatingActionButton,
       body: scrollable
-          ? SingleChildScrollView(
-              padding:
-                  bodyPadding ??
-                  const EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    AppSpacing.lg,
-                    AppSpacing.lg,
-                    AppSpacing.section,
+          ? LayoutBuilder(
+              builder: (context, constraints) {
+                final minBodyHeight =
+                    (constraints.maxHeight - resolvedPadding.vertical).clamp(
+                      0.0,
+                      double.infinity,
+                    );
+
+                return SingleChildScrollView(
+                  padding: resolvedPadding,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: minBodyHeight),
+                    child: body,
                   ),
-              child: body,
+                );
+              },
             )
-          : Padding(
-              padding: bodyPadding ?? const EdgeInsets.all(AppSpacing.lg),
-              child: body,
-            ),
+          : Padding(padding: resolvedPadding, child: body),
     );
   }
 }
 
 class CenteredContent extends StatelessWidget {
-  const CenteredContent({required this.child, super.key, this.maxWidth = 440});
+  const CenteredContent({
+    required this.child,
+    super.key,
+    this.maxWidth = 440,
+    this.alignment = const Alignment(0, -0.18),
+  });
 
   final Widget child;
   final double maxWidth;
+  final Alignment alignment;
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +136,8 @@ class CenteredContent extends StatelessWidget {
           constraints: BoxConstraints(
             minHeight: hasFiniteHeight ? constraints.maxHeight : 0,
           ),
-          child: Center(
+          child: Align(
+            alignment: alignment,
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxWidth),
               child: child,

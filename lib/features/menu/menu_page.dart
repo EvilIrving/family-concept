@@ -306,7 +306,7 @@ class _DishCardState extends ConsumerState<_DishCard> {
           Expanded(
             flex: 4,
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -315,9 +315,12 @@ class _DishCardState extends ConsumerState<_DishCard> {
                     widget.dish.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 16,
+                      height: 1.1,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Align(
                     alignment: Alignment.centerRight,
                     child: _QuantityStepper(
@@ -546,7 +549,7 @@ class _PlainAction extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: SizedBox(width: 28, height: 28, child: Center(child: child)),
+      child: SizedBox(width: 26, height: 26, child: Center(child: child)),
     );
   }
 }

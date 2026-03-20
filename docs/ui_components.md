@@ -53,12 +53,14 @@
 - `actions`
 - `bottomNavigationBar`
 - `floatingActionButton`
+- `showAppBar`
 - `useGradientHeader`
 
 规则：
 
 - 主导航页允许渐变头部
 - 表单页默认纯色 header
+- 登录、注册页可关闭 app bar，仅保留内容区
 - Android 统一关闭 stretch overscroll
 
 ### 3.1.1 `CenteredContent`
@@ -69,8 +71,10 @@
 
 规则：
 
-- 长屏垂直居中
-- 短屏仍允许滚动
+- 长屏采用视觉偏上的居中，避免表单落在屏幕正中显得过低
+- 在 `SingleChildScrollView` 内也必须基于 viewport 高度居中，不能退化成顶部对齐
+- 登录、注册页内容直接与页面背景一体展示，不再包裹 `AppCard`
+- 登录、注册页优先使用基于 viewport 的自适应上下 padding，不使用偏大的固定上下留白
 
 ### 3.2 `AppCard`
 
@@ -323,6 +327,7 @@
 - 角标数量为当前轮次（`current_round`）该菜的全员累计数量
 - 订单为 `placed` / `finished` 时不展示角标
 - 标题与步进器采用紧凑布局，避免中部出现大面积留白
+- 当前实现正文区使用更紧凑的上下内边距、标题行高与控件尺寸，避免双列卡片底部溢出
 
 ### 4.2 `DishCard`
 
