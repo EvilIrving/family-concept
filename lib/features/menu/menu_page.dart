@@ -8,7 +8,6 @@ import '../../shared/models/app_models.dart';
 import '../../shared/repositories/order_repository.dart';
 import '../../shared/widgets/app_widgets.dart';
 import '../family/family_providers.dart';
-import '../family/onboarding_pages.dart';
 import '../order/order_providers.dart';
 import 'menu_providers.dart';
 
@@ -41,6 +40,7 @@ class _MenuPageState extends ConsumerState<MenuPage> {
     if (family == null) {
       return const AppScaffold(
         title: '菜单',
+        showAppBar: false,
         body: EmptyState(title: '还没有家庭', description: '请先创建或加入一个家庭。'),
       );
     }
@@ -56,18 +56,14 @@ class _MenuPageState extends ConsumerState<MenuPage> {
 
     return AppScaffold(
       title: '菜单',
-      subtitle: family.name,
-      actions: [
-        IconButton(
-          onPressed: () => showFamilySwitcherSheet(context, ref),
-          icon: const Icon(Icons.swap_horiz_rounded),
-        ),
-        if (family.role.canManageMenu)
-          IconButton(
-            onPressed: () => context.push('/app/menu/dish/new'),
-            icon: const Icon(Icons.add_rounded),
-          ),
-      ],
+      showAppBar: false,
+      floatingActionButton: family.role.canManageMenu
+          ? FloatingActionButton(
+              onPressed: () => context.push('/app/menu/dish/new'),
+              backgroundColor: AppColors.primary,
+              child: const Icon(Icons.add_rounded, color: Colors.white),
+            )
+          : null,
       body: dishesAsync.when(
         loading: () => const SizedBox(height: 360, child: LoadingView()),
         error: (error, _) => ErrorStateView(
@@ -387,13 +383,31 @@ class _DishCardState extends ConsumerState<_DishCard> {
         throw const AppException('加入订单失败，请稍后重试');
       }
 
+      Map<String, String>? selectedSpecs;
+      if (isIncrement && widget.dish.hasSpecs) {
+        if (!mounted) {
+          return;
+        }
+        selectedSpecs = await showAppBottomSheet<Map<String, String>?>(
+          context: context,
+          builder: (_) => _DishSpecSheet(dish: widget.dish),
+        );
+        if (!mounted || selectedSpecs == null) {
+          return;
+        }
+      }
+
       if (isIncrement) {
         final existing = refreshedDetail.items
             .where(
               (item) =>
                   item.dishId == widget.dish.id &&
                   item.addedByMemberId == currentMemberId &&
-                  item.orderRound == refreshedDetail.order.currentRound,
+                  item.orderRound == refreshedDetail.order.currentRound &&
+                  _sameSelectedSpecs(
+                    item.selectedSpecs,
+                    selectedSpecs ?? const {},
+                  ),
             )
             .lastOrNull;
         if (existing == null) {
@@ -402,6 +416,7 @@ class _DishCardState extends ConsumerState<_DishCard> {
             dishId: widget.dish.id,
             orderMemberId: currentMemberId,
             quantity: 1,
+            selectedSpecs: selectedSpecs ?? const {},
           );
         } else {
           await repository.updateItemQuantity(
@@ -410,12 +425,49 @@ class _DishCardState extends ConsumerState<_DishCard> {
           );
         }
       } else {
-        final existing = refreshedDetail.items
+        final currentRoundItems = refreshedDetail.items
             .where(
               (item) =>
                   item.dishId == widget.dish.id &&
                   item.addedByMemberId == currentMemberId &&
                   item.orderRound == refreshedDetail.order.currentRound,
+            )
+            .toList();
+        if (currentRoundItems.isEmpty) {
+          return;
+        }
+
+        Map<String, String> targetSpecs = const {};
+        if (widget.dish.hasSpecs) {
+          final distinctVariants = <String, OrderItemRecord>{};
+          for (final item in currentRoundItems) {
+            distinctVariants[item.specsDisplay] = item;
+          }
+
+          if (distinctVariants.length == 1) {
+            targetSpecs = distinctVariants.values.first.selectedSpecs;
+          } else {
+            if (!mounted) {
+              return;
+            }
+            targetSpecs =
+                await showAppBottomSheet<Map<String, String>?>(
+                  context: context,
+                  builder: (_) => _DishVariantSheet(
+                    dish: widget.dish,
+                    items: distinctVariants.values.toList(),
+                  ),
+                ) ??
+                const {};
+            if (targetSpecs.isEmpty) {
+              return;
+            }
+          }
+        }
+
+        final existing = currentRoundItems
+            .where(
+              (item) => _sameSelectedSpecs(item.selectedSpecs, targetSpecs),
             )
             .lastOrNull;
         if (existing == null) {
@@ -468,6 +520,19 @@ class _DishCardState extends ConsumerState<_DishCard> {
               item.dishId == widget.dish.id && item.orderRound == currentRound,
         )
         .fold(0, (sum, item) => sum + item.quantity);
+  }
+
+  bool _sameSelectedSpecs(Map<String, String> left, Map<String, String> right) {
+    if (left.length != right.length) {
+      return false;
+    }
+
+    for (final entry in left.entries) {
+      if (right[entry.key] != entry.value) {
+        return false;
+      }
+    }
+    return true;
   }
 }
 
@@ -595,6 +660,39 @@ class _DishDetailSheet extends ConsumerWidget {
               context,
             ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
+          if (dish.hasSpecs) ...[
+            const SizedBox(height: 16),
+            Text('规格', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            for (final spec in dish.specs)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: Text(spec.name)),
+                        if (spec.required) const _SpecRequiredBadge(),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: spec.values
+                          .map(
+                            (value) => Chip(
+                              label: Text(value),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                ),
+              ),
+          ],
           const SizedBox(height: 16),
           Text('食材', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
@@ -623,6 +721,226 @@ class _DishDetailSheet extends ConsumerWidget {
                 ),
               ),
         ],
+      ),
+    );
+  }
+}
+
+class _DishSpecSheet extends StatefulWidget {
+  const _DishSpecSheet({required this.dish});
+
+  final Dish dish;
+
+  @override
+  State<_DishSpecSheet> createState() => _DishSpecSheetState();
+}
+
+class _DishSpecSheetState extends State<_DishSpecSheet> {
+  late final Map<String, String?> _selectedValues;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedValues = {for (final spec in widget.dish.specs) spec.name: null};
+  }
+
+  void _toggleValue(String specName, String value) {
+    setState(() {
+      _selectedValues[specName] = _selectedValues[specName] == value
+          ? null
+          : value;
+      _errorText = null;
+    });
+  }
+
+  void _clearValue(String specName) {
+    setState(() {
+      _selectedValues[specName] = null;
+      _errorText = null;
+    });
+  }
+
+  void _confirm() {
+    final selected = <String, String>{};
+    for (final spec in widget.dish.specs) {
+      final value = _selectedValues[spec.name];
+      if (value == null || value.trim().isEmpty) {
+        if (spec.required) {
+          setState(() {
+            _errorText = '请先选择 ${spec.name}';
+          });
+          return;
+        }
+        continue;
+      }
+      selected[spec.name] = value;
+    }
+
+    Navigator.of(context).pop(selected);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        8,
+        16,
+        24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('选择规格', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 4),
+          Text(
+            widget.dish.name,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          if (widget.dish.specs.isEmpty)
+            const SizedBox.shrink()
+          else
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 460),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final spec in widget.dish.specs) ...[
+                      Text(
+                        spec.name,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (!spec.required)
+                            ChoiceChip(
+                              label: const Text('不选'),
+                              selected: _selectedValues[spec.name] == null,
+                              onSelected: (_) => _clearValue(spec.name),
+                            ),
+                          for (final value in spec.values)
+                            ChoiceChip(
+                              label: Text(value),
+                              selected: _selectedValues[spec.name] == value,
+                              onSelected: (_) => _toggleValue(spec.name, value),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          if (_errorText != null) ...[
+            Text(
+              _errorText!,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.danger),
+            ),
+            const SizedBox(height: 12),
+          ],
+          PrimaryButton(label: '确认添加', onPressed: _confirm),
+        ],
+      ),
+    );
+  }
+}
+
+class _DishVariantSheet extends StatelessWidget {
+  const _DishVariantSheet({required this.dish, required this.items});
+
+  final Dish dish;
+  final List<OrderItemRecord> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('选择要减少的规格', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 4),
+          Text(
+            dish.name,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 380),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: items.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return AppCard(
+                  onTap: () => Navigator.of(context).pop(item.selectedSpecs),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.specsDisplay.isEmpty
+                                  ? '默认规格'
+                                  : item.specsDisplay,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '当前数量：${item.quantity}',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpecRequiredBadge extends StatelessWidget {
+  const _SpecRequiredBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.warningSoft,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Text(
+        '必选',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AppColors.warning,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

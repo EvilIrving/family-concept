@@ -65,6 +65,7 @@ Dish {
   category: String             // 动态分类来源
   image_url: String?
   ingredients: JSON            // [{ name, amount, unit }]
+  specs: JSON                  // [{ name, values, required }]
   created_by: UUID             // -> Profile.id
   created_at: Timestamp
   updated_at: Timestamp
@@ -103,6 +104,7 @@ OrderItem {
   quantity: Int
   status: ItemStatus           // waiting | cooking | done
   order_round: Int             // 第几轮下单，用于采购清单高亮
+  selected_specs: JSON         // {"规格名": "选中值"}
   created_at: Timestamp
 }
 

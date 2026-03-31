@@ -79,6 +79,19 @@ Map<String, dynamic> _asMap(dynamic raw) {
   return Map<String, dynamic>.from(raw as Map);
 }
 
+List<String> _asStringList(dynamic raw) {
+  return (raw as List<dynamic>? ?? const [])
+      .map((item) => item.toString())
+      .where((item) => item.trim().isNotEmpty)
+      .toList();
+}
+
+Map<String, String> _asStringMap(dynamic raw) {
+  return Map<String, dynamic>.from(
+    raw as Map,
+  ).map((key, value) => MapEntry(key.toString(), value.toString()));
+}
+
 DateTime _parseDateTime(dynamic value) {
   return DateTime.parse(value as String);
 }
@@ -260,6 +273,30 @@ class DishIngredient {
   }
 }
 
+class DishSpec {
+  const DishSpec({
+    required this.name,
+    required this.values,
+    required this.required,
+  });
+
+  final String name;
+  final List<String> values;
+  final bool required;
+
+  factory DishSpec.fromJson(Map<String, dynamic> json) {
+    return DishSpec(
+      name: json['name'] as String? ?? '',
+      values: _asStringList(json['values']),
+      required: json['required'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'name': name, 'values': values, 'required': required};
+  }
+}
+
 class Dish {
   const Dish({
     required this.id,
@@ -268,6 +305,7 @@ class Dish {
     required this.category,
     required this.imageUrl,
     required this.ingredients,
+    required this.specs,
     required this.createdBy,
     required this.createdAt,
     required this.updatedAt,
@@ -280,6 +318,7 @@ class Dish {
   final String category;
   final String? imageUrl;
   final List<DishIngredient> ingredients;
+  final List<DishSpec> specs;
   final String createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -287,6 +326,7 @@ class Dish {
 
   factory Dish.fromJson(Map<String, dynamic> json) {
     final ingredientsRaw = json['ingredients'] as List<dynamic>? ?? const [];
+    final specsRaw = json['specs'] as List<dynamic>? ?? const [];
 
     return Dish(
       id: json['id'] as String,
@@ -298,6 +338,10 @@ class Dish {
           .map((raw) => DishIngredient.fromJson(_asMap(raw)))
           .where((ingredient) => ingredient.name.trim().isNotEmpty)
           .toList(),
+      specs: specsRaw
+          .map((raw) => DishSpec.fromJson(_asMap(raw)))
+          .where((spec) => spec.name.trim().isNotEmpty)
+          .toList(),
       createdBy: json['created_by'] as String,
       createdAt: _parseDateTime(json['created_at']),
       updatedAt: _parseDateTime(json['updated_at']),
@@ -307,7 +351,9 @@ class Dish {
     );
   }
 
-  Dish copyWith({String? imageUrl}) {
+  bool get hasSpecs => specs.isNotEmpty;
+
+  Dish copyWith({String? imageUrl, List<DishSpec>? specs}) {
     return Dish(
       id: id,
       familyId: familyId,
@@ -315,6 +361,7 @@ class Dish {
       category: category,
       imageUrl: imageUrl ?? this.imageUrl,
       ingredients: ingredients,
+      specs: specs ?? this.specs,
       createdBy: createdBy,
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -407,6 +454,7 @@ class OrderItemRecord {
     required this.status,
     required this.orderRound,
     required this.createdAt,
+    required this.selectedSpecs,
     this.dish,
   });
 
@@ -418,10 +466,12 @@ class OrderItemRecord {
   final ItemStatus status;
   final int orderRound;
   final DateTime createdAt;
+  final Map<String, String> selectedSpecs;
   final Dish? dish;
 
   factory OrderItemRecord.fromJson(Map<String, dynamic> json) {
     final dishRaw = json['dishes'];
+    final selectedSpecsRaw = json['selected_specs'];
 
     return OrderItemRecord(
       id: json['id'] as String,
@@ -432,8 +482,21 @@ class OrderItemRecord {
       status: ItemStatus.fromJson(json['status'] as String),
       orderRound: json['order_round'] as int? ?? 1,
       createdAt: _parseDateTime(json['created_at']),
+      selectedSpecs: selectedSpecsRaw == null
+          ? const {}
+          : _asStringMap(selectedSpecsRaw),
       dish: dishRaw == null ? null : Dish.fromJson(_asMap(dishRaw)),
     );
+  }
+
+  String get specsDisplay {
+    if (selectedSpecs.isEmpty) {
+      return '';
+    }
+
+    final entries = selectedSpecs.entries.toList()
+      ..sort((left, right) => left.key.compareTo(right.key));
+    return entries.map((entry) => '${entry.key}: ${entry.value}').join(' · ');
   }
 }
 

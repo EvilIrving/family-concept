@@ -58,6 +58,7 @@ class MenuRepository {
     required String name,
     required String category,
     required List<DishIngredient> ingredients,
+    required List<DishSpec> specs,
     String? dishId,
     String? currentImageUrl,
     XFile? selectedImage,
@@ -81,6 +82,7 @@ class MenuRepository {
                 'ingredients': ingredients
                     .map((item) => item.toJson())
                     .toList(),
+                'specs': specs.map((item) => item.toJson()).toList(),
                 'image_url': currentImageUrl,
                 'created_by': user.id,
               })
@@ -97,6 +99,7 @@ class MenuRepository {
                 'ingredients': ingredients
                     .map((item) => item.toJson())
                     .toList(),
+                'specs': specs.map((item) => item.toJson()).toList(),
                 'image_url': currentImageUrl,
               })
               .eq('id', dishId)

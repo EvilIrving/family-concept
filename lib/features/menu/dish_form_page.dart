@@ -57,6 +57,7 @@ class _DishFormBodyState extends ConsumerState<_DishFormBody> {
   late final TextEditingController _nameController;
   late final TextEditingController _categoryController;
   late List<_IngredientDraft> _ingredients;
+  late List<_SpecDraft> _specs;
 
   XFile? _selectedImage;
   bool _isSaving = false;
@@ -77,6 +78,12 @@ class _DishFormBodyState extends ConsumerState<_DishFormBody> {
     if (_ingredients.isEmpty) {
       _ingredients = [_IngredientDraft.empty()];
     }
+    _specs = (widget.existingDish?.specs ?? const [])
+        .map(_SpecDraft.fromSpec)
+        .toList();
+    if (_specs.isEmpty) {
+      _specs = [_SpecDraft.empty()];
+    }
   }
 
   @override
@@ -84,6 +91,9 @@ class _DishFormBodyState extends ConsumerState<_DishFormBody> {
     _nameController.dispose();
     _categoryController.dispose();
     for (final draft in _ingredients) {
+      draft.dispose();
+    }
+    for (final draft in _specs) {
       draft.dispose();
     }
     super.dispose();
@@ -144,6 +154,29 @@ class _DishFormBodyState extends ConsumerState<_DishFormBody> {
       return;
     }
 
+    final specs = <DishSpec>[];
+    for (final draft in _specs) {
+      final nameText = draft.nameController.text.trim();
+      final valuesText = draft.values
+          .map((value) => value.controller.text.trim())
+          .where((value) => value.isNotEmpty)
+          .toList();
+
+      if (nameText.isEmpty && valuesText.isEmpty) {
+        continue;
+      }
+      if (nameText.isEmpty || valuesText.isEmpty) {
+        setState(() {
+          _errorText = '请完整填写每组规格的名称和选项';
+        });
+        return;
+      }
+
+      specs.add(
+        DishSpec(name: nameText, values: valuesText, required: draft.required),
+      );
+    }
+
     setState(() {
       _isSaving = true;
       _errorText = null;
@@ -158,6 +191,7 @@ class _DishFormBodyState extends ConsumerState<_DishFormBody> {
             name: name,
             category: category,
             ingredients: ingredients,
+            specs: specs,
             currentImageUrl: widget.existingDish?.imageUrl,
             selectedImage: _selectedImage,
           );
@@ -315,6 +349,54 @@ class _DishFormBodyState extends ConsumerState<_DishFormBody> {
                   children: [
                     Expanded(
                       child: Text(
+                        '规格',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _specs.add(_SpecDraft.empty());
+                        });
+                      },
+                      icon: const Icon(Icons.add_circle_outline_rounded),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '例如：杯型、温度、口味、甜度。留空整组即可不启用规格。',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                for (var index = 0; index < _specs.length; index++) ...[
+                  _SpecEditorCard(
+                    draft: _specs[index],
+                    onRemove: _specs.length == 1
+                        ? null
+                        : () {
+                            setState(() {
+                              final item = _specs.removeAt(index);
+                              item.dispose();
+                            });
+                          },
+                  ),
+                  if (index != _specs.length - 1) const SizedBox(height: 12),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
                         '食材',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
@@ -440,5 +522,192 @@ class _IngredientDraft {
     nameController.dispose();
     amountController.dispose();
     unitController.dispose();
+  }
+}
+
+class _SpecDraft {
+  _SpecDraft({
+    required this.nameController,
+    required this.required,
+    required this.values,
+  });
+
+  factory _SpecDraft.empty() {
+    return _SpecDraft(
+      nameController: TextEditingController(),
+      required: false,
+      values: [_SpecValueDraft.empty()],
+    );
+  }
+
+  factory _SpecDraft.fromSpec(DishSpec spec) {
+    return _SpecDraft(
+      nameController: TextEditingController(text: spec.name),
+      required: spec.required,
+      values: (spec.values.isEmpty ? [''] : spec.values)
+          .map(_SpecValueDraft.fromText)
+          .toList(),
+    );
+  }
+
+  final TextEditingController nameController;
+  bool required;
+  final List<_SpecValueDraft> values;
+
+  DishSpec? toDishSpec() {
+    final name = nameController.text.trim();
+    final parsedValues = values
+        .map((draft) => draft.controller.text.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+
+    if (name.isEmpty && parsedValues.isEmpty) {
+      return null;
+    }
+
+    return DishSpec(name: name, values: parsedValues, required: required);
+  }
+
+  void dispose() {
+    nameController.dispose();
+    for (final value in values) {
+      value.dispose();
+    }
+  }
+}
+
+class _SpecValueDraft {
+  _SpecValueDraft({required this.controller});
+
+  factory _SpecValueDraft.empty() {
+    return _SpecValueDraft(controller: TextEditingController());
+  }
+
+  factory _SpecValueDraft.fromText(String value) {
+    return _SpecValueDraft(controller: TextEditingController(text: value));
+  }
+
+  final TextEditingController controller;
+
+  void dispose() {
+    controller.dispose();
+  }
+}
+
+class _SpecEditorCard extends StatefulWidget {
+  const _SpecEditorCard({required this.draft, this.onRemove});
+
+  final _SpecDraft draft;
+  final VoidCallback? onRemove;
+
+  @override
+  State<_SpecEditorCard> createState() => _SpecEditorCardState();
+}
+
+class _SpecEditorCardState extends State<_SpecEditorCard> {
+  void _addValue() {
+    setState(() {
+      widget.draft.values.add(_SpecValueDraft.empty());
+    });
+  }
+
+  void _removeValue(int index) {
+    setState(() {
+      final value = widget.draft.values.removeAt(index);
+      value.dispose();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final draft = widget.draft;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AppTextField(
+                  controller: draft.nameController,
+                  label: '规格名',
+                  hintText: '例如 杯型',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('必选'),
+                  Switch(
+                    value: draft.required,
+                    activeThumbColor: AppColors.primary,
+                    onChanged: (value) {
+                      setState(() {
+                        draft.required = value;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              if (widget.onRemove != null) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: widget.onRemove,
+                  icon: const Icon(Icons.delete_outline_rounded),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '规格值',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _addValue,
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('添加'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (var index = 0; index < draft.values.length; index++) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: AppTextField(
+                    controller: draft.values[index].controller,
+                    label: '选项 ${index + 1}',
+                    hintText: '例如 大杯',
+                  ),
+                ),
+                if (draft.values.length > 1) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: () => _removeValue(index),
+                    icon: const Icon(Icons.remove_circle_outline_rounded),
+                  ),
+                ],
+              ],
+            ),
+            if (index != draft.values.length - 1) const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
   }
 }

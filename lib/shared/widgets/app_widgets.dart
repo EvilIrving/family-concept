@@ -45,11 +45,12 @@ class AppScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = showAppBar ? 0.0 : MediaQuery.of(context).padding.top;
     final resolvedPadding =
         (bodyPadding ??
-                const EdgeInsets.fromLTRB(
+                EdgeInsets.fromLTRB(
                   AppSpacing.lg,
-                  AppSpacing.lg,
+                  AppSpacing.lg + topPadding,
                   AppSpacing.lg,
                   AppSpacing.section,
                 ))

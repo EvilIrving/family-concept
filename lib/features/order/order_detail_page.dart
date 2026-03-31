@@ -80,6 +80,7 @@ class OrderDetailBody extends ConsumerWidget {
         final currentUserId = session?.authenticatedUserId ?? '';
         final currentMemberId = detail.currentMemberIdForUser(currentUserId);
         final canManageOrder = family?.role.canManageMenu ?? false;
+        final isParticipant = currentMemberId != null;
         final roundGroups = detail.groupItemsByRound();
         final hasItemsInCurrentRound = detail.items.any(
           (item) => item.orderRound == detail.order.currentRound,
@@ -112,7 +113,7 @@ class OrderDetailBody extends ConsumerWidget {
                       : '已下单',
                   action:
                       group.round == detail.order.currentRound &&
-                          canManageOrder &&
+                          isParticipant &&
                           !detail.isFinished &&
                           hasItemsInCurrentRound
                       ? _ConfirmableActionButton(
@@ -279,26 +280,40 @@ class _OrderItemCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    '${item.dish?.name ?? '未知菜品'} * ${item.quantity}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${item.dish?.name ?? '未知菜品'} * ${item.quantity}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    if (addedBy != null) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '· $addedBy',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: 6),
+                    StatusChip.item(item.status),
+                  ],
                 ),
-                if (addedBy != null) ...[
-                  const SizedBox(width: 4),
+                if (item.specsDisplay.isNotEmpty) ...[
+                  const SizedBox(height: 6),
                   Text(
-                    '· $addedBy',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    item.specsDisplay,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
                     ),
                   ),
                 ],
-                const SizedBox(width: 6),
-                StatusChip.item(item.status),
               ],
             ),
           ),

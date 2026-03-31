@@ -79,6 +79,7 @@ create table public.dishes (
   category text not null,
   image_url text,
   ingredients jsonb not null default '[]',
+  specs jsonb not null default '[]',
   created_by uuid not null references public.profiles(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -113,6 +114,7 @@ create table public.order_items (
   quantity int not null default 1 check (quantity > 0),
   status public.item_status not null default 'waiting',
   order_round int not null default 1 check (order_round > 0),
+  selected_specs jsonb not null default '{}',
   created_at timestamptz not null default now()
 );
 
@@ -258,7 +260,57 @@ as $$
       and om.user_id = auth.uid()
   );
 $$;
+create or replace function public.place_order_current_round(p_order_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_order public.orders%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
 
+  select *
+  into v_order
+  from public.orders o
+  where o.id = p_order_id
+    and o.status != 'finished'
+  limit 1;
+
+  if v_order.id is null then
+    raise exception 'Order not found or already finished';
+  end if;
+
+  if not exists (
+    select 1
+    from public.order_members om
+    where om.order_id = p_order_id
+      and om.user_id = auth.uid()
+  ) then
+    raise exception 'Only order participants can place order';
+  end if;
+
+  if not exists (
+    select 1
+    from public.order_items oi
+    where oi.order_id = p_order_id
+      and oi.order_round = v_order.current_round
+  ) then
+    raise exception 'No items in current round';
+  end if;
+
+  update public.orders
+  set status = 'placed',
+      current_round = current_round + 1,
+      placed_at = now()
+  where id = p_order_id;
+end;
+$$;
+
+grant execute on function public.place_order_current_round(uuid) to authenticated;
 -- ===== Triggers =====
 
 create or replace function public.touch_updated_at()

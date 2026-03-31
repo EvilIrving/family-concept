@@ -85,7 +85,7 @@ class OrderRepository {
         .from('order_items')
         .select(
           'id, order_id, dish_id, added_by_member_id, quantity, status, '
-          'order_round, created_at, dishes!inner(*)',
+          'order_round, selected_specs, created_at, dishes!inner(*)',
         )
         .eq('order_id', orderId)
         .order('created_at');
@@ -141,6 +141,7 @@ class OrderRepository {
     required String dishId,
     required String orderMemberId,
     required int quantity,
+    required Map<String, String> selectedSpecs,
   }) async {
     try {
       await _client.from('order_items').insert({
@@ -150,6 +151,7 @@ class OrderRepository {
         'quantity': quantity,
         'status': ItemStatus.waiting.name,
         'order_round': order.currentRound,
+        'selected_specs': selectedSpecs,
       });
       if (order.status == OrderStatus.placed) {
         await _client
@@ -200,14 +202,10 @@ class OrderRepository {
 
   Future<void> placeCurrentRound(OrderRecord order) async {
     try {
-      await _client
-          .from('orders')
-          .update({
-            'status': OrderStatus.placed.name,
-            'current_round': order.currentRound + 1,
-            'placed_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', order.id);
+      await _client.rpc(
+        'place_order_current_round',
+        params: {'p_order_id': order.id},
+      );
     } catch (error) {
       throw AppException.from(error, fallbackMessage: '下单失败，请稍后重试');
     }

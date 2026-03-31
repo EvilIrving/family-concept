@@ -42,36 +42,38 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (family == null || profile == null) {
       return const AppScaffold(
         title: '设置',
+        showAppBar: false,
         body: EmptyState(title: '还没有可用内容', description: '请先登录并进入一个家庭。'),
       );
     }
 
+    final isChef = family.role == FamilyRole.owner ||
+        family.role == FamilyRole.admin;
+
     return AppScaffold(
       title: '设置',
-      subtitle: family.name,
-      actions: [
-        IconButton(
-          onPressed: () => showFamilySwitcherSheet(context, ref),
-          icon: const Icon(Icons.swap_horiz_rounded),
-        ),
-      ],
+      showAppBar: false,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _ProfileCard(
+            username: profile.username,
+            email: email,
+            familyName: family.name,
+            isChef: isChef,
+            onEdit: () => showAppBottomSheet<void>(
+              context: context,
+              builder: (_) => const _ProfileSheet(),
+            ),
+          ),
+          const SizedBox(height: 16),
           AppCard(
             child: Column(
               children: [
                 _SettingsRow(
-                  title: profile.username,
-                  subtitle: email.isEmpty ? '未读取到邮箱' : email,
-                  trailing: AppIconButton(
-                    icon: Icons.edit_rounded,
-                    tooltip: '编辑个人信息',
-                    onPressed: () => showAppBottomSheet<void>(
-                      context: context,
-                      builder: (_) => const _ProfileSheet(),
-                    ),
-                  ),
+                  title: '切换家庭',
+                  subtitle: '当前：${family.name}',
+                  onTap: () => showFamilySwitcherSheet(context, ref),
                 ),
                 const Divider(height: 20),
                 _SettingsRow(
@@ -232,6 +234,79 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({
+    required this.username,
+    required this.email,
+    required this.familyName,
+    required this.isChef,
+    required this.onEdit,
+  });
+
+  final String username;
+  final String email;
+  final String familyName;
+  final bool isChef;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isChef ? '👩‍🍳' : '👴',
+            style: const TextStyle(fontSize: 48),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  username,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  email.isEmpty ? '未读取到邮箱' : email,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.home_rounded,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      familyName,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          AppIconButton(
+            icon: Icons.edit_rounded,
+            tooltip: '编辑个人信息',
+            onPressed: onEdit,
+          ),
+        ],
+      ),
+    );
   }
 }
 

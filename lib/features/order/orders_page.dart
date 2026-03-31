@@ -7,7 +7,6 @@ import '../../shared/models/app_models.dart';
 import '../../shared/repositories/order_repository.dart';
 import '../../shared/widgets/app_widgets.dart';
 import '../family/family_providers.dart';
-import '../family/onboarding_pages.dart';
 import 'order_detail_page.dart';
 import 'order_providers.dart';
 
@@ -20,6 +19,7 @@ class OrdersPage extends ConsumerWidget {
     if (family == null) {
       return const AppScaffold(
         title: '订单',
+        showAppBar: false,
         body: EmptyState(title: '还没有家庭', description: '请先创建或加入一个家庭。'),
       );
     }
@@ -28,13 +28,7 @@ class OrdersPage extends ConsumerWidget {
 
     return AppScaffold(
       title: '订单',
-      subtitle: family.name,
-      actions: [
-        IconButton(
-          onPressed: () => showFamilySwitcherSheet(context, ref),
-          icon: const Icon(Icons.swap_horiz_rounded),
-        ),
-      ],
+      showAppBar: false,
       body: orderAsync.when(
         loading: () => const SizedBox(height: 320, child: LoadingView()),
         error: (error, _) => ErrorStateView(

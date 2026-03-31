@@ -136,6 +136,7 @@
 - `category text not null`
 - `image_url text null`
 - `ingredients jsonb not null default '[]'`
+- `specs jsonb not null default '[]'`
 - `created_by uuid not null references profiles(id)`
 - `created_at timestamptz not null default now()`
 - `updated_at timestamptz not null default now()`
@@ -146,6 +147,8 @@
 - `unique (family_id, name)`
 - 分类仍然由 `category` 动态聚合，不单独建分类表。
 - 删除优先考虑软删除或归档，避免影响历史订单展示。
+- `specs` 采用简化版 SPU 规格组结构，格式为 `[{ name, values, required }]`。
+- 同一套规格机制可复用于咖啡、茶、菜品等所有品类。
 
 #### `orders`
 
@@ -199,6 +202,7 @@
 - `quantity int not null default 1 check (quantity > 0)`
 - `status item_status not null default 'waiting'`
 - `order_round int not null default 1`
+- `selected_specs jsonb not null default '{}'`
 - `created_at timestamptz not null default now()`
 
 约束与规则：
@@ -206,6 +210,7 @@
 - 不直接存 `family_id`，通过 `orders.family_id` 归属家庭。
 - `dish_id` 必须属于该订单所在家庭。
 - `added_by_member_id` 指向 `order_members`，用于记录是哪位成员加的菜。
+- `selected_specs` 仅记录用户对规格组的最终选择，格式为 `{ "规格名": "选中值" }`。
 
 ### 3.3 Family v1 ER 图
 
@@ -247,6 +252,7 @@ erDiagram
         text category
         text image_url
         jsonb ingredients
+        jsonb specs
         uuid created_by FK
         timestamptz created_at
         timestamptz updated_at
@@ -280,6 +286,7 @@ erDiagram
         int quantity
         item_status status
         int order_round
+        jsonb selected_specs
         timestamptz created_at
     }
 
@@ -542,6 +549,7 @@ v1 建议收敛为：
 
 - 创建枚举：`family_role`、`family_member_status`、`order_status`、`item_status`
 - 创建表：`profiles`、`families`、`family_members`、`dishes`、`orders`、`order_members`、`order_items`
+- `dishes.specs` 与 `order_items.selected_specs` 使用 JSONB 承载规格定义与用户选择
 - 建立关键约束与索引
 - 实现活跃订单唯一约束 trigger
 - 实现 helper functions
