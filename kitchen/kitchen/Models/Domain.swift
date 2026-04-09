@@ -1,21 +1,5 @@
 import Foundation
 
-enum KitchenRole: String, CaseIterable, Identifiable {
-    case owner
-    case admin
-    case member
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .owner: "店主"
-        case .admin: "协作"
-        case .member: "成员"
-        }
-    }
-}
-
 enum OrderItemStatus: String, CaseIterable, Identifiable {
     case waiting
     case cooking
@@ -34,12 +18,6 @@ enum OrderItemStatus: String, CaseIterable, Identifiable {
     }
 }
 
-struct UserProfile: Identifiable, Equatable {
-    let id: UUID
-    var name: String
-    var role: KitchenRole
-}
-
 struct Dish: Identifiable, Equatable {
     let id: UUID
     var name: String
@@ -54,10 +32,34 @@ struct OrderItem: Identifiable, Equatable {
     var dishName: String
     var quantity: Int
     var status: OrderItemStatus
-    var addedBy: String
+}
+
+struct CartItem: Identifiable, Equatable {
+    let id: UUID
+    var dishID: UUID
+    var dishName: String
+    var quantity: Int
 }
 
 struct KitchenInfo: Equatable {
     var name: String
     var inviteCode: String
+}
+
+enum MemberRole: String, Equatable {
+    case owner
+    case member
+
+    var title: String {
+        switch self {
+        case .owner: "管理员"
+        case .member: "成员"
+        }
+    }
+}
+
+struct Member: Identifiable, Equatable {
+    let id: UUID  // 设备 ID
+    var displayName: String
+    var role: MemberRole
 }

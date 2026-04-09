@@ -4,6 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
     @State private var notificationsEnabled = true
     @State private var hapticsEnabled = true
+    @State private var showMembersSheet = false
 
     var body: some View {
         AppScrollPage {
@@ -11,25 +12,40 @@ struct SettingsView: View {
                 Text("设置")
                     .font(AppTypography.pageTitle)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("把厨房信息、身份信息和基础偏好收拢进卡片。")
-                    .font(AppTypography.body)
-                    .foregroundStyle(AppColor.textSecondary)
             }
         } content: {
             if let kitchen = store.kitchen {
                 AppCard {
-                    AppSectionHeader(eyebrow: "厨房", title: kitchen.name, detail: "邀请码可直接分享给新的家庭成员。")
+                    AppSectionHeader(eyebrow: "厨房", title: kitchen.name)
                     AppPill(title: "邀请码 \(kitchen.inviteCode)", tint: AppColor.green800, background: AppColor.green100)
+                    Divider()
+                        .overlay(AppColor.lineSoft)
+                    Button {
+                        showMembersSheet = true
+                    } label: {
+                        HStack {
+                            Text("成员管理")
+                                .font(AppTypography.bodyStrong)
+                                .foregroundStyle(AppColor.textPrimary)
+                            Spacer()
+                            Text("\(store.members.count) 人")
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColor.textSecondary)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(AppColor.textTertiary)
+                        }
+                        .frame(height: 28)
+                    }
+                }
+                .sheet(isPresented: $showMembersSheet) {
+                    MembersSheetView()
+                        .environmentObject(store)
                 }
             }
 
             AppCard {
-                AppSectionHeader(eyebrow: "成员", title: "当前身份", detail: "当前示例以本地演示数据驱动。")
-                row(title: store.currentUser.name, value: store.currentUser.role.title)
-            }
-
-            AppCard {
-                AppSectionHeader(eyebrow: "基础设置", title: "界面偏好", detail: "采用卡片化设置项，而不是默认表单风格。")
+                AppSectionHeader(eyebrow: "基础设置", title: "界面偏好")
                 toggleRow(title: "消息通知", isOn: $notificationsEnabled)
                 Divider()
                     .overlay(AppColor.lineSoft)
@@ -39,9 +55,6 @@ struct SettingsView: View {
                 toggleRow(title: "震动反馈", isOn: $hapticsEnabled)
             }
 
-            AppCard {
-                AppSectionHeader(eyebrow: "说明", title: "当前实现范围", detail: "已覆盖入驻、菜单、订单、设置四个主页面，以及自定义按钮、卡片、toast、sheet 和底部导航。")
-            }
         }
     }
 
@@ -74,5 +87,64 @@ struct SettingsView: View {
                 .labelsHidden()
         }
         .frame(height: 28)
+    }
+}
+
+private struct MembersSheetView: View {
+    @EnvironmentObject private var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(store.members) { member in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: AppSpacing.xs) {
+                                Text(member.displayName)
+                                    .font(AppTypography.bodyStrong)
+                                    .foregroundStyle(AppColor.textPrimary)
+                                if member.id == store.currentDeviceID {
+                                    Text("本机")
+                                        .font(.caption2)
+                                        .foregroundStyle(AppColor.green700)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(AppColor.green100)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                        Spacer()
+                        Text(member.role.title)
+                            .font(AppTypography.body)
+                            .foregroundStyle(member.role == .owner ? AppColor.green700 : AppColor.textSecondary)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        if store.isOwner && member.id != store.currentDeviceID {
+                            if member.role == .member {
+                                Button("设为管理员") {
+                                    store.updateRole(memberID: member.id, to: .owner)
+                                }
+                                .tint(AppColor.green700)
+                            } else {
+                                Button("降为成员") {
+                                    store.updateRole(memberID: member.id, to: .member)
+                                }
+                                .tint(AppColor.textSecondary)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("成员管理")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成") { dismiss() }
+                        .foregroundStyle(AppColor.green700)
+                }
+            }
+        }
     }
 }
