@@ -1,382 +1,250 @@
-# 绿色 iOS 主题系统
+# 私厨 iOS 自定义 UI 主题规范
 
 ## 1. 文档目标
 
-这份文档用于冻结当前 iOS App 的全局视觉配色方向，作为 SwiftUI `Color`、`ShapeStyle`、组件样式和页面实现的颜色依据。
+本文件定义私厨 iOS 客户端的统一视觉语言、组件气质和基础 token，作为后续自定义 `Button`、`Card`、`List`、`Toast`、`Sheet`、`Picker` 组件的唯一主题依据。
 
-## 2. 主题方向
+目标不是复刻系统默认控件，而是在 SwiftUI 原生能力上封装一套更柔和、更连续、更产品化的界面外观，同时保持 iOS 的可访问性、手势习惯和状态驱动模型。
 
-关键词：
+## 2. 主题立场
 
-- 清爽
-- 自然
-- 家庭厨房感
-- 功能清晰
+产品气质应稳定落在以下关键词上：
 
-设计原则：
+- 干净
+- 柔和
+- 轻厨房感
+- 家庭协作感
+- 即时可操作
 
-- 绿色承担主交互色和成功态表达。
-- 其余颜色尽量回收为系统语义色，不做大面积品牌化扩展。
-- 页面底色保持接近系统 `Grouped Background` 的浅色层次。
-- 卡片、弹层、表单以高可读性和一致性为优先。
+本项目不采用纯后台工具风，也不采用餐饮海报式高饱和风。界面应避免生硬、锐利、拥挤和强商业化表达，而应让操作看起来像在整理家里的厨房事务。
 
-## 3. 核心颜色
+视觉上允许借鉴精致的自定义控件风格，例如圆角弹层、柔和卡片、低对比描边、轻阴影和集中式操作区，但必须转换到本项目的绿色主题，不直接使用暖棕或米杏色作为全局主视觉。
 
-### 3.1 Brand / Accent
+## 3. 组件系统原则
 
-- `accentGreen`: `#2D6A4F`
-- `accentGreenLight`: `#40916C`
-- `accentGreenSoft`: `#95D5B2`
-- `accentGreenTint`: `#D8F3DC`
+### 3.1 原则一：自定义外观，保留原生交互内核
 
-用途：
+可以自定义组件外观、布局、阴影、边框、密度和局部过渡，但优先保留 SwiftUI 原生的状态驱动、系统动画、可访问性语义和基础手势行为。
 
-- 主按钮
-- 选中态
-- 导航高亮
-- 成功态基础色
+### 3.2 原则二：卡片化优先
 
-### 3.2 Background / Surface
+主要信息和操作容器优先用卡片表达，而不是大面积平铺列表。卡片之间靠留白和层级区分，不依赖重分割线。
 
-- `groupedBackground`: `#F2F2F7`
-- `secondaryBackground`: `#FFFFFF`
-- `surface`: `#FFFFFF`
-- `surfaceTint`: `#EAF4EE`
-- `surfaceMuted`: `#F8F8F8`
+### 3.3 原则三：弱边框，轻阴影，强留白
 
-用途：
+界面层次主要通过背景明度差、卡片圆角、内边距和轻投影建立，不通过重描边、高对比边框或强渐变制造层级。
 
-- 页面背景使用 `groupedBackground`
-- 卡片、弹窗、表单容器使用 `surface`
-- 轻标签、弱选中、分组底使用 `surfaceTint`
-- 清单项和次级块面可使用 `surfaceMuted`
+### 3.4 原则四：动作集中且容易理解
 
-### 3.3 Text
+确认、取消、重置、今日、保存等动作位置固定，优先放在组件顶部或底部的稳定操作区，不把关键动作分散到页面多个角落。
 
-- `labelPrimary`: `#1C1C1E`
-- `labelSecondary`: `#6C6C70`
-- `textOnPrimary`: `#FFFFFF`
+### 3.5 原则五：连续操作优先
 
-用途：
+弹层、内联编辑、toast 反馈和局部状态切换应形成连续流程，避免频繁跳页、打断式确认框和阻塞式加载。
 
-- 主标题、正文重点使用 `labelPrimary`
-- 辅助信息、说明文字使用 `labelSecondary`
-- 深色按钮与深色头部上的文字使用 `textOnPrimary`
+## 4. 整体视觉语言
 
-### 3.4 Semantic Support
+### 4.1 色彩方向
 
-- `warning`: `#FF9F0A`
-- `warningSoft`: `#FFF4E5`
-- `danger`: `#FF3B30`
-- `dangerSoft`: `#FFE5E5`
+全局固定为绿色系，表达“新鲜、整理、有秩序、可恢复”。绿色承担主交互色、选中态、积极状态和局部强调，不延伸成大面积高饱和品牌涂满。
 
-用途：
+辅助色只服务于状态表达和食物生活感，不反客为主。允许少量使用偏奶白、浅雾绿、暖灰绿，构建柔和而非冰冷的界面基底。
 
-- `warning` 用于进行中、提醒、需关注状态
-- `danger` 用于退出登录、删除、移除成员等危险操作
+### 4.2 形状方向
 
-## 4. 状态色规范
+组件以圆角矩形和胶囊形态为主，不使用尖锐矩形。整体圆角偏大，但要克制，不做夸张玩具感。
 
-订单和菜品状态建议统一如下：
+### 4.3 层级方向
 
-### 4.1 订单状态
+页面背景最浅，卡片和弹层更白，关键操作再通过更深的绿色实体按钮或浅绿色容器提升一层。层级数控制在 3 到 4 层内，避免每一层都长得不一样。
 
-- `ordering`
-  - bg: `#FFF4E5`
-  - fg: `#FF9F0A`
-- `placed`
-  - bg: `#EAF4EE`
-  - fg: `#2D6A4F`
-- `finished`
-  - bg: `#D8F3DC`
-  - fg: `#2D6A4F`
+### 4.4 动效方向
 
-### 4.2 菜品项状态
+只使用 SwiftUI 默认转场、淡入淡出、位移和尺寸变化。动效应像界面自己呼吸，不像在播放特效。
 
-- `waiting`
-  - bg: `#EAF4EE`
-  - fg: `#2D6A4F`
-  - dot: `#95D5B2`
-- `cooking`
-  - bg: `#FFF4E5`
-  - fg: `#FF9F0A`
-  - dot: `#FFB340`
-- `done`
-  - bg: `#D8F3DC`
-  - fg: `#2D6A4F`
-  - dot: `#2D6A4F`
+## 5. 颜色 Token
 
-## 5. 组件配色规则
+### 5.1 Brand
 
-### 5.1 Navigation Bar / Header
+- `green900`: `#1F4D3A`
+- `green800`: `#2D6A4F`
+- `green700`: `#3F8A67`
+- `green500`: `#78B798`
+- `green300`: `#BFE3CF`
+- `green200`: `#DCEFE3`
+- `green100`: `#EEF7F1`
 
-- 主页面头部可使用绿色渐变：
-  - start: `#2D6A4F`
-  - end: `#95D5B2`
-- 头部文字与图标使用白色
-- 头部下方承接页面背景时，可保留浅曲线或柔和过渡
+建议映射：
 
-### 5.2 Button
+- 主按钮填充：`green800`
+- 主按钮按下态：`green900`
+- 次按钮与选中弱底：`green100`
+- 选中描边或弱高亮：`green300`
+- 页面局部高光容器：`green200`
 
-主按钮：
+### 5.2 Neutral
 
-- bg: `#2D6A4F` 或 `#2D6A4F -> #95D5B2`
-- fg: `#FFFFFF`
+- `backgroundBase`: `#F4F8F5`
+- `backgroundElevated`: `#FAFCFA`
+- `surfacePrimary`: `#FFFFFF`
+- `surfaceSecondary`: `#F7FAF7`
+- `surfaceTertiary`: `#F1F5F1`
+- `lineSoft`: `#E3EBE4`
+- `lineStrong`: `#D2DDD4`
 
-次按钮：
+### 5.3 Text
 
-- bg: `#EAF4EE`
-- fg: `#2D6A4F`
+- `textPrimary`: `#1E2A22`
+- `textSecondary`: `#5F6F64`
+- `textTertiary`: `#8A968E`
+- `textOnBrand`: `#FFFFFF`
 
-危险按钮：
+### 5.4 Semantic
 
-- bg: `#FFE5E5`
-- fg: `#FF3B30`
-
-禁用按钮：
-
-- bg: `#E5E5EA`
-- fg: `#8E8E93`
-
-### 5.3 Card
-
-- 默认卡片背景：`#FFFFFF`
-- 卡片阴影避免过重，建议沿用系统中性阴影思路
-- 卡片内的状态标签优先用浅色底 + 深色字，不要直接大面积高饱和填充
-
-### 5.4 Tag / Badge / Chip
-
-- 默认弱标签：`#EAF4EE` / `#2D6A4F`
-- 强调标签：`#D8F3DC` / `#2D6A4F`
-- 提醒标签：`#FFF4E5` / `#FF9F0A`
-- 危险标签：`#FFE5E5` / `#FF3B30`
-
-### 5.5 List / Sheet
-
-- Bottom sheet 背景：`#FFFFFF`
-- Handle：`#D8F3DC`
-- 分组标题建议使用 `labelSecondary`
-- 行项目若需要强调新增内容，可用左侧绿色细条，不直接整块高亮
-
-## 6. iOS 落地建议
-
-建议拆成以下层级：
-
-- `AppColor`
-- `AppTypography`
-- `AppSpacing`
-- `AppCornerRadius`
-- `AppShadow`
-- `AppTheme`
-
-建议最少包含这些 token：
-
-```swift
-enum AppColor {
-    static let primary = Color(hex: 0x2D6A4F)
-    static let primaryLight = Color(hex: 0x40916C)
-    static let primarySoft = Color(hex: 0x95D5B2)
-    static let primaryContainer = Color(hex: 0xD8F3DC)
-
-    static let groupedBackground = Color(hex: 0xF2F2F7)
-    static let secondaryBackground = Color(hex: 0xFFFFFF)
-    static let surface = Color(hex: 0xFFFFFF)
-    static let surfaceTint = Color(hex: 0xEAF4EE)
-    static let surfaceMuted = Color(hex: 0xF8F8F8)
-
-    static let labelPrimary = Color(hex: 0x1C1C1E)
-    static let labelSecondary = Color(hex: 0x6C6C70)
-    static let textOnPrimary = Color.white
-
-    static let warning = Color(hex: 0xFF9F0A)
-    static let warningSoft = Color(hex: 0xFFF4E5)
-    static let danger = Color(hex: 0xFF3B30)
-    static let dangerSoft = Color(hex: 0xFFE5E5)
-}
-```
-
-建议 `Color` 映射关系：
-
-- `primary` -> `AppColor.primary`
-- `secondary` -> `AppColor.primarySoft`
-- `background` -> `AppColor.groupedBackground`
-- `surface` -> `AppColor.surface`
-- `textPrimary` -> `AppColor.labelPrimary`
-- `textSecondary` -> `AppColor.labelSecondary`
-- `destructive` -> `AppColor.danger`
-
-## 7. 补充 Token 规范
-
-除了颜色，v1 统一补充以下 UI token，避免每个页面各写一套尺寸。
-
-### 7.1 Spacing
-
-- `spaceXS = 4`
-- `spaceSM = 8`
-- `spaceMD = 12`
-- `spaceLG = 16`
-- `spaceXL = 20`
-- `space2XL = 24`
-- `spaceSection = 32`
-
-建议用途：
-
-- 页面内小间距优先使用 `8 / 12`
-- 卡片内容和按钮区优先使用 `16`
-- 分区之间优先使用 `24 / 32`
-
-### 7.2 Corner Radius
-
-- `radiusSM = 8`
-- `radiusMD = 12`
-- `radiusLG = 16`
-- `radiusXL = 24`
+- `success`: `#2D6A4F`
+- `successSoft`: `#E7F4EC`
+- `warning`: `#C98A2E`
+- `warningSoft`: `#FAF0DE`
+- `danger`: `#D85C4A`
+- `dangerSoft`: `#FCE9E6`
+- `info`: `#5F8F7A`
+- `infoSoft`: `#EAF4EF`
+
+## 6. 间距、圆角与阴影
+
+### 6.1 Spacing
+
+- `space4 = 4`
+- `space8 = 8`
+- `space12 = 12`
+- `space16 = 16`
+- `space20 = 20`
+- `space24 = 24`
+- `space32 = 32`
+
+默认规则：行内小间距用 `8`，卡片内部用 `16`，弹层内容区用 `20`，模块之间用 `24` 或 `32`。
+
+### 6.2 Radius
+
+- `radius12 = 12`
+- `radius16 = 16`
+- `radius20 = 20`
+- `radius24 = 24`
+- `radius28 = 28`
 - `radiusPill = 999`
 
-建议用途：
+默认规则：输入区用 `16`，卡片用 `20`，大弹层和自定义 sheet 用 `24` 到 `28`，胶囊按钮和 segmented 选择器用 `Pill`。
 
-- 输入框：`12` 或 `14`
-- 卡片：`16`
-- sheet：`24`
-- chip：`999`
+### 6.3 Shadow
 
-### 7.3 Typography
+只保留两档轻阴影：
 
-建议最少冻结以下样式：
+- `shadowCard`: y `6`，blur `18`，color `rgba(31, 77, 58, 0.08)`
+- `shadowSheet`: y `12`，blur `28`，color `rgba(31, 77, 58, 0.12)`
 
-- `pageTitle`: 28 / 600 / `textPrimary`
-- `sectionTitle`: 20 / 600 / `textPrimary`
-- `cardTitle`: 17 / 600 / `textPrimary`
-- `body`: 15 / 400 / `textPrimary`
-- `bodySecondary`: 14 / 400 / `textSecondary`
-- `caption`: 13 / 400 / `textSecondary`
-- `chipLabel`: 12 / 500
-- `buttonLabel`: 15 / 600
+禁止使用黑色重阴影、超大模糊或多层高对比投影。
 
-原则：
+## 7. 字体与信息密度
 
-- 标题层级不要过多
-- 正文默认使用 15
-- 辅助说明和标签使用 12 到 14
+### 7.1 Typography
 
-## 8. 儿童绘本风插画规范
+- `pageTitle`: 28 / semibold
+- `sectionTitle`: 20 / semibold
+- `cardTitle`: 17 / semibold
+- `body`: 15 / regular
+- `bodyStrong`: 15 / semibold
+- `caption`: 13 / regular
+- `micro`: 12 / medium
+- `buttonLabel`: 16 / semibold
 
-为了让“家庭厨房”主题更有亲和力，v1 补充一套独立于界面组件的插画语言。该插画不替代全局绿色主题，而是在首页头图、空状态、引导位中提供更强的情绪表达。
+正文默认使用 `15`，不要把页面做成满屏小字。标题层级控制在 3 级内，避免过度设计。
 
-素材位置：
+### 7.2 信息密度
 
-- `design/illustrations/home_storybook_hero.svg`
-- `design/illustrations/empty_menu_storybook.svg`
-- `design/illustrations/empty_family_storybook.svg`
-- `design/illustrations/empty_orders_storybook.svg`
+自定义 UI 的精致感主要来自留白和秩序，不来自缩小字和压缩行高。触控区域保持足够大，主要点击元素高度建议不低于 `44`。
 
-使用原则：
+## 8. 核心组件规范
 
-- 主色仍然遵循绿色主题系统，插画只引入奶油黄、蜂蜜橙、柔和粉作为陪衬色。
-- 描边统一使用偏棕色软线条，避免黑色硬描边破坏绘本感。
-- 人物不追求写实比例，允许头身比偏大、五官简化、表情明确。
-- 场景道具优先围绕厨房、餐桌、便签、餐盘、锅具、家庭成员协作展开。
-- 页面同屏只放一张主插画，避免与信息卡片竞争注意力。
-- 空状态插画优先放在文案上方，并保留足够留白，不应压缩到过窄比例。
+### 8.1 Button
 
-推荐落点：
+按钮不追求系统默认的平直感，应更像一个明确、柔和、可按压的实体操作块。
 
-- 首页顶部欢迎区使用 `home_storybook_hero.svg`
-- 菜单为空时使用 `empty_menu_storybook.svg`
-- 家庭或成员为空时使用 `empty_family_storybook.svg`
-- 当前无订单或历史为空时使用 `empty_orders_storybook.svg`
+主按钮使用实体绿色底，文字白色，圆角建议 `16` 或胶囊。按下时降低亮度并轻微缩放，不做弹跳特效。
 
-### 8.1 Icon Size
+次按钮使用浅绿色底或白底加浅描边，用于次要确认、筛选、补充动作。危险按钮使用浅红底加红字，不用大面积高饱和红块。
 
-- `iconSM = 16`
-- `iconMD = 20`
-- `iconLG = 24`
-- `iconXL = 32`
+### 8.2 Card
 
-### 8.2 Page Padding
+卡片是全局最重要的容器语言。卡片背景以白色或接近白色为主，圆角偏大，内部留白充足，避免强描边。
 
-- 页面左右内边距：`16`
-- 页面顶部内容起始：`12`
-- 卡片内边距：`16`
-- sheet 左右内边距：`20`
-- sheet 上下内边距：`16`
+卡片内部分区优先依靠垂直间距、标题权重和浅分隔实现，不使用粗线框出每一块。
 
-### 8.3 Shadow
+### 8.3 List
 
-建议只保留一档轻阴影：
+不强依赖系统 `List` 的默认外观。业务列表优先采用卡片化 section 或 `ScrollView + LazyVStack` 结构，形成“页面背景上浮着一组内容块”的感受。
 
-- 低透明绿色或中性灰阴影
-- y 偏移小于等于 8
-- blur 控制在 16 到 24
+列表项高度保持舒展，单行信息尽量一眼完成识别。行尾箭头、开关、数量等控件应对齐统一，不出现每行都像不同页面拼接出来的情况。
 
-避免：
+### 8.4 Toast
 
-- 过重阴影
-- 多层高对比投影
-- 强烈悬浮感
+toast 是默认反馈层，不是附属功能。它应短、轻、快，可带撤销，不阻塞当前操作。
 
-## 9. 组件视觉规则
+toast 建议悬浮在底部安全区上方，背景用深绿色或高对比中性色，圆角明显，支持图标、文案和单个动作按钮。出现和消失使用淡入加轻位移。
 
-### 9.1 输入框
+### 8.5 Sheet
 
-- 默认背景使用 `surface`
-- 边框使用低对比度浅绿灰
-- 聚焦边框使用 `primary`
-- 错误态使用 `danger`
+sheet 是主要表单容器和选择容器。视觉上应更像一张精致的浮层卡片，而不是生硬的系统白板。
 
-### 9.2 底部导航
+顶部固定标题区和主动作区，内容区滚动，圆角建议 `24` 以上，背景使用纯白或极浅暖绿白。拖拽指示器可以保留，但弱化存在感。
 
-- 背景使用 `surface`
-- 选中图标和文字使用 `primary`
-- 未选中使用 `textSecondary`
-- 顶部分隔线保持极浅
+### 8.6 Picker Sheet
 
-### 9.3 Skeleton
+日期、数量、目标值、分类等选择场景可采用自定义 picker sheet。其核心特征是顶部动作稳定、中心选择区聚焦明显、非选中内容低对比退后。
 
-- 骨架底色使用 `surfaceSoft`
-- shimmer 对比保持轻微
-- 不使用高对比灰色骨架
+可以自定义选中条、胶囊高亮和“今天”“重置”类快捷动作，但不建议完全重写底层滚轮行为。
 
-### 9.4 Empty State
+## 9. 场景化组件建议
 
-- 插图区域允许使用 `primaryContainer`
-- 标题使用 `textPrimary`
-- 描述使用 `textSecondary`
-- 若有 CTA，仅保留一个主动作
+### 9.1 设置页卡片
 
-## 10. 响应式约束
+设置页应表现为柔和的分组卡片，而不是默认 `Form` 的系统灰表。一个 section 尽量收拢进一张卡片，卡片内多行项目保持统一高度和统一左右边距。
 
-v1 采用 mobile-first。
+### 9.2 数据录入弹层
 
-规则：
+录入体重、数量、名称、备注等操作优先使用自定义 sheet。标题、关闭、确认动作固定在上方，输入区和辅助键盘区分层明确。
 
-- 最小适配宽度按小屏手机处理
-- 平板先采用居中手机容器，不做双栏
-- 底部导航固定
-- sheet 最大高度建议不超过 80% 屏高
+### 9.3 日历与日期选择
+
+日期选择器允许采用更强产品化外观，例如顶部年月导航、居中标题、浅色选中圆点和底部确认动作，但色彩仍要服从绿色体系。
+
+## 10. 状态表达规范
+
+成功和完成态使用绿色系浅底加深字。提醒态使用低饱和金棕色，只在确有提醒含义时出现。危险态使用柔和红，不抢走主主题。
+
+全局禁止把大量状态同时做成强色块，否则页面会从“厨房管理”变成“后台告警面板”。
 
 ## 11. 不采用的方向
 
-以下方向不作为全局主题基准：
+不采用纯系统默认 `Form`、`List`、`DatePicker` 外观直接上线。
 
-- `design/Menu.svg` 的暖棕色大面积主视觉
-- 高饱和橙红作为主按钮色
-- 纯白背景 + 纯黑文字的通用后台风格
+不采用米杏色、暖棕色作为全局主色。
 
-原因：
+不采用黑白极简后台风。
 
-- 暖棕更适合作为菜单页插画或食物氛围表达，不适合作为全局交互主色。
-- 绿色更符合当前订单、清单、状态、协作类页面的整体一致性。
-- 当前业务更需要“清晰可用”，再叠加“轻厨房感”，而不是纯品牌化海报效果。
+不采用高饱和橙红主按钮。
 
-## 12. 当前结论
+不采用重拟物、强玻璃拟态或复杂自定义转场。
 
-当前 App 主题以绿色系为唯一全局主题方向：
+## 12. SwiftUI 落地建议
 
-- 主色：`#2D6A4F`
-- 主背景：`#F4F9F6`
-- 主文字：`#1B4332`
-- 提醒强调：`#E76F51` / `#F4A261`
-- 危险操作：`#EF5350`
+建议主题层拆分为 `AppTheme`、`AppColor`、`AppSpacing`、`AppRadius`、`AppShadow`、`AppTypography`。
 
-后续新增页面、组件和插画，如无特殊理由，均应优先服从本主题系统。
+建议优先封装以下组件：`AppButton`、`AppCard`、`AppListSection`、`AppToastHost`、`AppSheetContainer`、`AppPickerSheet`。
+
+所有页面先消费主题和组件，不允许在业务 View 内直接散写颜色、圆角、阴影和随意间距。
+
+## 13. 当前结论
+
+本项目的 UI 可以做明显自定义，但方向必须是“绿色系、柔和卡片化、基于原生交互封装的设计系统”，而不是“为了好看而脱离 iOS 习惯重写一切”。
+
+后续所有页面和组件，如无特别说明，都以本文件为最高视觉约束。

@@ -6,6 +6,13 @@
 
 ## 技术栈
 
+- iOS 客户端：SwiftUI + SwiftData
+- 服务端方向：Cloudflare Workers + D1 + R2
+
+## 服务端目录
+
+`worker/` 目录用于承载 Cloudflare Worker、本地 `wrangler` 配置、D1 迁移和 R2 绑定示例。
+
 ## 当前功能
 
 - 邮箱登录

@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "family-kitchen-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-04-09",
+  "workers_dev": true,
+  "vars": {
+    "APP_ENV": "local"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kitchen",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ASSETS",
+      "bucket_name": "kitchen-assets"
+    }
+  ]
+}
