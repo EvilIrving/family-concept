@@ -38,6 +38,10 @@ final class AppStore: ObservableObject {
         dishes.filter { $0.archivedAt == nil }
     }
 
+    var dishCategories: [String] {
+        Array(Set(activeDishes.map(\.category))).sorted()
+    }
+
     var shoppingList: [(name: String, count: Int)] {
         let dishMap = Dictionary(uniqueKeysWithValues: activeDishes.map { ($0.id, $0) })
         var counts: [String: Int] = [:]
@@ -86,6 +90,14 @@ final class AppStore: ObservableObject {
             Dish(id: UUID(), name: trimmedName, category: trimmedCategory, ingredients: ingredients, archivedAt: nil),
             at: 0
         )
+    }
+
+    func addDish(name: String, category: String, ingredientsText: String) {
+        let ingredients = ingredientsText
+            .split(whereSeparator: { ["、", ",", " "].contains(String($0)) })
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        addDish(name: name, category: category, ingredients: ingredients)
     }
 
     var cartCount: Int {

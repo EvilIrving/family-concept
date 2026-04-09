@@ -38,43 +38,46 @@ struct MainTabView: View {
                 }
             }
 
-            HStack(spacing: AppSpacing.xs) {
-                ForEach(MainTab.allCases, id: \.title) { tab in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            selectedTab = tab
-                        }
-                    } label: {
-                        VStack(spacing: 6) {
-                            Image(systemName: tab.icon)
-                                .font(.system(size: 18, weight: .semibold))
-                            Text(tab.title)
-                                .font(AppTypography.micro)
-                        }
-                        .foregroundStyle(selectedTab == tab ? AppColor.green800 : AppColor.textTertiary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(
-                            Group {
-                                if selectedTab == tab {
-                                    RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                                        .fill(AppColor.green100)
-                                }
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(AppColor.lineSoft)
+                    .frame(height: 1)
+
+                HStack(spacing: AppSpacing.xs) {
+                    ForEach(MainTab.allCases, id: \.title) { tab in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedTab = tab
                             }
-                        )
+                        } label: {
+                            VStack(spacing: 6) {
+                                Image(systemName: tab.icon)
+                                    .font(.system(size: 18, weight: .semibold))
+                                Text(tab.title)
+                                    .font(AppTypography.micro)
+                            }
+                            .foregroundStyle(selectedTab == tab ? AppColor.green800 : AppColor.textTertiary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(
+                                Group {
+                                    if selectedTab == tab {
+                                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                                            .fill(AppColor.green100)
+                                    }
+                                }
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.top, AppSpacing.xs)
+                .padding(.bottom, AppSpacing.xs)
             }
-            .padding(AppSpacing.xs)
-            .background(AppColor.surfacePrimary, in: RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous)
-                    .stroke(AppColor.lineSoft, lineWidth: 1)
-            }
-            .shadow(color: AppShadow.cardColor, radius: 20, x: 0, y: 10)
-            .padding(.horizontal, AppSpacing.md)
-            .padding(.bottom, AppSpacing.md)
+            .frame(maxWidth: .infinity)
+            .background(AppColor.surfacePrimary)
+            .ignoresSafeArea(edges: .bottom)
         }
         .appPageBackground()
     }

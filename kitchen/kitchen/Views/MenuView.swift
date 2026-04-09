@@ -1,14 +1,27 @@
 import SwiftUI
 
+fileprivate enum MenuField {
+    case name
+    case customCategory
+    case ingredient
+}
+
 struct MenuView: View {
     @EnvironmentObject private var store: AppStore
     @State private var showsAddDish = false
     @State private var showsCart = false
+    @State private var searchText = ""
+    @State private var selectedCategory = "全部"
     @State private var name = ""
-    @State private var category = ""
+    @State private var selectedQuickCategory = "家常菜"
+    @State private var customCategory = ""
     @State private var ingredientTags: [String] = []
     @State private var ingredientInput = ""
+    @State private var validationMessage: String?
     @State private var toast: AppToastData?
+    @FocusState private var focusedField: MenuField?
+
+    private let quickCategories = ["家常菜", "快手菜", "汤羹", "主食", "饮品", "甜点", "其他"]
 
     var body: some View {
         AppScrollPage {
@@ -18,45 +31,48 @@ struct MenuView: View {
                     .foregroundStyle(AppColor.textPrimary)
             }
         } content: {
-            AppCard {
-                HStack(alignment: .center) {
-                    Text("今日菜单")
-                        .font(AppTypography.cardTitle)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Spacer()
-                    AppButton(title: "新增", systemImage: "plus", style: .secondary, fullWidth: false) {
-                        showsAddDish = true
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                AppCard {
+                    AppSectionHeader(
+                        eyebrow: "点菜",
+                        title: "今天想吃什么",
+                        detail: "先挑菜加入购物车，再统一提交当前订单"
+                    )
+
+                    searchBar
+
+                    categoryChips(categories: filterCategories, selection: $selectedCategory)
+                }
+
+                LazyVGrid(columns: gridColumns, spacing: AppSpacing.md) {
+                    ForEach(filteredDishes) { dish in
+                        DishCard(dish: dish) {
+                            store.addToCart(dish: dish)
+                            toast = AppToastData(message: "\(dish.name) 已加入购物车")
+                        }
                     }
                 }
-            }
 
-            ForEach(store.activeDishes) { dish in
-                DishCard(dish: dish) {
-                    store.addToCart(dish: dish)
-                    toast = AppToastData(message: "\(dish.name) 已加入购物车")
+                if filteredDishes.isEmpty {
+                    AppCard {
+                        Text("没有找到匹配的菜品")
+                            .font(AppTypography.bodyStrong)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text("换个关键词，或者直接右下角新增一道。")
+                            .font(AppTypography.body)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
                 }
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            Button {
-                showsCart = true
-            } label: {
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: "cart")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(AppColor.textOnBrand)
-                        .frame(width: 56, height: 56)
-                        .background(AppColor.green800, in: Circle())
-                        .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
-                    if store.cartCount > 0 {
-                        Text("\(store.cartCount)")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 5)
-                            .frame(minWidth: 18, minHeight: 18)
-                            .background(AppColor.danger, in: Capsule())
-                            .offset(x: 4, y: -4)
-                    }
+            VStack(alignment: .trailing, spacing: AppSpacing.sm) {
+                FloatButton(systemImage: "cart", badgeCount: store.cartCount) {
+                    showsCart = true
+                }
+
+                FloatButton(systemImage: "plus", title: "新增") {
+                    showsAddDish = true
                 }
             }
             .padding(.bottom, AppSpacing.md)
@@ -67,17 +83,42 @@ struct MenuView: View {
                 title: "新增菜品",
                 dismissTitle: "取消",
                 confirmTitle: "保存",
-                onDismiss: { showsAddDish = false },
+                onDismiss: dismissAddDish,
                 onConfirm: saveDish
             ) {
                 VStack(spacing: AppSpacing.sm) {
                     sheetTextField("菜名", text: $name)
-                    sheetTextField("分类", text: $category)
-                    IngredientTagInput(tags: $ingredientTags, input: $ingredientInput)
+                        .focused($focusedField, equals: .name)
+
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text("常用分类")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColor.textSecondary)
+
+                        categoryChips(categories: quickCategories, selection: $selectedQuickCategory)
+
+                        if selectedQuickCategory == "其他" {
+                            sheetTextField("自定义分类", text: $customCategory)
+                                .focused($focusedField, equals: .customCategory)
+                        }
+                    }
+
+                    IngredientTagInput(tags: $ingredientTags, input: $ingredientInput, focusedField: $focusedField)
+
+                    if let validationMessage {
+                        Text(validationMessage)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColor.danger)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             }
             .presentationBackground(.clear)
             .presentationDetents([.height(400)])
+            .onAppear {
+                validationMessage = nil
+                focusedField = .name
+            }
         }
         .sheet(isPresented: $showsCart) {
             CartSheet()
@@ -89,12 +130,25 @@ struct MenuView: View {
 
     private func saveDish() {
         let addedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        store.addDish(name: name, category: category, ingredients: ingredientTags)
-        guard !addedName.isEmpty else { return }
+        let finalCategory = resolvedCategory
+        guard !addedName.isEmpty else {
+            validationMessage = "请输入菜名"
+            focusedField = .name
+            return
+        }
+        guard !finalCategory.isEmpty else {
+            validationMessage = "请先选一个分类"
+            focusedField = selectedQuickCategory == "其他" ? .customCategory : .name
+            return
+        }
+
+        store.addDish(name: addedName, category: finalCategory, ingredients: ingredientTags)
         name = ""
-        category = ""
+        selectedQuickCategory = "家常菜"
+        customCategory = ""
         ingredientTags = []
         ingredientInput = ""
+        validationMessage = nil
         showsAddDish = false
         toast = AppToastData(message: "已新增 \(addedName)")
     }
@@ -111,14 +165,103 @@ struct MenuView: View {
                     .stroke(AppColor.lineSoft, lineWidth: 1)
             }
     }
+
+    private var resolvedCategory: String {
+        let custom = customCategory.trimmingCharacters(in: .whitespacesAndNewlines)
+        return selectedQuickCategory == "其他" ? custom : selectedQuickCategory
+    }
+
+    private var filterCategories: [String] {
+        ["全部"] + store.dishCategories
+    }
+
+    private var filteredDishes: [Dish] {
+        store.activeDishes.filter { dish in
+            let matchesCategory = selectedCategory == "全部" || dish.category == selectedCategory
+            let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let matchesSearch = keyword.isEmpty || dish.name.localizedCaseInsensitiveContains(keyword)
+            return matchesCategory && matchesSearch
+        }
+    }
+
+    private var gridColumns: [GridItem] {
+        [
+            GridItem(.flexible(), spacing: AppSpacing.md),
+            GridItem(.flexible(), spacing: AppSpacing.md)
+        ]
+    }
+
+    private var searchBar: some View {
+        HStack(spacing: AppSpacing.sm) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(AppColor.textTertiary)
+            TextField("搜菜名", text: $searchText)
+                .font(AppTypography.body)
+                .foregroundStyle(AppColor.textPrimary)
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .frame(height: 50)
+        .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                .stroke(AppColor.lineSoft, lineWidth: 1)
+        }
+    }
+
+    private func categoryChips(categories: [String], selection: Binding<String>) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: AppSpacing.xs) {
+                ForEach(categories, id: \.self) { category in
+                    Button {
+                        selection.wrappedValue = category
+                    } label: {
+                        Text(category)
+                            .font(AppTypography.micro)
+                            .foregroundStyle(selection.wrappedValue == category ? AppColor.textOnBrand : AppColor.green800)
+                            .padding(.horizontal, AppSpacing.sm)
+                            .frame(height: 32)
+                            .background(
+                                selection.wrappedValue == category ? AppColor.green800 : AppColor.green100,
+                                in: Capsule()
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func dismissAddDish() {
+        name = ""
+        selectedQuickCategory = "家常菜"
+        customCategory = ""
+        ingredientTags = []
+        ingredientInput = ""
+        validationMessage = nil
+        showsAddDish = false
+    }
 }
 
 private struct IngredientTagInput: View {
     @Binding var tags: [String]
     @Binding var input: String
+    var focusedField: FocusState<MenuField?>.Binding
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            Text("食材")
+                .font(AppTypography.micro)
+                .foregroundStyle(AppColor.textSecondary)
+
             FlowLayout(spacing: AppSpacing.xs) {
                 ForEach(tags, id: \.self) { tag in
                     HStack(spacing: 4) {
@@ -154,6 +297,7 @@ private struct IngredientTagInput: View {
                     commitIfNeeded(newValue)
                 }
                 .onSubmit { commitCurrentInput() }
+                .focused(focusedField, equals: .ingredient)
         }
     }
 
@@ -205,7 +349,10 @@ private struct FlowLayout: Layout {
                 y += rowHeight + spacing
                 rowHeight = 0
             }
-            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            subview.place(
+                at: CGPoint(x: x, y: y),
+                proposal: ProposedViewSize(width: size.width, height: size.height)
+            )
             x += size.width + spacing
             rowHeight = max(rowHeight, size.height)
         }
@@ -285,7 +432,7 @@ private struct CartSheet: View {
                 }
                 .padding(AppSpacing.md)
             }
-            .background(AppColor.background)
+            .background(AppColor.backgroundBase)
             .navigationTitle("购物车")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -304,24 +451,46 @@ private struct DishCard: View {
 
     var body: some View {
         AppCard {
-            HStack(alignment: .center, spacing: AppSpacing.md) {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [AppColor.green200, AppColor.green100],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(height: 104)
+                    .overlay {
+                        VStack(spacing: AppSpacing.xs) {
+                            Image(systemName: "fork.knife")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundStyle(AppColor.green800)
+                            Text("菜品图片")
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColor.green700)
+                        }
+                    }
+
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(dish.name)
                         .font(AppTypography.cardTitle)
                         .foregroundStyle(AppColor.textPrimary)
+                        .lineLimit(2)
                     AppPill(title: dish.category)
                 }
 
-                Spacer()
-
-                Button(action: onAdd) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(AppColor.textOnBrand)
-                        .frame(width: 42, height: 42)
-                        .background(AppColor.green800, in: Circle())
+                HStack {
+                    Spacer()
+                    Button(action: onAdd) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(AppColor.textOnBrand)
+                            .frame(width: 42, height: 42)
+                            .background(AppColor.green800, in: Circle())
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
     }

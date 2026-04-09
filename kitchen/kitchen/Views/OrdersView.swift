@@ -101,7 +101,7 @@ private struct ShoppingListSheet: View {
                 }
                 .padding(AppSpacing.md)
             }
-            .background(AppColor.background)
+            .background(AppColor.backgroundBase)
             .navigationTitle("采购清单")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

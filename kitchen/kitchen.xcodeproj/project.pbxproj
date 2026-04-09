@@ -33,9 +33,35 @@
 		A4B95C6B2F877BEF003ABDB1 /* Exceptions for "kitchen" folder in "kitchen" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				AGENTS.md,
+				CLAUDE.md,
 				Info.plist,
+				Stores/AGENTS.md,
+				Stores/CLAUDE.md,
+				UI/Components/AGENTS.md,
+				UI/Components/CLAUDE.md,
+				UI/Feedback/AGENTS.md,
+				UI/Feedback/CLAUDE.md,
+				Views/AGENTS.md,
+				Views/CLAUDE.md,
 			);
 			target = A4B95C472F877BEE003ABDB1 /* kitchen */;
+		};
+		A4B95C752F877BF0003ABDB1 /* Exceptions for "kitchenTests" folder in "kitchenTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				AGENTS.md,
+				CLAUDE.md,
+			);
+			target = A4B95C582F877BEF003ABDB1 /* kitchenTests */;
+		};
+		A4B95C762F877BF0003ABDB1 /* Exceptions for "kitchenUITests" folder in "kitchenUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				AGENTS.md,
+				CLAUDE.md,
+			);
+			target = A4B95C622F877BEF003ABDB1 /* kitchenUITests */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -50,11 +76,17 @@
 		};
 		A4B95C5C2F877BEF003ABDB1 /* kitchenTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A4B95C752F877BF0003ABDB1 /* Exceptions for "kitchenTests" folder in "kitchenTests" target */,
+			);
 			path = kitchenTests;
 			sourceTree = "<group>";
 		};
 		A4B95C662F877BEF003ABDB1 /* kitchenUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A4B95C762F877BF0003ABDB1 /* Exceptions for "kitchenUITests" folder in "kitchenUITests" target */,
+			);
 			path = kitchenUITests;
 			sourceTree = "<group>";
 		};

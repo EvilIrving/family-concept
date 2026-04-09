@@ -45,4 +45,21 @@ struct kitchenTests {
         #expect(store.title(for: itemID) == "待制作")
     }
 
+    @Test func submitCartAggregatesIntoExistingOrderItem() async throws {
+        let store = AppStore()
+        let dish = try #require(store.activeDishes.first)
+
+        store.addToCart(dish: dish)
+        store.submitCart()
+
+        #expect(store.cartItems.isEmpty)
+        #expect(store.orderItems.first(where: { $0.dishID == dish.id })?.quantity == 3)
+    }
+
+    @Test func dishCategoriesReturnsSortedDistinctValues() async throws {
+        let store = AppStore()
+
+        #expect(store.dishCategories == ["家常菜", "快手菜", "饮品"])
+    }
+
 }

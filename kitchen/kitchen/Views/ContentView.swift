@@ -14,3 +14,8 @@ struct ContentView: View {
         .appPageBackground()
     }
 }
+
+#Preview {
+    ContentView()
+        .environmentObject(AppStore())
+}
