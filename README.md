@@ -6,15 +6,6 @@
 
 ## 技术栈
 
-- Flutter
-- Riverpod
-- GoRouter
-- Supabase
-  - Auth
-  - PostgreSQL
-  - Storage
-  - Realtime
-
 ## 当前功能
 
 - 邮箱登录
@@ -26,44 +17,6 @@
 - Orders 页直接展示当前订单
 - 当前订单加菜、下单、结束订单、采购清单
 - 设置页家庭信息、邀请码操作、个人资料 sheet、成员管理 sheet、历史订单 sheet
-
-## 运行项目
-
-### 必需环境变量
-
-通过 `--dart-define` 提供：
-
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `APP_BASE_URL`
-  - 可选，用于生成完整订单分享链接
-
-示例：
-
-```bash
-flutter run \
-  --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY \
-  --dart-define=APP_BASE_URL=https://YOUR_APP_HOST
-```
-
-### Supabase 侧准备
-
-- 先执行根目录 [`database.sql`](/Users/actor/Documents/code/flutter-family-concept/database.sql)
-- 创建 Storage bucket：`dishes`
-- 菜品图片路径必须为 `{family_id}/{dish_id}.jpg`
-- Auth 使用真实邮箱密码登录注册；如果要注册后直接进入应用，需要关闭邮箱确认
-
-## 常用命令
-
-```bash
-flutter pub get
-flutter analyze
-flutter test
-flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...
-```
-
-## 文档导航
 
 - 设计总规格：[`docs/family_v1_design.md`](/Users/actor/Documents/code/flutter-family-concept/docs/family_v1_design.md)
 - UI 架构：[`docs/ui_architecture.md`](/Users/actor/Documents/code/flutter-family-concept/docs/ui_architecture.md)

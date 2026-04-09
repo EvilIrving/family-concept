@@ -1,51 +1,26 @@
-# Codex 使用规范
+# 项目 AI Agent 使用规范
 
-## 适用范围
+## 文档同步要求
 
-- 适用于本仓库内的 Codex 工作流
-- 事实来源以 [docs/family_v1_design.md](/Users/cain/Documents/code/flutter-family-concept/docs/family_v1_design.md) 为准
-- 项目介绍与导航以 [README.md](/Users/cain/Documents/code/flutter-family-concept/README.md) 为准
+-  
+- `docs/` 是与代码实时对齐的事实来源
+- `README.md` 是产品说明，是对用户解释的。
+- `CLAUDE.md` and `AGENTS.md` 是AI Agent 使用规范，是给AI Agent 看的，两个文件必须保持一致内容
 
-## 工作约束
+交互设计：
 
-### 文档同步
+操作像现实一样直接（Direct Manipulation）
 
-- 代码改动时必须同步更新 `docs/` 目录文档
-- `docs/` 必须与当前代码实现保持实时一致
-- `README.md` 主要保留技术栈、运行配置和功能清单，可相对滞后但应尽快同步
-- `CLAUDE.md` 与 `AGENTS.md` 需要随重要流程和约束变化同步更新
+反馈几乎是瞬时的（Immediate Feedback）
 
-### Storage 路径约定
+出错可以轻松恢复（Forgiveness）
 
-- Bucket: `dishes`
-- 路径格式: `{family_id}/{dish_id}.jpg`
-- RLS 策略通过路径第一段提取 `family_id` 进行权限校验
-- Flutter 上传代码必须遵守此格式
+整个过程连续无阻（Continuity）
 
----
+无阻塞（少弹窗）
 
-## 模式行为准则
+无中断（少等待）
 
-### Ask/问答模式
+无跳跃（连续过渡）
 
-- 不得主动修改或编写代码（除非用户明确要求）
-- 不添加测试代码
-- 不执行 npm/pnpm/yarn dev/build 等命令
-
-### 智能体/Agent 模式
-
-- 可直接操作代码
-- 精简分析，直接给出结论
-
-## 输出格式要求
-
-当要求使用 plaintext 格式时：
-
-```plaintext
-<输出内容>
-```
-
-- 不添加任何开头语、结束语或客套话
-- 保持简洁明了
-
-避免使用 emoji
+少一些page，可以多使用 sheet方式 填写信息
