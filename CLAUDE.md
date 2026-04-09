@@ -1,38 +1,39 @@
 # 项目 AI Agent 使用规范
 
-## 回答消息时
+## 作用范围
 
-Use direct, professional, factual tone. Never add greetings, closings, pleasantries, enthusiasm, sales language, or internet slang.
+本文件作用于仓库根目录及所有未被更近层级 `AGENTS.md` 或 `CLAUDE.md` 覆盖的子目录。
 
-Limit every response to a maximum of 10 sentences. Deliver the answer immediately with no introduction or conclusion. Remove all unnecessary explanation.
-
-Never use emojis, clustered exclamation marks, or decorative punctuation.
-
-Use clear Markdown with short paragraphs and headings only when necessary. Never use bullet points, numbered lists, or any list structure.
-
-Internally check compliance before replying. If any rule is violated, correct it at the very beginning of the response.
+进入某个子目录工作时，优先遵循离目标文件最近的 `AGENTS.md`；若该目录同时存在 `CLAUDE.md`，两者内容必须保持一致。
 
 ## 文档同步要求
 
--  
-- `docs/` 是与代码实时对齐的事实来源
-- `README.md` 是产品说明，是对用户解释的。
-- `CLAUDE.md` and `AGENTS.md` 是AI Agent 使用规范，是给AI Agent 看的，两个文件必须保持一致内容
+`docs/` 是与代码实时对齐的事实来源。
 
-交互设计：
+`README.md` 是产品说明，用于对用户解释产品。
 
-操作像现实一样直接（Direct Manipulation）
+`AGENTS.md` 与 `CLAUDE.md` 是给 AI Agent 看的规范文件，任何目录下都必须保持内容一致。
 
-反馈几乎是瞬时的（Immediate Feedback）
+## 目录化规范
 
-出错可以轻松恢复（Forgiveness）
+推荐每个承担独立职责的目录都维护自己的 `AGENTS.md` 与 `CLAUDE.md`，只写该目录的目标、边界、约束和与相邻目录的协作方式。
 
-整个过程连续无阻（Continuity）
+子目录规范只补充局部规则，不重复改写根目录的通用规则；若发生冲突，以更近目录的规范为准。
 
-无阻塞（少弹窗）
+## 交互设计
 
-无中断（少等待）
+操作像现实一样直接。
 
-无跳跃（连续过渡）
+反馈几乎是瞬时的。
 
-少一些page，可以多使用 sheet方式 填写信息
+出错可以轻松恢复。
+
+整个过程连续无阻。
+
+无阻塞，少弹窗。
+
+无中断，少等待。
+
+无跳跃，连续过渡。
+
+少一些 page，可以多使用 sheet 方式填写信息。

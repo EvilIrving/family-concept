@@ -1,10 +1,8 @@
-# 绿色主题系统
+# 绿色 iOS 主题系统
 
 ## 1. 文档目标
 
-这份文档用于冻结当前 App 的全局视觉配色方向，作为 Flutter `ThemeData`、`ColorScheme`、组件样式和页面实现的颜色依据。
-
-本方案明确采用 `design/Orders.svg`、`design/Setting.svg`、`design/order_history.svg`、`design/shopping_list_sheet.svg` 的绿色系设计语言，不采用 `design/Menu.svg` 的暖棕主视觉作为全局主题。
+这份文档用于冻结当前 iOS App 的全局视觉配色方向，作为 SwiftUI `Color`、`ShapeStyle`、组件样式和页面实现的颜色依据。
 
 ## 2. 主题方向
 
@@ -17,61 +15,60 @@
 
 设计原则：
 
-- 绿色承担主交互色和主要状态表达。
-- 暖橘只作为提醒和食欲感点缀，不作为全局主色。
-- 页面底色保持浅绿白，避免纯白过硬。
-- 卡片、弹层、表单以高可读性为优先。
+- 绿色承担主交互色和成功态表达。
+- 其余颜色尽量回收为系统语义色，不做大面积品牌化扩展。
+- 页面底色保持接近系统 `Grouped Background` 的浅色层次。
+- 卡片、弹层、表单以高可读性和一致性为优先。
 
 ## 3. 核心颜色
 
-### 3.1 Brand / Primary
+### 3.1 Brand / Accent
 
-- `primary`: `#2D6A4F`
-- `primaryLight`: `#40916C`
-- `primaryAccent`: `#52B788`
-- `primarySoft`: `#95D5B2`
-- `primaryContainer`: `#D8F3DC`
+- `accentGreen`: `#2D6A4F`
+- `accentGreenLight`: `#40916C`
+- `accentGreenSoft`: `#95D5B2`
+- `accentGreenTint`: `#D8F3DC`
 
 用途：
 
 - 主按钮
 - 选中态
 - 导航高亮
-- 关键数据强调
 - 成功态基础色
 
 ### 3.2 Background / Surface
 
-- `background`: `#F4F9F6`
+- `groupedBackground`: `#F2F2F7`
+- `secondaryBackground`: `#FFFFFF`
 - `surface`: `#FFFFFF`
-- `surfaceSoft`: `#E9F5EC`
-- `surfaceMuted`: `#F8FAF9`
+- `surfaceTint`: `#EAF4EE`
+- `surfaceMuted`: `#F8F8F8`
 
 用途：
 
-- 页面背景使用 `background`
+- 页面背景使用 `groupedBackground`
 - 卡片、弹窗、表单容器使用 `surface`
-- 轻标签、弱选中、分组底使用 `surfaceSoft`
+- 轻标签、弱选中、分组底使用 `surfaceTint`
 - 清单项和次级块面可使用 `surfaceMuted`
 
 ### 3.3 Text
 
-- `textPrimary`: `#1B4332`
-- `textSecondary`: `#6C757D`
+- `labelPrimary`: `#1C1C1E`
+- `labelSecondary`: `#6C6C70`
 - `textOnPrimary`: `#FFFFFF`
 
 用途：
 
-- 主标题、正文重点使用 `textPrimary`
-- 辅助信息、说明文字使用 `textSecondary`
+- 主标题、正文重点使用 `labelPrimary`
+- 辅助信息、说明文字使用 `labelSecondary`
 - 深色按钮与深色头部上的文字使用 `textOnPrimary`
 
-### 3.4 Accent / Semantic Support
+### 3.4 Semantic Support
 
-- `warning`: `#F4A261`
-- `warningSoft`: `#FEF3E2`
-- `danger`: `#EF5350`
-- `dangerSoft`: `#FFEBEE`
+- `warning`: `#FF9F0A`
+- `warningSoft`: `#FFF4E5`
+- `danger`: `#FF3B30`
+- `dangerSoft`: `#FFE5E5`
 
 用途：
 
@@ -85,11 +82,11 @@
 ### 4.1 订单状态
 
 - `ordering`
-  - bg: `#FEF3E2`
-  - fg: `#E76F51`
+  - bg: `#FFF4E5`
+  - fg: `#FF9F0A`
 - `placed`
-  - bg: `#E9F5EC`
-  - fg: `#40916C`
+  - bg: `#EAF4EE`
+  - fg: `#2D6A4F`
 - `finished`
   - bg: `#D8F3DC`
   - fg: `#2D6A4F`
@@ -97,13 +94,13 @@
 ### 4.2 菜品项状态
 
 - `waiting`
-  - bg: `#E9F5EC`
-  - fg: `#40916C`
+  - bg: `#EAF4EE`
+  - fg: `#2D6A4F`
   - dot: `#95D5B2`
 - `cooking`
-  - bg: `#FEF3E2`
-  - fg: `#E76F51`
-  - dot: `#F4A261`
+  - bg: `#FFF4E5`
+  - fg: `#FF9F0A`
+  - dot: `#FFB340`
 - `done`
   - bg: `#D8F3DC`
   - fg: `#2D6A4F`
@@ -111,11 +108,11 @@
 
 ## 5. 组件配色规则
 
-### 5.1 App Bar / Header
+### 5.1 Navigation Bar / Header
 
 - 主页面头部可使用绿色渐变：
   - start: `#2D6A4F`
-  - end: `#52B788`
+  - end: `#95D5B2`
 - 头部文字与图标使用白色
 - 头部下方承接页面背景时，可保留浅曲线或柔和过渡
 
@@ -123,87 +120,90 @@
 
 主按钮：
 
-- bg: `#2D6A4F` 或 `#2D6A4F -> #52B788`
+- bg: `#2D6A4F` 或 `#2D6A4F -> #95D5B2`
 - fg: `#FFFFFF`
 
 次按钮：
 
-- bg: `#E9F5EC`
+- bg: `#EAF4EE`
 - fg: `#2D6A4F`
 
 危险按钮：
 
-- bg: `#FFEBEE`
-- fg: `#EF5350`
+- bg: `#FFE5E5`
+- fg: `#FF3B30`
 
 禁用按钮：
 
-- bg: `#E9ECEF`
-- fg: `#ADB5BD`
+- bg: `#E5E5EA`
+- fg: `#8E8E93`
 
 ### 5.3 Card
 
 - 默认卡片背景：`#FFFFFF`
-- 卡片阴影避免过重，建议沿用绿色低透明阴影思路
+- 卡片阴影避免过重，建议沿用系统中性阴影思路
 - 卡片内的状态标签优先用浅色底 + 深色字，不要直接大面积高饱和填充
 
 ### 5.4 Tag / Badge / Chip
 
-- 默认弱标签：`#E9F5EC` / `#2D6A4F`
+- 默认弱标签：`#EAF4EE` / `#2D6A4F`
 - 强调标签：`#D8F3DC` / `#2D6A4F`
-- 提醒标签：`#FEF3E2` / `#E76F51`
-- 危险标签：`#FFEBEE` / `#EF5350`
+- 提醒标签：`#FFF4E5` / `#FF9F0A`
+- 危险标签：`#FFE5E5` / `#FF3B30`
 
 ### 5.5 List / Sheet
 
 - Bottom sheet 背景：`#FFFFFF`
 - Handle：`#D8F3DC`
-- 分组标题建议使用 `textSecondary`
+- 分组标题建议使用 `labelSecondary`
 - 行项目若需要强调新增内容，可用左侧绿色细条，不直接整块高亮
 
-## 6. Flutter 落地建议
+## 6. iOS 落地建议
 
 建议拆成以下层级：
 
-- `AppColors`
-- `AppColorScheme` 或直接映射到 `ColorScheme`
+- `AppColor`
+- `AppTypography`
+- `AppSpacing`
+- `AppCornerRadius`
+- `AppShadow`
 - `AppTheme`
 
 建议最少包含这些 token：
 
-```dart
-abstract final class AppColors {
-  static const primary = Color(0xFF2D6A4F);
-  static const primaryLight = Color(0xFF40916C);
-  static const primaryAccent = Color(0xFF52B788);
-  static const primarySoft = Color(0xFF95D5B2);
-  static const primaryContainer = Color(0xFFD8F3DC);
+```swift
+enum AppColor {
+    static let primary = Color(hex: 0x2D6A4F)
+    static let primaryLight = Color(hex: 0x40916C)
+    static let primarySoft = Color(hex: 0x95D5B2)
+    static let primaryContainer = Color(hex: 0xD8F3DC)
 
-  static const background = Color(0xFFF4F9F6);
-  static const surface = Color(0xFFFFFFFF);
-  static const surfaceSoft = Color(0xFFE9F5EC);
-  static const surfaceMuted = Color(0xFFF8FAF9);
+    static let groupedBackground = Color(hex: 0xF2F2F7)
+    static let secondaryBackground = Color(hex: 0xFFFFFF)
+    static let surface = Color(hex: 0xFFFFFF)
+    static let surfaceTint = Color(hex: 0xEAF4EE)
+    static let surfaceMuted = Color(hex: 0xF8F8F8)
 
-  static const textPrimary = Color(0xFF1B4332);
-  static const textSecondary = Color(0xFF6C757D);
+    static let labelPrimary = Color(hex: 0x1C1C1E)
+    static let labelSecondary = Color(hex: 0x6C6C70)
+    static let textOnPrimary = Color.white
 
-  static const warning = Color(0xFFF4A261);
-  static const warningSoft = Color(0xFFFEF3E2);
-  static const danger = Color(0xFFEF5350);
-  static const dangerSoft = Color(0xFFFFEBEE);
+    static let warning = Color(hex: 0xFF9F0A)
+    static let warningSoft = Color(hex: 0xFFF4E5)
+    static let danger = Color(hex: 0xFF3B30)
+    static let dangerSoft = Color(hex: 0xFFE5E5)
 }
 ```
 
-建议 `ColorScheme` 对应关系：
+建议 `Color` 映射关系：
 
-- `primary` -> `AppColors.primary`
-- `onPrimary` -> `Colors.white`
-- `primaryContainer` -> `AppColors.primaryContainer`
-- `secondary` -> `AppColors.primaryAccent`
-- `surface` -> `AppColors.surface`
-- `onSurface` -> `AppColors.textPrimary`
-- `error` -> `AppColors.danger`
-- `onError` -> `Colors.white`
+- `primary` -> `AppColor.primary`
+- `secondary` -> `AppColor.primarySoft`
+- `background` -> `AppColor.groupedBackground`
+- `surface` -> `AppColor.surface`
+- `textPrimary` -> `AppColor.labelPrimary`
+- `textSecondary` -> `AppColor.labelSecondary`
+- `destructive` -> `AppColor.danger`
 
 ## 7. 补充 Token 规范
 
@@ -211,12 +211,12 @@ abstract final class AppColors {
 
 ### 7.1 Spacing
 
-- `spaceXs = 4`
-- `spaceSm = 8`
-- `spaceMd = 12`
-- `spaceLg = 16`
-- `spaceXl = 20`
-- `spaceXxl = 24`
+- `spaceXS = 4`
+- `spaceSM = 8`
+- `spaceMD = 12`
+- `spaceLG = 16`
+- `spaceXL = 20`
+- `space2XL = 24`
 - `spaceSection = 32`
 
 建议用途：
@@ -225,12 +225,12 @@ abstract final class AppColors {
 - 卡片内容和按钮区优先使用 `16`
 - 分区之间优先使用 `24 / 32`
 
-### 7.2 Radius
+### 7.2 Corner Radius
 
-- `radiusSm = 8`
-- `radiusMd = 12`
-- `radiusLg = 16`
-- `radiusXl = 24`
+- `radiusSM = 8`
+- `radiusMD = 12`
+- `radiusLG = 16`
+- `radiusXL = 24`
 - `radiusPill = 999`
 
 建议用途：
@@ -286,14 +286,14 @@ abstract final class AppColors {
 - 家庭或成员为空时使用 `empty_family_storybook.svg`
 - 当前无订单或历史为空时使用 `empty_orders_storybook.svg`
 
-### 7.4 Icon Size
+### 8.1 Icon Size
 
-- `iconSm = 16`
-- `iconMd = 20`
-- `iconLg = 24`
-- `iconXl = 32`
+- `iconSM = 16`
+- `iconMD = 20`
+- `iconLG = 24`
+- `iconXL = 32`
 
-### 7.5 Page Padding
+### 8.2 Page Padding
 
 - 页面左右内边距：`16`
 - 页面顶部内容起始：`12`
@@ -301,7 +301,7 @@ abstract final class AppColors {
 - sheet 左右内边距：`20`
 - sheet 上下内边距：`16`
 
-### 7.6 Shadow
+### 8.3 Shadow
 
 建议只保留一档轻阴影：
 
@@ -315,36 +315,36 @@ abstract final class AppColors {
 - 多层高对比投影
 - 强烈悬浮感
 
-## 8. 组件视觉规则
+## 9. 组件视觉规则
 
-### 8.1 输入框
+### 9.1 输入框
 
 - 默认背景使用 `surface`
 - 边框使用低对比度浅绿灰
 - 聚焦边框使用 `primary`
 - 错误态使用 `danger`
 
-### 8.2 底部导航
+### 9.2 底部导航
 
 - 背景使用 `surface`
 - 选中图标和文字使用 `primary`
 - 未选中使用 `textSecondary`
 - 顶部分隔线保持极浅
 
-### 8.3 Skeleton
+### 9.3 Skeleton
 
 - 骨架底色使用 `surfaceSoft`
 - shimmer 对比保持轻微
 - 不使用高对比灰色骨架
 
-### 8.4 Empty State
+### 9.4 Empty State
 
 - 插图区域允许使用 `primaryContainer`
 - 标题使用 `textPrimary`
 - 描述使用 `textSecondary`
 - 若有 CTA，仅保留一个主动作
 
-## 9. 响应式约束
+## 10. 响应式约束
 
 v1 采用 mobile-first。
 
@@ -355,7 +355,7 @@ v1 采用 mobile-first。
 - 底部导航固定
 - sheet 最大高度建议不超过 80% 屏高
 
-## 10. 不采用的方向
+## 11. 不采用的方向
 
 以下方向不作为全局主题基准：
 
@@ -369,7 +369,7 @@ v1 采用 mobile-first。
 - 绿色更符合当前订单、清单、状态、协作类页面的整体一致性。
 - 当前业务更需要“清晰可用”，再叠加“轻厨房感”，而不是纯品牌化海报效果。
 
-## 8. 当前结论
+## 12. 当前结论
 
 当前 App 主题以绿色系为唯一全局主题方向：
 
