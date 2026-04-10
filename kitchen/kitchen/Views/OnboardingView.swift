@@ -2,79 +2,211 @@ import SwiftUI
 
 struct OnboardingView: View {
     @EnvironmentObject private var store: AppStore
-    @State private var inviteCode = ""
-    @State private var joinDisplayName = ""
-    @State private var kitchenName = ""
-    @State private var createDisplayName = ""
-    @State private var showsCreateForm = false
+    @State private var displayName = ""
+    @State private var primaryInput = ""
+    @State private var selectedMode: EntryMode = .join
+    @State private var nameIsInvalid = false
+    @State private var primaryIsInvalid = false
+    @State private var nameShakeTrigger = 0
+    @State private var primaryShakeTrigger = 0
+    var demoEnterAction: (() -> Void)? = nil
 
     var body: some View {
-        AppScrollPage {
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                Text("私厨")
-                    .font(AppTypography.pageTitle)
-                    .foregroundStyle(AppColor.textOnBrand)
-                HStack(spacing: AppSpacing.xs) {
-                    AppPill(title: "操作直接", tint: AppColor.green900, background: AppColor.green300.opacity(0.95))
-                    AppPill(title: "反馈即时", tint: AppColor.green900, background: AppColor.green300.opacity(0.95))
-                }
-            }
-            .padding(AppSpacing.lg)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                LinearGradient(
-                    colors: [AppColor.green900, AppColor.green800, AppColor.green500],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                in: RoundedRectangle(cornerRadius: AppRadius.xxl, style: .continuous)
-            )
-        } content: {
-            AppCard {
-                AppSectionHeader(eyebrow: "入驻", title: "输入邀请码")
-                appTextField("你的名字", text: $joinDisplayName)
-                appTextField("邀请码", text: $inviteCode)
-                    .textInputAutocapitalization(.characters)
-                AppButton(title: "立即加入", systemImage: "arrow.right") {
-                    store.joinKitchen(inviteCode: inviteCode, displayName: joinDisplayName)
-                }
-                .disabled(joinDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                          inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
 
-            AppCard {
-                AppSectionHeader(eyebrow: "创建", title: "新建厨房")
-                if showsCreateForm {
-                    appTextField("你的名字", text: $createDisplayName)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                    appTextField("厨房名称", text: $kitchenName)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                    AppButton(title: "创建并进入", systemImage: "sparkles") {
-                        store.createKitchen(named: kitchenName, displayName: createDisplayName)
+            formCard
+                .padding(.horizontal, AppSpacing.md)
+
+            Spacer(minLength: 0)
+        }
+        .safeAreaInset(edge: .bottom) {
+            bottomBar
+        }
+        .appPageBackground()
+    }
+
+    private var formCard: some View {
+        AppCard(padding: AppSpacing.lg) {
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                Text(selectedMode.hint)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+
+                AppInputField(
+                    text: $displayName,
+                    isInvalid: $nameIsInvalid,
+                    prompt: "你的名字",
+                    trigger: nameShakeTrigger
+                )
+                AppInputField(
+                    text: $primaryInput,
+                    isInvalid: $primaryIsInvalid,
+                    prompt: selectedMode.placeholder,
+                    autocapitalization: selectedMode.autocapitalization,
+                    trigger: primaryShakeTrigger
+                )
+
+                HStack {
+                    Spacer()
+
+                    Button(selectedMode.switchTitle) {
+                        switchMode()
                     }
-                    .disabled(createDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                              kitchenName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                } else {
-                    AppButton(title: "展开创建表单", style: .secondary) {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            showsCreateForm = true
-                        }
-                    }
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColor.textSecondary)
                 }
             }
         }
     }
 
-    private func appTextField(_ title: String, text: Binding<String>) -> some View {
-        TextField(title, text: text)
+    private var bottomBar: some View {
+        VStack(spacing: AppSpacing.sm) {
+            AppButton(title: selectedMode.buttonTitle, systemImage: selectedMode.buttonSymbol) {
+                submit()
+            }
+
+            if let demoEnterAction {
+                AppButton(title: "进入当前 Demo", style: .ghost) {
+                    demoEnterAction()
+                }
+            }
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.top, AppSpacing.sm)
+        .padding(.bottom, AppSpacing.md)
+        .background(.regularMaterial)
+    }
+
+    private func submit() {
+        let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPrimary = primaryInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let nextNameInvalid = trimmedName.isEmpty
+        let nextPrimaryInvalid = trimmedPrimary.isEmpty
+
+        withAnimation(.easeInOut(duration: 0.34)) {
+            nameIsInvalid = nextNameInvalid
+            primaryIsInvalid = nextPrimaryInvalid
+        }
+
+        if nextNameInvalid {
+            nameShakeTrigger += 1
+        }
+
+        if nextPrimaryInvalid {
+            primaryShakeTrigger += 1
+        }
+
+        guard !nextNameInvalid, !nextPrimaryInvalid else { return }
+
+        switch selectedMode {
+        case .join:
+            store.joinKitchen(inviteCode: trimmedPrimary, displayName: trimmedName)
+        case .create:
+            store.createKitchen(named: trimmedPrimary, displayName: trimmedName)
+        }
+    }
+
+    private func switchMode() {
+        switchMode(to: selectedMode == .join ? .create : .join)
+    }
+
+    private func switchMode(to mode: EntryMode) {
+        guard selectedMode != mode else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            selectedMode = mode
+            primaryInput = ""
+            primaryIsInvalid = false
+        }
+    }
+}
+
+private enum EntryMode: CaseIterable {
+    case join
+    case create
+
+    var hint: String {
+        switch self {
+        case .join:
+            return "输入名字和邀请码，直接进入"
+        case .create:
+            return "输入名字和私厨名称，立即创建"
+        }
+    }
+
+    var placeholder: String {
+        switch self {
+        case .join:
+            return "邀请码"
+        case .create:
+            return "私厨名称"
+        }
+    }
+
+    var buttonTitle: String {
+        switch self {
+        case .join:
+            return "加入"
+        case .create:
+            return "创建并进入"
+        }
+    }
+
+    var buttonSymbol: String {
+        switch self {
+        case .join:
+            return "arrow.right"
+        case .create:
+            return "plus"
+        }
+    }
+
+    var autocapitalization: TextInputAutocapitalization {
+        switch self {
+        case .join:
+            return .characters
+        case .create:
+            return .words
+        }
+    }
+
+    var switchTitle: String {
+        switch self {
+        case .join:
+            return "创建我的私厨"
+        case .create:
+            return "已有邀请码，改为加入"
+        }
+    }
+}
+
+private struct AppInputField: View {
+    @Binding var text: String
+    @Binding var isInvalid: Bool
+    let prompt: String
+    var autocapitalization: TextInputAutocapitalization = .sentences
+    var trigger: Int = 0
+
+    var body: some View {
+        TextField(prompt, text: $text)
+            .textInputAutocapitalization(autocapitalization)
             .font(AppTypography.body)
             .foregroundStyle(AppColor.textPrimary)
             .padding(.horizontal, AppSpacing.md)
             .frame(height: 52)
             .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .stroke(AppColor.lineSoft, lineWidth: 1)
+            .submitLabel(.done)
+            .appValidationFeedback(isInvalid: isInvalid, trigger: trigger)
+            .onChange(of: text) { oldValue, newValue in
+                guard isInvalid, oldValue != newValue else { return }
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    isInvalid = false
+                }
             }
     }
+}
+
+#Preview {
+    OnboardingView()
+        .environmentObject(AppStore())
 }
