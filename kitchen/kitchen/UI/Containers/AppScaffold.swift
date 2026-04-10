@@ -11,7 +11,7 @@ struct AppScrollPage<Header: View, Content: View>: View {
                 content
             }
             .padding(.horizontal, AppSpacing.md)
-            .padding(.top, AppSpacing.lg)
+            .padding(.top, AppSpacing.xs)
             .padding(.bottom, 110)
         }
         .appPageBackground()

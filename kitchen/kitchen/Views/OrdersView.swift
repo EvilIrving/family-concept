@@ -6,9 +6,7 @@ struct OrdersView: View {
     @State private var showShoppingList = false
 
     var body: some View {
-        AppScrollPage {
-            EmptyView()
-        } content: {
+        VStack(alignment: .leading, spacing: 0) {
             AppCard {
                 VStack(alignment: .leading, spacing: AppSpacing.md) {
                     HStack(alignment: .firstTextBaseline, spacing: AppSpacing.sm) {
@@ -18,12 +16,7 @@ struct OrdersView: View {
                         Text("\(store.orderItems.count) 道")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColor.textSecondary)
-                        Spacer()
-                        Button("采购清单") {
-                            showShoppingList = true
-                        }
-                        .font(AppTypography.bodyStrong)
-                        .foregroundStyle(AppColor.green800)
+                        Spacer(minLength: 0)
                     }
 
                     HStack(spacing: AppSpacing.xs) {
@@ -33,34 +26,46 @@ struct OrdersView: View {
                     }
                 }
             }
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.top, AppSpacing.xs)
 
-            AppCard {
-                if store.orderItems.isEmpty {
-                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Text("还没有出餐内容")
-                            .font(AppTypography.bodyStrong)
-                            .foregroundStyle(AppColor.textPrimary)
-                        Text("菜单页提交后，这里会直接显示当前订单。")
-                            .font(AppTypography.body)
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
-                } else {
-                    ForEach(store.orderItems) { item in
-                        OrderItemRow(item: item) {
-                            store.cycleStatus(for: item.id)
-                            toast = AppToastData(message: "\(item.dishName) 已切换为\(store.title(for: item.id))")
+            ScrollView(showsIndicators: false) {
+                AppCard {
+                    if store.orderItems.isEmpty {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("还没有出餐内容")
+                                .font(AppTypography.bodyStrong)
+                                .foregroundStyle(AppColor.textPrimary)
+                            Text("菜单页提交后，这里会直接显示当前订单。")
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColor.textSecondary)
                         }
-                        if item.id != store.orderItems.last?.id {
-                            Divider()
-                                .overlay(AppColor.lineSoft)
+                    } else {
+                        ForEach(store.orderItems) { item in
+                            OrderItemRow(item: item) {
+                                store.cycleStatus(for: item.id)
+                                toast = AppToastData(message: "\(item.dishName) 已切换为\(store.title(for: item.id))")
+                            }
+                            if item.id != store.orderItems.last?.id {
+                                Divider()
+                                    .overlay(AppColor.lineSoft)
+                            }
                         }
                     }
                 }
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.top, AppSpacing.sm)
+                .padding(.bottom, AppSpacing.md)
             }
+
+            ordersShoppingListBar
         }
+        .appPageBackground()
         .appToast($toast)
         .sheet(isPresented: $showShoppingList) {
             ShoppingListSheet(items: store.shoppingList)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.hidden)
         }
     }
 
@@ -74,6 +79,48 @@ struct OrdersView: View {
 
     private var doneCount: Int {
         store.orderItems.filter { $0.status == .done }.count
+    }
+
+    private var ordersShoppingListBar: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(AppColor.lineSoft)
+                .frame(height: 1)
+
+            Button {
+                showShoppingList = true
+            } label: {
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: "list.bullet.rectangle.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(AppColor.green800)
+
+                    Text(shoppingListBarTitle)
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+                .padding(.horizontal, AppSpacing.md)
+                .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+                .background(AppColor.surfacePrimary)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var shoppingListBarTitle: String {
+        if store.shoppingList.isEmpty {
+            "采购清单 · 暂无食材"
+        } else {
+            "共 \(store.shoppingList.count) 项 · 食材汇总"
+        }
     }
 
     private func statusPill(title: String, value: Int, tint: Color, background: Color) -> some View {

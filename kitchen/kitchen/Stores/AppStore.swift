@@ -83,8 +83,22 @@ final class AppStore: ObservableObject {
 
     func updateRole(memberID: UUID, to role: MemberRole) {
         guard isOwner, memberID != currentDeviceID else { return }
-        guard let index = members.firstIndex(where: { $0.id == memberID }) else { return }
-        members[index].role = role
+        switch role {
+        case .owner:
+            transferOwnership(to: memberID)
+        case .member:
+            guard let index = members.firstIndex(where: { $0.id == memberID }) else { return }
+            members[index].role = .member
+        }
+    }
+
+    /// 将指定成员设为管理员（owner）；本机当前若为管理员，则降为普通成员。
+    func transferOwnership(to memberID: UUID) {
+        guard isOwner, memberID != currentDeviceID else { return }
+        guard let newOwnerIndex = members.firstIndex(where: { $0.id == memberID }),
+              let oldOwnerIndex = members.firstIndex(where: { $0.id == currentDeviceID }) else { return }
+        members[newOwnerIndex].role = .owner
+        members[oldOwnerIndex].role = .member
     }
 
     func updateDisplayName(memberID: UUID, name: String) {
@@ -211,16 +225,48 @@ final class AppStore: ObservableObject {
         members = [
             Member(id: currentDeviceID, displayName: storedDisplayName, role: .owner),
             Member(id: UUID(), displayName: "小明", role: .member),
-            Member(id: UUID(), displayName: "妈妈", role: .member)
+            Member(id: UUID(), displayName: "妈妈", role: .member),
+            Member(id: UUID(), displayName: "爸爸", role: .member),
+            Member(id: UUID(), displayName: "奶奶", role: .member),
+            Member(id: UUID(), displayName: "二宝", role: .member)
         ]
         dishes = [
             Dish(id: UUID(), name: "青椒小炒肉", category: "家常菜", ingredients: ["青椒", "猪肉", "蒜"], archivedAt: nil),
             Dish(id: UUID(), name: "番茄鸡蛋", category: "快手菜", ingredients: ["番茄", "鸡蛋", "葱"], archivedAt: nil),
-            Dish(id: UUID(), name: "冰美式", category: "饮品", ingredients: ["咖啡豆", "冰块"], archivedAt: nil)
+            Dish(id: UUID(), name: "冰美式", category: "饮品", ingredients: ["咖啡豆", "冰块"], archivedAt: nil),
+            Dish(id: UUID(), name: "酸辣土豆丝", category: "家常菜", ingredients: ["土豆", "干辣椒", "醋"], archivedAt: nil),
+            Dish(id: UUID(), name: "蒜蓉西兰花", category: "家常菜", ingredients: ["西兰花", "蒜"], archivedAt: nil),
+            Dish(id: UUID(), name: "红烧肉", category: "家常菜", ingredients: ["五花肉", "姜", "冰糖"], archivedAt: nil),
+            Dish(id: UUID(), name: "清蒸鲈鱼", category: "海鲜", ingredients: ["鲈鱼", "葱", "姜"], archivedAt: nil),
+            Dish(id: UUID(), name: "麻婆豆腐", category: "川菜", ingredients: ["豆腐", "牛肉末", "花椒"], archivedAt: nil),
+            Dish(id: UUID(), name: "宫保鸡丁", category: "川菜", ingredients: ["鸡胸肉", "花生", "干辣椒"], archivedAt: nil),
+            Dish(id: UUID(), name: "白切鸡", category: "粤菜", ingredients: ["鸡", "姜", "葱"], archivedAt: nil),
+            Dish(id: UUID(), name: "蛋炒饭", category: "主食", ingredients: ["米饭", "鸡蛋", "葱"], archivedAt: nil),
+            Dish(id: UUID(), name: "紫菜蛋花汤", category: "汤羹", ingredients: ["紫菜", "鸡蛋", "香油"], archivedAt: nil),
+            Dish(id: UUID(), name: "凉拌黄瓜", category: "凉菜", ingredients: ["黄瓜", "蒜", "醋"], archivedAt: nil),
+            Dish(id: UUID(), name: "糖醋排骨", category: "家常菜", ingredients: ["排骨", "醋", "糖"], archivedAt: nil),
+            Dish(id: UUID(), name: "可乐鸡翅", category: "家常菜", ingredients: ["鸡翅", "可乐", "姜"], archivedAt: nil),
+            Dish(id: UUID(), name: "香菇青菜", category: "素菜", ingredients: ["香菇", "青菜", "蒜"], archivedAt: nil),
+            Dish(id: UUID(), name: "葱油饼", category: "主食", ingredients: ["面粉", "葱", "油"], archivedAt: nil),
+            Dish(id: UUID(), name: "芒果西米露", category: "甜品", ingredients: ["芒果", "西米", "椰奶"], archivedAt: nil),
+            Dish(id: UUID(), name: "柠檬蜂蜜水", category: "饮品", ingredients: ["柠檬", "蜂蜜", "水"], archivedAt: nil),
+            Dish(id: UUID(), name: "干煸四季豆", category: "家常菜", ingredients: ["四季豆", "肉末", "干辣椒"], archivedAt: nil)
         ]
         orderItems = [
             OrderItem(id: UUID(), dishID: dishes[0].id, dishName: dishes[0].name, quantity: 2, status: .waiting),
-            OrderItem(id: UUID(), dishID: dishes[1].id, dishName: dishes[1].name, quantity: 1, status: .cooking)
+            OrderItem(id: UUID(), dishID: dishes[1].id, dishName: dishes[1].name, quantity: 1, status: .cooking),
+            OrderItem(id: UUID(), dishID: dishes[3].id, dishName: dishes[3].name, quantity: 3, status: .waiting),
+            OrderItem(id: UUID(), dishID: dishes[6].id, dishName: dishes[6].name, quantity: 1, status: .done),
+            OrderItem(id: UUID(), dishID: dishes[7].id, dishName: dishes[7].name, quantity: 2, status: .cooking),
+            OrderItem(id: UUID(), dishID: dishes[10].id, dishName: dishes[10].name, quantity: 4, status: .waiting),
+            OrderItem(id: UUID(), dishID: dishes[12].id, dishName: dishes[12].name, quantity: 1, status: .done),
+            OrderItem(id: UUID(), dishID: dishes[15].id, dishName: dishes[15].name, quantity: 2, status: .waiting)
+        ]
+        cartItems = [
+            CartItem(id: UUID(), dishID: dishes[4].id, dishName: dishes[4].name, quantity: 2),
+            CartItem(id: UUID(), dishID: dishes[8].id, dishName: dishes[8].name, quantity: 1),
+            CartItem(id: UUID(), dishID: dishes[11].id, dishName: dishes[11].name, quantity: 1),
+            CartItem(id: UUID(), dishID: dishes[18].id, dishName: dishes[18].name, quantity: 3)
         ]
     }
 }

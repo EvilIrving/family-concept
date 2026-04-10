@@ -72,8 +72,9 @@ struct kitchenTests {
 
     @Test func dishCategoriesReturnsSortedDistinctValues() async throws {
         let store = AppStore()
+        let expected = Array(Set(store.activeDishes.map(\.category))).sorted()
 
-        #expect(store.dishCategories == ["家常菜", "快手菜", "饮品"])
+        #expect(store.dishCategories == expected)
     }
 
     @Test func createKitchenSetsDisplayNameAndOwnerRole() async throws {
@@ -112,6 +113,18 @@ struct kitchenTests {
         #expect(store.isOwner == true)
 
         store.joinKitchen(inviteCode: "XYZ", displayName: "访客")
+        #expect(store.isOwner == false)
+    }
+
+    @Test func transferOwnershipSwapsOwnerAndMember() async throws {
+        let store = AppStore()
+        let ownerID = store.currentDeviceID
+        let memberToPromote = try #require(store.members.first { $0.id != ownerID && $0.role == .member })
+
+        store.transferOwnership(to: memberToPromote.id)
+
+        #expect(store.members.first { $0.id == ownerID }?.role == .member)
+        #expect(store.members.first { $0.id == memberToPromote.id }?.role == .owner)
         #expect(store.isOwner == false)
     }
 

@@ -26,7 +26,7 @@ struct MainTabView: View {
     @State private var selectedTab: MainTab = .menu
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        VStack(spacing: 0) {
             Group {
                 switch selectedTab {
                 case .menu:
@@ -37,6 +37,7 @@ struct MainTabView: View {
                     SettingsView()
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             VStack(spacing: 0) {
                 Rectangle()
@@ -73,11 +74,9 @@ struct MainTabView: View {
                 }
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.top, AppSpacing.xs)
-                .padding(.bottom, AppSpacing.xs)
             }
             .frame(maxWidth: .infinity)
-            .background(AppColor.surfacePrimary)
-            .ignoresSafeArea(edges: .bottom)
+            .background(AppColor.surfacePrimary.ignoresSafeArea(edges: .bottom))
         }
         .appPageBackground()
     }

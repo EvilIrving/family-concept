@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var notificationsEnabled = true
     @State private var hapticsEnabled = true
     @State private var toast: AppToastData?
+    @State private var memberSheet: MemberSheetToken?
 
     var body: some View {
         AppScrollPage {
@@ -19,10 +20,10 @@ struct SettingsView: View {
                                 Text(kitchen.name)
                                     .font(AppTypography.sectionTitle)
                                     .foregroundStyle(AppColor.textPrimary)
-                                Text("\(store.members.count) 人")
+                                Spacer()
+                                Text("共 \(store.members.count) 人")
                                     .font(AppTypography.caption)
                                     .foregroundStyle(AppColor.textSecondary)
-                                Spacer()
                             }
 
                             kitchenIdentityCluster
@@ -68,25 +69,46 @@ struct SettingsView: View {
             }
         }
         .appToast($toast)
+        .sheet(item: $memberSheet) { token in
+            MemberRoleSheet(memberID: token.id)
+                .environmentObject(store)
+                .presentationBackground(.clear)
+                .presentationDetents([.fraction(0.25)])
+                .presentationDragIndicator(.hidden)
+        }
     }
 
     private var kitchenIdentityCluster: some View {
-        HStack(alignment: .center, spacing: AppSpacing.md) {
-            ZStack {
-                ForEach(Array(store.members.prefix(3).enumerated()), id: \.element.id) { index, member in
-                    memberBubble(member, index: index)
-                }
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            if displayNameForIdentity != "本机" {
+                Text("当前：\(displayNameForIdentity)")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColor.textSecondary)
             }
-            .frame(width: 124, height: 78, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                if displayNameForIdentity != "本机" {
-                    Text(displayNameForIdentity)
-                        .font(AppTypography.bodyStrong)
-                        .foregroundStyle(AppColor.textPrimary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: -14) {
+                    ForEach(Array(store.members.enumerated()), id: \.element.id) { index, member in
+                        memberAvatarButton(member, colorIndex: index)
+                            .zIndex(Double(index))
+                    }
                 }
+                .padding(.leading, AppSpacing.sm)
+                .padding(.vertical, AppSpacing.xxs)
+                .padding(.trailing, AppSpacing.xs)
             }
-            Spacer()
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(
+                store.members.count > 6
+                    ? "厨房成员，共 \(store.members.count) 人，横向滑动可查看全部"
+                    : "厨房成员，共 \(store.members.count) 人"
+            )
+
+            if store.members.count > 6 {
+                Text("共 \(store.members.count) 人，左滑可查看其余成员")
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
         }
     }
 
@@ -94,29 +116,42 @@ struct SettingsView: View {
         store.currentMember?.displayName ?? store.storedDisplayName
     }
 
-    private func memberBubble(_ member: Member, index: Int) -> some View {
-        let offsets: [CGSize] = [
-            CGSize(width: 0, height: 18),
-            CGSize(width: 32, height: 0),
-            CGSize(width: 64, height: 16)
+    private func memberAvatarButton(_ member: Member, colorIndex: Int) -> some View {
+        let colors: [Color] = [
+            AppColor.green200,
+            AppColor.surfaceSecondary,
+            AppColor.green100,
+            AppColor.green300,
+            AppColor.surfaceTertiary,
+            AppColor.successSoft
         ]
-        let colors: [Color] = [AppColor.green200, AppColor.surfaceSecondary, AppColor.green100]
         let initials = String(member.displayName.prefix(1))
 
-        return ZStack {
-            Circle()
-                .fill(colors[index % colors.count])
-                .overlay(
-                    Circle()
-                        .stroke(member.id == store.currentDeviceID ? AppColor.green700 : AppColor.lineSoft, lineWidth: member.id == store.currentDeviceID ? 2 : 1)
-                )
+        return Button {
+            memberSheet = MemberSheetToken(id: member.id)
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(colors[colorIndex % colors.count])
+                    .overlay(
+                        Circle()
+                            .stroke(AppColor.surfacePrimary, lineWidth: 2)
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(member.id == store.currentDeviceID ? AppColor.green700 : AppColor.lineSoft, lineWidth: member.id == store.currentDeviceID ? 2 : 1)
+                    )
 
-            Text(initials)
-                .font(AppTypography.bodyStrong)
-                .foregroundStyle(member.id == store.currentDeviceID ? AppColor.green800 : AppColor.textPrimary)
+                Text(initials)
+                    .font(AppTypography.bodyStrong)
+                    .foregroundStyle(member.id == store.currentDeviceID ? AppColor.green800 : AppColor.textPrimary)
+            }
+            .frame(width: 44, height: 44)
+            .contentShape(Circle())
+            .shadow(color: AppColor.green900.opacity(0.06), radius: 1, y: 1)
         }
-        .frame(width: 54, height: 54)
-        .offset(offsets[index % offsets.count])
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(member.displayName)，\(member.role.title)")
     }
 
     private var rowDivider: some View {
@@ -151,6 +186,127 @@ struct SettingsView: View {
                 .labelsHidden()
         }
         .frame(minHeight: 44)
+    }
+}
+
+private struct MemberSheetToken: Identifiable {
+    let id: UUID
+}
+
+private struct MemberRoleSheet: View {
+    let memberID: UUID
+    @EnvironmentObject private var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+
+    private var member: Member? {
+        store.members.first { $0.id == memberID }
+    }
+
+    private var showsTransferOwnershipButton: Bool {
+        guard let member else { return false }
+        return store.isOwner && member.id != store.currentDeviceID && member.role == .member
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(AppColor.green200)
+                .frame(width: 42, height: 5)
+                .padding(.top, AppSpacing.sm)
+                .padding(.bottom, AppSpacing.md)
+
+            HStack(alignment: .center) {
+                Button("关闭") { dismiss() }
+                    .font(AppTypography.bodyStrong)
+                    .foregroundStyle(AppColor.textSecondary)
+
+                Spacer()
+
+                Text("成员")
+                    .font(AppTypography.cardTitle)
+                    .foregroundStyle(AppColor.textPrimary)
+
+                Spacer()
+
+                Color.clear
+                    .frame(width: 44, height: 1)
+            }
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.bottom, AppSpacing.md)
+
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                if let member {
+                    HStack(alignment: .center, spacing: AppSpacing.sm) {
+                        ZStack {
+                            Circle()
+                                .fill(AppColor.green200)
+                                .overlay(
+                                    Circle()
+                                        .stroke(AppColor.surfacePrimary, lineWidth: 2)
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(member.id == store.currentDeviceID ? AppColor.green700 : AppColor.lineSoft, lineWidth: member.id == store.currentDeviceID ? 2 : 1)
+                                )
+                            Text(String(member.displayName.prefix(1)))
+                                .font(AppTypography.bodyStrong)
+                                .foregroundStyle(member.id == store.currentDeviceID ? AppColor.green800 : AppColor.textPrimary)
+                        }
+                        .frame(width: 44, height: 44)
+
+                        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                            Text(member.displayName)
+                                .font(AppTypography.bodyStrong)
+                                .foregroundStyle(AppColor.textPrimary)
+                                .lineLimit(1)
+                            Text("权限：\(member.role.title)")
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColor.textSecondary)
+                        }
+                        Spacer(minLength: 0)
+                    }
+
+                    if member.id == store.currentDeviceID {
+                        Text("这是本机")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
+                } else {
+                    Text("成员已不在列表中")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.horizontal, AppSpacing.lg)
+
+            if showsTransferOwnershipButton, let member {
+                Button {
+                    store.transferOwnership(to: member.id)
+                    dismiss()
+                } label: {
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: "person.badge.key")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("设为管理员")
+                    }
+                    .font(AppTypography.button)
+                    .foregroundStyle(AppColor.textOnBrand)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColor.green700)
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.top, AppSpacing.sm)
+                .padding(.bottom, AppSpacing.md)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppColor.surfacePrimary)
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.xxl, style: .continuous))
     }
 }
 

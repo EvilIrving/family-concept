@@ -25,60 +25,54 @@ struct MenuView: View {
     private let quickCategories = ["家常菜", "快手菜", "汤羹", "主食", "饮品", "甜点", "其他"]
 
     var body: some View {
-        AppScrollPage {
-            EmptyView()
-        } content: {
-            VStack(alignment: .leading, spacing: AppSpacing.md) {
-                AppCard {
-                    searchBar
+        VStack(alignment: .leading, spacing: 0) {
+            AppCard {
+                searchBar
 
-                    categoryChips(categories: filterCategories, selection: $selectedCategory)
-                }
-
-                LazyVGrid(columns: gridColumns, spacing: AppSpacing.md) {
-                    ForEach(filteredDishes) { dish in
-                        MenuDishCard(
-                            title: dish.name,
-                            category: dish.category,
-                            quantity: store.cartQuantity(for: dish.id),
-                            onDecrease: {
-                                guard store.cartQuantity(for: dish.id) > 0 else { return }
-                                store.updateCartQuantity(dishID: dish.id, delta: -1)
-                            },
-                            onIncrease: {
-                                store.addToCart(dish: dish)
-                            }
-                        )
-                    }
-                }
-
-                if filteredDishes.isEmpty {
-                    AppCard {
-                        Text("没有找到匹配的菜品")
-                            .font(AppTypography.bodyStrong)
-                            .foregroundStyle(AppColor.textPrimary)
-                        Text("换个关键词，或者直接右下角新增一道。")
-                            .font(AppTypography.body)
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
-                }
+                categoryChips(categories: filterCategories, selection: $selectedCategory)
             }
-        }
-        .overlay(alignment: .bottomTrailing) {
-            VStack(alignment: .trailing, spacing: AppSpacing.sm) {
-                FloatButton(systemImage: "cart", kind: .icon, badgeCount: store.cartCount) {
-                    showsCart = true
-                }
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.top, AppSpacing.xs)
 
-                if store.isOwner {
-                    FloatButton(systemImage: "plus", kind: .icon) {
-                        showsAddDish = true
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                    LazyVGrid(columns: gridColumns, spacing: AppSpacing.md) {
+                        ForEach(filteredDishes) { dish in
+                            MenuDishCard(
+                                title: dish.name,
+                                category: dish.category,
+                                quantity: store.cartQuantity(for: dish.id),
+                                onDecrease: {
+                                    guard store.cartQuantity(for: dish.id) > 0 else { return }
+                                    store.updateCartQuantity(dishID: dish.id, delta: -1)
+                                },
+                                onIncrease: {
+                                    store.addToCart(dish: dish)
+                                }
+                            )
+                        }
+                    }
+
+                    if filteredDishes.isEmpty {
+                        AppCard {
+                            Text("没有找到匹配的菜品")
+                                .font(AppTypography.bodyStrong)
+                                .foregroundStyle(AppColor.textPrimary)
+                            Text(emptySearchHint)
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColor.textSecondary)
+                        }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.top, AppSpacing.sm)
+                .padding(.bottom, AppSpacing.md)
             }
-            .padding(.bottom, 88)
-            .padding(.trailing, AppSpacing.md)
+
+            menuCartBar
         }
+        .appPageBackground()
         .sheet(isPresented: $showsAddDish) {
             AppSheetContainer(
                 title: "新增菜品",
@@ -87,35 +81,41 @@ struct MenuView: View {
                 onDismiss: dismissAddDish,
                 onConfirm: saveDish
             ) {
-                VStack(spacing: AppSpacing.sm) {
-                    sheetTextField("菜名", text: $name)
-                        .focused($focusedField, equals: .name)
+                ScrollView {
+                    VStack(spacing: AppSpacing.sm) {
+                        sheetTextField("菜名", text: $name)
+                            .focused($focusedField, equals: .name)
 
-                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Text("常用分类")
-                            .font(AppTypography.micro)
-                            .foregroundStyle(AppColor.textSecondary)
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("常用分类")
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColor.textSecondary)
 
-                        categoryChips(categories: quickCategories, selection: $selectedQuickCategory)
+                            categoryChips(categories: quickCategories, selection: $selectedQuickCategory)
 
-                        if selectedQuickCategory == "其他" {
-                            sheetTextField("自定义分类", text: $customCategory)
-                                .focused($focusedField, equals: .customCategory)
+                            if selectedQuickCategory == "其他" {
+                                sheetTextField("自定义分类", text: $customCategory)
+                                    .focused($focusedField, equals: .customCategory)
+                            }
+                        }
+
+                        IngredientTagInput(tags: $ingredientTags, input: $ingredientInput, focusedField: $focusedField)
+
+                        if let validationMessage {
+                            Text(validationMessage)
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColor.danger)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
-
-                    IngredientTagInput(tags: $ingredientTags, input: $ingredientInput, focusedField: $focusedField)
-
-                    if let validationMessage {
-                        Text(validationMessage)
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColor.danger)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
-            .presentationBackground(.clear)
-            .presentationDetents([.height(400)])
+            .presentationBackground(AppColor.surfacePrimary)
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.hidden)
+            .presentationBackgroundInteraction(.enabled(upThrough: .large))
             .onAppear {
                 validationMessage = nil
                 focusedField = .name
@@ -190,6 +190,56 @@ struct MenuView: View {
         }
     }
 
+    private var emptySearchHint: String {
+        if store.isOwner {
+            "换个关键词，或点搜索栏右侧「新增」。"
+        } else {
+            "换个关键词试试。"
+        }
+    }
+
+    private var menuCartBar: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(AppColor.lineSoft)
+                .frame(height: 1)
+
+            Button {
+                showsCart = true
+            } label: {
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: "cart.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(AppColor.green800)
+
+                    Text(cartBarTitle)
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+                .padding(.horizontal, AppSpacing.md)
+                .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+                .background(AppColor.surfacePrimary)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var cartBarTitle: String {
+        if store.cartCount == 0 {
+            "购物车 · 暂无菜品"
+        } else {
+            "共 \(store.cartCount) 件 · 点单菜品"
+        }
+    }
+
     private var gridColumns: [GridItem] {
         [
             GridItem(.flexible(), spacing: AppSpacing.md),
@@ -198,28 +248,49 @@ struct MenuView: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: AppSpacing.sm) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(AppColor.textTertiary)
-            TextField("搜菜名", text: $searchText)
-                .font(AppTypography.body)
-                .foregroundStyle(AppColor.textPrimary)
-            if !searchText.isEmpty {
+        HStack(alignment: .center, spacing: AppSpacing.sm) {
+            HStack(spacing: AppSpacing.sm) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(AppColor.textTertiary)
+                TextField("搜菜名", text: $searchText)
+                    .font(AppTypography.body)
+                    .foregroundStyle(AppColor.textPrimary)
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, AppSpacing.md)
+            .frame(height: 50)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                    .stroke(AppColor.lineSoft, lineWidth: 1)
+            }
+
+            if store.isOwner {
                 Button {
-                    searchText = ""
+                    showsAddDish = true
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(AppColor.textTertiary)
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                        Text("新增")
+                            .font(AppTypography.bodyStrong)
+                    }
+                    .foregroundStyle(AppColor.green800)
+                    .padding(.horizontal, AppSpacing.xs)
+                    .frame(height: 50)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("新增菜品")
             }
-        }
-        .padding(.horizontal, AppSpacing.md)
-        .frame(height: 50)
-        .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                .stroke(AppColor.lineSoft, lineWidth: 1)
         }
     }
 
