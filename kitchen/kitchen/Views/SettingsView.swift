@@ -5,6 +5,8 @@ struct SettingsView: View {
     @State private var notificationsEnabled = true
     @State private var hapticsEnabled = true
     @State private var showMembersSheet = false
+    @State private var isEditingName = false
+    @State private var nameInput = ""
 
     var body: some View {
         AppScrollPage {
@@ -18,6 +20,9 @@ struct SettingsView: View {
                 AppCard {
                     AppSectionHeader(eyebrow: "厨房", title: kitchen.name)
                     AppPill(title: "邀请码 \(kitchen.inviteCode)", tint: AppColor.green800, background: AppColor.green100)
+                    Divider()
+                        .overlay(AppColor.lineSoft)
+                    displayNameRow
                     Divider()
                         .overlay(AppColor.lineSoft)
                     Button {
@@ -55,6 +60,47 @@ struct SettingsView: View {
                 toggleRow(title: "震动反馈", isOn: $hapticsEnabled)
             }
 
+        }
+    }
+
+    @ViewBuilder
+    private var displayNameRow: some View {
+        if isEditingName {
+            HStack(spacing: AppSpacing.sm) {
+                TextField("你的名字", text: $nameInput)
+                    .font(AppTypography.body)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .frame(height: 28)
+                Button("完成") {
+                    let trimmed = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty, let id = store.currentMember?.id {
+                        store.updateDisplayName(memberID: id, name: trimmed)
+                        UserDefaults.standard.set(trimmed, forKey: "displayName")
+                    }
+                    isEditingName = false
+                }
+                .font(AppTypography.body)
+                .foregroundStyle(AppColor.green700)
+            }
+        } else {
+            Button {
+                nameInput = store.currentMember?.displayName ?? store.storedDisplayName
+                isEditingName = true
+            } label: {
+                HStack {
+                    Text("我的名字")
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Spacer()
+                    Text(store.currentMember?.displayName ?? store.storedDisplayName)
+                        .font(AppTypography.body)
+                        .foregroundStyle(AppColor.textSecondary)
+                    Image(systemName: "pencil")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+                .frame(height: 28)
+            }
         }
     }
 

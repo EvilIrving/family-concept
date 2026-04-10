@@ -3,7 +3,9 @@ import SwiftUI
 struct OnboardingView: View {
     @EnvironmentObject private var store: AppStore
     @State private var inviteCode = ""
+    @State private var joinDisplayName = ""
     @State private var kitchenName = ""
+    @State private var createDisplayName = ""
     @State private var showsCreateForm = false
 
     var body: some View {
@@ -30,21 +32,28 @@ struct OnboardingView: View {
         } content: {
             AppCard {
                 AppSectionHeader(eyebrow: "入驻", title: "输入邀请码")
+                appTextField("你的名字", text: $joinDisplayName)
                 appTextField("邀请码", text: $inviteCode)
                     .textInputAutocapitalization(.characters)
                 AppButton(title: "立即加入", systemImage: "arrow.right") {
-                    store.joinKitchen(inviteCode: inviteCode)
+                    store.joinKitchen(inviteCode: inviteCode, displayName: joinDisplayName)
                 }
+                .disabled(joinDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                          inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
 
             AppCard {
                 AppSectionHeader(eyebrow: "创建", title: "新建厨房")
                 if showsCreateForm {
+                    appTextField("你的名字", text: $createDisplayName)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                     appTextField("厨房名称", text: $kitchenName)
                         .transition(.move(edge: .top).combined(with: .opacity))
                     AppButton(title: "创建并进入", systemImage: "sparkles") {
-                        store.createKitchen(named: kitchenName)
+                        store.createKitchen(named: kitchenName, displayName: createDisplayName)
                     }
+                    .disabled(createDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                              kitchenName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 } else {
                     AppButton(title: "展开创建表单", style: .secondary) {
                         withAnimation(.easeInOut(duration: 0.2)) {

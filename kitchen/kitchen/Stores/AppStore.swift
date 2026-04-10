@@ -9,6 +9,7 @@ final class AppStore: ObservableObject {
     @Published var members: [Member] = []
 
     let currentDeviceID: UUID
+    private(set) var storedDisplayName: String
 
     init() {
         if let stored = UserDefaults.standard.string(forKey: "deviceID"),
@@ -19,6 +20,7 @@ final class AppStore: ObservableObject {
             UserDefaults.standard.set(newID.uuidString, forKey: "deviceID")
             currentDeviceID = newID
         }
+        storedDisplayName = UserDefaults.standard.string(forKey: "displayName") ?? "本机"
         seedDemoData()
     }
 
@@ -54,19 +56,29 @@ final class AppStore: ObservableObject {
         return counts.map { ($0.key, $0.value) }.sorted { $0.name < $1.name }
     }
 
-    func joinKitchen(inviteCode: String) {
-        guard !inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        kitchen = KitchenInfo(name: "家宴厨房", inviteCode: inviteCode.uppercased())
-        if !members.contains(where: { $0.id == currentDeviceID }) {
-            members.append(Member(id: currentDeviceID, displayName: "本机", role: .member))
+    func joinKitchen(inviteCode: String, displayName: String) {
+        let trimmedCode = inviteCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedCode.isEmpty, !trimmedName.isEmpty else { return }
+        storedDisplayName = trimmedName
+        UserDefaults.standard.set(trimmedName, forKey: "displayName")
+        kitchen = KitchenInfo(name: "家宴厨房", inviteCode: trimmedCode.uppercased())
+        if let index = members.firstIndex(where: { $0.id == currentDeviceID }) {
+            members[index].displayName = trimmedName
+            members[index].role = .member
+        } else {
+            members.append(Member(id: currentDeviceID, displayName: trimmedName, role: .member))
         }
     }
 
-    func createKitchen(named name: String) {
+    func createKitchen(named name: String, displayName: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmedName.isEmpty else { return }
+        storedDisplayName = trimmedName
+        UserDefaults.standard.set(trimmedName, forKey: "displayName")
         kitchen = KitchenInfo(name: trimmed, inviteCode: "QH8M2")
-        members = [Member(id: currentDeviceID, displayName: "本机", role: .owner)]
+        members = [Member(id: currentDeviceID, displayName: trimmedName, role: .owner)]
     }
 
     func updateRole(memberID: UUID, to role: MemberRole) {
@@ -85,7 +97,7 @@ final class AppStore: ObservableObject {
     func addDish(name: String, category: String, ingredients: [String]) {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedCategory = category.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty, !trimmedCategory.isEmpty else { return }
+        guard isOwner, !trimmedName.isEmpty, !trimmedCategory.isEmpty else { return }
         dishes.insert(
             Dish(id: UUID(), name: trimmedName, category: trimmedCategory, ingredients: ingredients, archivedAt: nil),
             at: 0
@@ -183,7 +195,7 @@ final class AppStore: ObservableObject {
     private func seedDemoData() {
         kitchen = KitchenInfo(name: "家宴厨房", inviteCode: "QH8M2")
         members = [
-            Member(id: currentDeviceID, displayName: "本机", role: .owner),
+            Member(id: currentDeviceID, displayName: storedDisplayName, role: .owner),
             Member(id: UUID(), displayName: "小明", role: .member),
             Member(id: UUID(), displayName: "妈妈", role: .member)
         ]

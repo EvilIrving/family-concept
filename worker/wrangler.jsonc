@@ -1,24 +1,33 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "family-kitchen-api",
-  "main": "src/index.ts",
-  "compatibility_date": "2026-04-09",
-  "workers_dev": true,
-  "vars": {
-    "APP_ENV": "local"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "kitchen",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
-      "migrations_dir": "migrations"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "ASSETS",
-      "bucket_name": "kitchen-assets"
-    }
-  ]
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "family-kitchen-api",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-04-09",
+	"workers_dev": true,
+	"vars": {
+		"APP_ENV": "local"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "kitchen",
+			"database_id": "2d61deed-8de1-490a-91f9-060432d81187",
+			"migrations_dir": "migrations"
+		},
+		{
+			"binding": "kitchen",
+			"database_name": "kitchen",
+			"database_id": "2d61deed-8de1-490a-91f9-060432d81187"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "ASSETS",
+			"bucket_name": "kitchen-assets"
+		},
+		{
+			"bucket_name": "kitchen-assets",
+			"binding": "kitchen_assets"
+		}
+	]
 }

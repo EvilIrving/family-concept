@@ -62,4 +62,43 @@ struct kitchenTests {
         #expect(store.dishCategories == ["家常菜", "快手菜", "饮品"])
     }
 
+    @Test func createKitchenSetsDisplayNameAndOwnerRole() async throws {
+        let store = AppStore()
+        store.createKitchen(named: "测试厨房", displayName: "小厨")
+
+        let member = try #require(store.currentMember)
+        #expect(member.displayName == "小厨")
+        #expect(member.role == .owner)
+        #expect(store.kitchen?.name == "测试厨房")
+    }
+
+    @Test func joinKitchenSetsDisplayNameAndMemberRole() async throws {
+        let store = AppStore()
+        store.joinKitchen(inviteCode: "ABC123", displayName: "小明")
+
+        let member = try #require(store.currentMember)
+        #expect(member.displayName == "小明")
+        #expect(member.role == .member)
+    }
+
+    @Test func addDishBlockedForMemberRole() async throws {
+        let store = AppStore()
+        store.joinKitchen(inviteCode: "XYZ", displayName: "访客")
+        let countBefore = store.activeDishes.count
+
+        store.addDish(name: "新菜", category: "家常菜", ingredients: [])
+
+        #expect(store.activeDishes.count == countBefore)
+    }
+
+    @Test func isOwnerReturnsTrueForOwnerFalseForMember() async throws {
+        let store = AppStore()
+
+        store.createKitchen(named: "厨房", displayName: "老板")
+        #expect(store.isOwner == true)
+
+        store.joinKitchen(inviteCode: "XYZ", displayName: "访客")
+        #expect(store.isOwner == false)
+    }
+
 }

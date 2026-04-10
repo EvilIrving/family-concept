@@ -71,11 +71,13 @@ struct MenuView: View {
                     showsCart = true
                 }
 
-                FloatButton(systemImage: "plus", title: "新增") {
-                    showsAddDish = true
+                if store.isOwner {
+                    FloatButton(systemImage: "plus", title: "新增") {
+                        showsAddDish = true
+                    }
                 }
             }
-            .padding(.bottom, AppSpacing.md)
+            .padding(.bottom, 88)
             .padding(.trailing, AppSpacing.md)
         }
         .sheet(isPresented: $showsAddDish) {

@@ -35,33 +35,6 @@
 - 状态变化使用 SwiftUI 默认过渡动画，不自定义复杂动效。
 - 少一些 page，可以多使用 sheet 方式填写信息。
 
-## 设计约束
-
-默认以 `docs/family_v1_design.md` 作为产品边界来源，以 `docs/ui_theme.md` 作为视觉主题来源。
-
-产品必须收敛为「私人厨房管理工具」，不是外卖平台，不是公开点餐系统，不扩展到匿名访客、公开分享或多 kitchen 归属。
-
-客户端限定为 iOS only，界面实现优先使用 SwiftUI 原生能力，不引入会破坏连续操作感的重型流程和多余跳转。
-
-全局视觉主题固定为绿色系，主色、背景色、状态色和卡片层级应优先服从 `docs/ui_theme.md`，不要自行切换为暖棕、纯后台白黑风或高饱和橙红主视觉。
-
-交互上优先直接操作、即时反馈、可恢复和连续过渡，默认减少阻塞弹窗，优先使用 sheet、内联编辑和局部状态变化。
-
-信息架构优先围绕入驻、菜单、当前订单、厨房视角、采购清单和设置展开，不提前加入历史统计、复杂规格、多轮次订单或平台化能力。
-
-服务端接口从一开始就要带版本前缀，默认使用 `/api/v1`，新增接口与客户端调用都不得直接挂在根路径。
-
-接口版本升级时优先新增新版本路径，不在同一版本下做破坏性改动；v1 的字段语义一旦进入联调，应保持兼容。
-
-## 技术栈
-
-- iOS 17.6 minimum deployment target
-- Swift 5.0，SwiftUI-first
-- 本地持久化使用 SwiftData（iOS 17+ 原生支持）
-- 仅使用 Apple 原生框架：SwiftUI、Foundation、Combine、Swift Testing
-- 不引入第三方 SPM 包，除非明确评审通过
-- 未来服务端：Cloudflare Workers + D1 + R2，REST 接口统一使用 `/api/v1` 前缀
-
 ## 数据层
 
 - 全局状态通过 `Stores/` 目录下的 `ObservableObject` Store 管理
@@ -82,7 +55,9 @@
 - 新增 Model / Store 代码必须在 `kitchenTests/` 中配套单元测试，使用 Swift Testing 框架
 - View 不强制单元测试，但必须能正常编译和 Preview
 - 提交前运行以下命令验证构建：
+
   ```
   xcodebuild -scheme kitchen -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' build
   ```
+
 - `kitchenUITests/` 中的 UI 测试针对关键流程（入驻、下单）逐步补充
