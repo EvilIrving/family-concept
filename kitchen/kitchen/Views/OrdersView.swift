@@ -7,64 +7,88 @@ struct OrdersView: View {
 
     var body: some View {
         AppScrollPage {
-            Text("订单")
-                .font(AppTypography.pageTitle)
-                .foregroundStyle(AppColor.textPrimary)
+            EmptyView()
         } content: {
-            HStack(spacing: AppSpacing.sm) {
-                summaryCard(title: "待制作", value: store.orderItems.filter { $0.status == .waiting }.count, tint: AppColor.green800, background: AppColor.green100)
-                summaryCard(title: "制作中", value: store.orderItems.filter { $0.status == .cooking }.count, tint: AppColor.warning, background: AppColor.warningSoft)
-                summaryCard(title: "已完成", value: store.orderItems.filter { $0.status == .done }.count, tint: AppColor.info, background: AppColor.infoSoft)
+            AppCard {
+                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                    HStack(alignment: .firstTextBaseline, spacing: AppSpacing.sm) {
+                        Text("当前出餐")
+                            .font(AppTypography.sectionTitle)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text("\(store.orderItems.count) 道")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                        Spacer()
+                        Button("采购清单") {
+                            showShoppingList = true
+                        }
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppColor.green800)
+                    }
+
+                    HStack(spacing: AppSpacing.xs) {
+                        statusPill(title: "待制作", value: waitingCount, tint: AppColor.info, background: AppColor.infoSoft)
+                        statusPill(title: "制作中", value: cookingCount, tint: AppColor.warning, background: AppColor.warningSoft)
+                        statusPill(title: "已完成", value: doneCount, tint: AppColor.green800, background: AppColor.green100)
+                    }
+                }
             }
 
             AppCard {
-                AppSectionHeader(eyebrow: "出餐", title: "当前出餐")
-                ForEach(store.orderItems) { item in
-                    OrderItemRow(item: item) {
-                        store.cycleStatus(for: item.id)
-                        toast = AppToastData(message: "\(item.dishName) 已切换为\(store.title(for: item.id))")
+                if store.orderItems.isEmpty {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text("还没有出餐内容")
+                            .font(AppTypography.bodyStrong)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text("菜单页提交后，这里会直接显示当前订单。")
+                            .font(AppTypography.body)
+                            .foregroundStyle(AppColor.textSecondary)
                     }
-                    if item.id != store.orderItems.last?.id {
-                        Divider()
-                            .overlay(AppColor.lineSoft)
+                } else {
+                    ForEach(store.orderItems) { item in
+                        OrderItemRow(item: item) {
+                            store.cycleStatus(for: item.id)
+                            toast = AppToastData(message: "\(item.dishName) 已切换为\(store.title(for: item.id))")
+                        }
+                        if item.id != store.orderItems.last?.id {
+                            Divider()
+                                .overlay(AppColor.lineSoft)
+                        }
                     }
                 }
             }
         }
         .appToast($toast)
-        .overlay(alignment: .bottomTrailing) {
-            Button {
-                showShoppingList = true
-            } label: {
-                Image(systemName: "list.clipboard")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(AppColor.textOnBrand)
-                    .frame(width: 56, height: 56)
-                    .background(AppColor.green800, in: Circle())
-                    .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
-            }
-            .padding(.bottom, AppSpacing.md)
-            .padding(.trailing, AppSpacing.md)
-        }
         .sheet(isPresented: $showShoppingList) {
             ShoppingListSheet(items: store.shoppingList)
-                .presentationDetents([.medium, .large])
         }
     }
 
-    private func summaryCard(title: String, value: Int, tint: Color, background: Color) -> some View {
-        AppCard(padding: AppSpacing.sm) {
+    private var waitingCount: Int {
+        store.orderItems.filter { $0.status == .waiting }.count
+    }
+
+    private var cookingCount: Int {
+        store.orderItems.filter { $0.status == .cooking }.count
+    }
+
+    private var doneCount: Int {
+        store.orderItems.filter { $0.status == .done }.count
+    }
+
+    private func statusPill(title: String, value: Int, tint: Color, background: Color) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text(title)
                 .font(AppTypography.micro)
-                .foregroundStyle(AppColor.textSecondary)
-            Text("\(value)")
-                .font(.system(size: 26, weight: .semibold))
                 .foregroundStyle(tint)
-            RoundedRectangle(cornerRadius: AppRadius.pill, style: .continuous)
-                .fill(background)
-                .frame(height: 8)
+            Text("\(value)")
+                .font(AppTypography.bodyStrong)
+                .foregroundStyle(tint)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, AppSpacing.sm)
+        .padding(.vertical, AppSpacing.sm)
+        .background(background, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
     }
 }
 
@@ -73,43 +97,47 @@ private struct ShoppingListSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: AppSpacing.sm) {
-                    if items.isEmpty {
+        AppSheetContainer(
+            title: "采购清单",
+            subtitle: items.isEmpty ? nil : "按当前订单聚合",
+            dismissTitle: "关闭",
+            confirmTitle: "完成",
+            onDismiss: { dismiss() },
+            onConfirm: { dismiss() }
+        ) {
+            ScrollView(showsIndicators: false) {
+                if items.isEmpty {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text("暂无采购需求")
+                            .font(AppTypography.bodyStrong)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text("有新订单后，这里会自动汇总食材。")
                             .font(AppTypography.body)
                             .foregroundStyle(AppColor.textSecondary)
-                            .padding(.top, AppSpacing.xl)
-                    } else {
-                        AppCard {
-                            AppSectionHeader(eyebrow: "采购", title: "采购清单")
-                            ForEach(items, id: \.name) { ingredient in
-                                HStack {
-                                    Text(ingredient.name)
-                                        .font(AppTypography.bodyStrong)
-                                        .foregroundStyle(AppColor.textPrimary)
-                                    Spacer()
-                                    AppPill(title: "\(ingredient.count) 道菜", tint: AppColor.info, background: AppColor.infoSoft)
-                                }
-                                if ingredient.name != items.last?.name {
-                                    Divider().overlay(AppColor.lineSoft)
-                                }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, AppSpacing.xs)
+                } else {
+                    AppCard {
+                        ForEach(items, id: \.name) { ingredient in
+                            HStack(spacing: AppSpacing.sm) {
+                                Text(ingredient.name)
+                                    .font(AppTypography.bodyStrong)
+                                    .foregroundStyle(AppColor.textPrimary)
+                                Spacer()
+                                AppPill(title: "\(ingredient.count) 道菜", tint: AppColor.info, background: AppColor.infoSoft)
+                            }
+                            if ingredient.name != items.last?.name {
+                                Divider()
+                                    .overlay(AppColor.lineSoft)
                             }
                         }
                     }
-                }
-                .padding(AppSpacing.md)
-            }
-            .background(AppColor.backgroundBase)
-            .navigationTitle("采购清单")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") { dismiss() }
+                    .padding(.top, AppSpacing.xs)
                 }
             }
         }
+        .presentationBackground(.clear)
     }
 }
 
@@ -120,9 +148,14 @@ private struct OrderItemRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: AppSpacing.sm) {
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 10, height: 10)
+                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
+                    .fill(statusBackground)
+                    .frame(width: 42, height: 42)
+                    .overlay {
+                        Circle()
+                            .fill(statusColor)
+                            .frame(width: 10, height: 10)
+                    }
 
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(item.dishName)
@@ -137,6 +170,7 @@ private struct OrderItemRow: View {
 
                 AppPill(title: item.status.title, tint: statusColor, background: statusBackground)
             }
+            .frame(minHeight: 52)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -144,19 +178,24 @@ private struct OrderItemRow: View {
 
     private var statusColor: Color {
         switch item.status {
-        case .waiting: AppColor.green800
+        case .waiting: AppColor.info
         case .cooking: AppColor.warning
-        case .done: AppColor.info
+        case .done: AppColor.green800
         case .cancelled: AppColor.danger
         }
     }
 
     private var statusBackground: Color {
         switch item.status {
-        case .waiting: AppColor.green100
+        case .waiting: AppColor.infoSoft
         case .cooking: AppColor.warningSoft
-        case .done: AppColor.infoSoft
+        case .done: AppColor.green100
         case .cancelled: AppColor.dangerSoft
         }
     }
+}
+
+#Preview {
+    OrdersView()
+        .environmentObject(AppStore())
 }

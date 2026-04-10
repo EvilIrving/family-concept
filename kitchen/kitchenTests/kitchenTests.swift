@@ -56,6 +56,20 @@ struct kitchenTests {
         #expect(store.orderItems.first(where: { $0.dishID == dish.id })?.quantity == 3)
     }
 
+    @Test func cartQuantityReflectsDishCountAndUpdateByDishIDRemovesWhenZero() async throws {
+        let store = AppStore()
+        let dish = try #require(store.activeDishes.first)
+
+        #expect(store.cartQuantity(for: dish.id) == 0)
+
+        store.updateCartQuantity(dishID: dish.id, delta: 1)
+        #expect(store.cartQuantity(for: dish.id) == 1)
+
+        store.updateCartQuantity(dishID: dish.id, delta: -1)
+        #expect(store.cartQuantity(for: dish.id) == 0)
+        #expect(store.cartItems.first(where: { $0.dishID == dish.id }) == nil)
+    }
+
     @Test func dishCategoriesReturnsSortedDistinctValues() async throws {
         let store = AppStore()
 

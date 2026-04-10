@@ -24,6 +24,8 @@
 
 操作像现实一样直接。反馈几乎是瞬时的。出错可以轻松恢复。整个过程连续无阻。
 
+涉及界面简化、去噪、删减非必要元素、压缩信息层级或让界面更干净聚焦的任务，必须使用 `distill` 技能，并先按该技能要求完成前置上下文检查。
+
 具体约束：
 
 - 从任意 tab 根页面出发，导航深度不超过 2 层。
@@ -54,10 +56,5 @@
 
 - 新增 Model / Store 代码必须在 `kitchenTests/` 中配套单元测试，使用 Swift Testing 框架
 - View 不强制单元测试，但必须能正常编译和 Preview
-- 提交前运行以下命令验证构建：
-
-  ```
-  xcodebuild -scheme kitchen -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' build
-  ```
-
+- 不允许运行 `xcodebuild`，包括本地验证、提交前检查和 Agent 自动执行
 - `kitchenUITests/` 中的 UI 测试针对关键流程（入驻、下单）逐步补充

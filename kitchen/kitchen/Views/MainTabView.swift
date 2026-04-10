@@ -82,3 +82,8 @@ struct MainTabView: View {
         .appPageBackground()
     }
 }
+
+#Preview {
+    MainTabView()
+        .environmentObject(AppStore())
+}

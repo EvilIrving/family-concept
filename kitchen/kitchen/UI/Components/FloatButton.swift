@@ -1,26 +1,39 @@
 import SwiftUI
 
 struct FloatButton: View {
+    enum Kind {
+        case icon
+        case extended(String)
+    }
+
     let systemImage: String
-    var title: String? = nil
+    var kind: Kind = .icon
     var badgeCount: Int? = nil
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: AppSpacing.xs) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 16, weight: .bold))
-
-                if let title, !title.isEmpty {
-                    Text(title)
-                        .font(AppTypography.bodyStrong)
+            Group {
+                switch kind {
+                case .icon:
+                    Image(systemName: systemImage)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(AppColor.textOnBrand)
+                        .frame(width: 56, height: 56)
+                        .background(AppColor.green800, in: Circle())
+                case let .extended(title):
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: systemImage)
+                            .font(.system(size: 16, weight: .bold))
+                        Text(title)
+                            .font(AppTypography.bodyStrong)
+                    }
+                    .foregroundStyle(AppColor.textOnBrand)
+                    .padding(.horizontal, AppSpacing.lg)
+                    .frame(height: 56)
+                    .background(AppColor.green800, in: Capsule())
                 }
             }
-            .foregroundStyle(AppColor.textOnBrand)
-            .padding(.horizontal, title == nil ? AppSpacing.md : AppSpacing.lg)
-            .frame(height: 56)
-            .background(AppColor.green800, in: Capsule())
             .overlay(alignment: .topTrailing) {
                 if let badgeCount, badgeCount > 0 {
                     Text("\(badgeCount)")

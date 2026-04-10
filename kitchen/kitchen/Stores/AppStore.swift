@@ -116,12 +116,26 @@ final class AppStore: ObservableObject {
         cartItems.reduce(0) { $0 + $1.quantity }
     }
 
+    func cartQuantity(for dishID: UUID) -> Int {
+        cartItems.first(where: { $0.dishID == dishID })?.quantity ?? 0
+    }
+
     func addToCart(dish: Dish) {
         if let index = cartItems.firstIndex(where: { $0.dishID == dish.id }) {
             cartItems[index].quantity += 1
         } else {
             cartItems.insert(CartItem(id: UUID(), dishID: dish.id, dishName: dish.name, quantity: 1), at: 0)
         }
+    }
+
+    func updateCartQuantity(dishID: UUID, delta: Int) {
+        guard let item = cartItems.first(where: { $0.dishID == dishID }) else {
+            if delta > 0, let dish = activeDishes.first(where: { $0.id == dishID }) {
+                addToCart(dish: dish)
+            }
+            return
+        }
+        updateCartQuantity(itemID: item.id, delta: delta)
     }
 
     func updateCartQuantity(itemID: UUID, delta: Int) {

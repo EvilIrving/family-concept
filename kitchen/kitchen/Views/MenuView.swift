@@ -11,6 +11,7 @@ struct MenuView: View {
     @State private var showsAddDish = false
     @State private var showsCart = false
     @State private var searchText = ""
+    @State private var debouncedSearchText = ""
     @State private var selectedCategory = "全部"
     @State private var name = ""
     @State private var selectedQuickCategory = "家常菜"
@@ -25,20 +26,10 @@ struct MenuView: View {
 
     var body: some View {
         AppScrollPage {
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                Text("菜单")
-                    .font(AppTypography.pageTitle)
-                    .foregroundStyle(AppColor.textPrimary)
-            }
+            EmptyView()
         } content: {
             VStack(alignment: .leading, spacing: AppSpacing.md) {
                 AppCard {
-                    AppSectionHeader(
-                        eyebrow: "点菜",
-                        title: "今天想吃什么",
-                        detail: "先挑菜加入购物车，再统一提交当前订单"
-                    )
-
                     searchBar
 
                     categoryChips(categories: filterCategories, selection: $selectedCategory)
@@ -46,10 +37,18 @@ struct MenuView: View {
 
                 LazyVGrid(columns: gridColumns, spacing: AppSpacing.md) {
                     ForEach(filteredDishes) { dish in
-                        DishCard(dish: dish) {
-                            store.addToCart(dish: dish)
-                            toast = AppToastData(message: "\(dish.name) 已加入购物车")
-                        }
+                        MenuDishCard(
+                            title: dish.name,
+                            category: dish.category,
+                            quantity: store.cartQuantity(for: dish.id),
+                            onDecrease: {
+                                guard store.cartQuantity(for: dish.id) > 0 else { return }
+                                store.updateCartQuantity(dishID: dish.id, delta: -1)
+                            },
+                            onIncrease: {
+                                store.addToCart(dish: dish)
+                            }
+                        )
                     }
                 }
 
@@ -67,12 +66,12 @@ struct MenuView: View {
         }
         .overlay(alignment: .bottomTrailing) {
             VStack(alignment: .trailing, spacing: AppSpacing.sm) {
-                FloatButton(systemImage: "cart", badgeCount: store.cartCount) {
+                FloatButton(systemImage: "cart", kind: .icon, badgeCount: store.cartCount) {
                     showsCart = true
                 }
 
                 if store.isOwner {
-                    FloatButton(systemImage: "plus", title: "新增") {
+                    FloatButton(systemImage: "plus", kind: .icon) {
                         showsAddDish = true
                     }
                 }
@@ -127,6 +126,11 @@ struct MenuView: View {
                 .environmentObject(store)
                 .presentationDetents([.medium, .large])
         }
+        .task(id: searchText) {
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            debouncedSearchText = searchText
+        }
         .appToast($toast)
     }
 
@@ -180,7 +184,7 @@ struct MenuView: View {
     private var filteredDishes: [Dish] {
         store.activeDishes.filter { dish in
             let matchesCategory = selectedCategory == "全部" || dish.category == selectedCategory
-            let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let keyword = debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
             let matchesSearch = keyword.isEmpty || dish.name.localizedCaseInsensitiveContains(keyword)
             return matchesCategory && matchesSearch
         }
@@ -374,6 +378,7 @@ private struct CartSheet: View {
                         Text("购物车是空的")
                             .font(AppTypography.body)
                             .foregroundStyle(AppColor.textSecondary)
+                            .frame(maxWidth: .infinity)
                             .padding(.top, AppSpacing.xl)
                     } else {
                         AppCard {
@@ -384,39 +389,20 @@ private struct CartSheet: View {
                                         .foregroundStyle(AppColor.textPrimary)
                                     Spacer()
                                     HStack(spacing: AppSpacing.xs) {
-                                        Button {
+                                        AppIconActionButton(systemImage: "minus", tone: .neutral) {
                                             store.updateCartQuantity(itemID: item.id, delta: -1)
-                                        } label: {
-                                            Image(systemName: "minus")
-                                                .font(.system(size: 13, weight: .semibold))
-                                                .foregroundStyle(AppColor.textSecondary)
-                                                .frame(width: 30, height: 30)
-                                                .background(AppColor.surfaceSecondary, in: Circle())
                                         }
                                         Text("\(item.quantity)")
                                             .font(AppTypography.bodyStrong)
                                             .foregroundStyle(AppColor.textPrimary)
                                             .frame(minWidth: 24, alignment: .center)
-                                        Button {
+                                        AppIconActionButton(systemImage: "plus", tone: .brand) {
                                             store.updateCartQuantity(itemID: item.id, delta: 1)
-                                        } label: {
-                                            Image(systemName: "plus")
-                                                .font(.system(size: 13, weight: .semibold))
-                                                .foregroundStyle(AppColor.textOnBrand)
-                                                .frame(width: 30, height: 30)
-                                                .background(AppColor.green800, in: Circle())
                                         }
-                                        Button {
+                                        AppIconActionButton(systemImage: "xmark", tone: .danger) {
                                             store.removeFromCart(itemID: item.id)
-                                        } label: {
-                                            Image(systemName: "trash")
-                                                .font(.system(size: 13, weight: .semibold))
-                                                .foregroundStyle(AppColor.danger)
-                                                .frame(width: 30, height: 30)
-                                                .background(AppColor.dangerSoft, in: Circle())
                                         }
                                     }
-                                    .buttonStyle(.plain)
                                 }
                                 if item.id != store.cartItems.last?.id {
                                     Divider().overlay(AppColor.lineSoft)
@@ -432,6 +418,7 @@ private struct CartSheet: View {
                         .padding(.horizontal, AppSpacing.md)
                     }
                 }
+                .frame(maxWidth: .infinity)
                 .padding(AppSpacing.md)
             }
             .background(AppColor.backgroundBase)
@@ -447,53 +434,7 @@ private struct CartSheet: View {
     }
 }
 
-private struct DishCard: View {
-    let dish: Dish
-    let onAdd: () -> Void
-
-    var body: some View {
-        AppCard {
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [AppColor.green200, AppColor.green100],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(height: 104)
-                    .overlay {
-                        VStack(spacing: AppSpacing.xs) {
-                            Image(systemName: "fork.knife")
-                                .font(.system(size: 22, weight: .semibold))
-                                .foregroundStyle(AppColor.green800)
-                            Text("菜品图片")
-                                .font(AppTypography.micro)
-                                .foregroundStyle(AppColor.green700)
-                        }
-                    }
-
-                VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text(dish.name)
-                        .font(AppTypography.cardTitle)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .lineLimit(2)
-                    AppPill(title: dish.category)
-                }
-
-                HStack {
-                    Spacer()
-                    Button(action: onAdd) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(AppColor.textOnBrand)
-                            .frame(width: 42, height: 42)
-                            .background(AppColor.green800, in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
+#Preview {
+    MenuView()
+        .environmentObject(AppStore())
 }
