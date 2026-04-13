@@ -1,32 +1,84 @@
-# Family Kitchen App
+# 私厨 App
 
-> 事实来源以 [`docs/family_v1_design.md`](/Users/actor/Documents/code/flutter-family-concept/docs/family_v1_design.md) 为准。
->
-> `docs/` 目录文档需要和代码同步维护；本 README 只提供技术栈、运行方式和功能概览。
+私人厨房管理工具。一个 owner 拥有一个私厨，通过邀请码加入，支持菜品管理、点菜、订单协作与实时同步。
+
+## 项目结构
+
+```
+swift-family-concept/
+├── kitchen/        # iOS App（SwiftUI）
+├── worker/         # Cloudflare Worker 后端
+└── docs/           # 设计文档（事实源）
+```
 
 ## 技术栈
 
-- iOS 客户端：SwiftUI + SwiftData
-- 服务端方向：Cloudflare Workers + D1 + R2
+| 层 | 技术 |
+|---|---|
+| iOS 客户端 | Swift 6 + SwiftUI，iOS 17.6+ |
+| 后端运行时 | Cloudflare Workers（TypeScript） |
+| 数据库 | Cloudflare D1（SQLite） |
+| 对象存储 | Cloudflare R2（菜品图片） |
+| 实时推送 | Cloudflare Durable Objects + WebSocket |
 
-## 服务端目录
+## 身份体系
 
-`worker/` 目录用于承载 Cloudflare Worker、本地 `wrangler` 配置、D1 迁移和 R2 绑定示例。
+无账号密码，无第三方登录。App 首次启动本地生成 `device_id`（UUID）作为稳定身份主键，后端基于此识别设备与角色。
 
-## 当前功能
+## 角色权限
 
-- 邮箱登录
-- 邮箱 + 用户名 + 密码注册
-- 注册页内联完成加入家庭或创建家庭
-- 当前家庭切换
-- 家庭菜单双列浏览、搜索、分类筛选、直接加减菜
-- 菜品新增 / 编辑 / 归档 / 图片上传
-- Orders 页直接展示当前订单
-- 当前订单加菜、下单、结束订单、采购清单
-- 设置页家庭信息、邀请码操作、个人资料 sheet、成员管理 sheet、历史订单 sheet
+| 角色 | 说明 |
+|---|---|
+| `owner` | 唯一，全权控制私厨 |
+| `admin` | 协作厨手，可管理菜品和订单状态 |
+| `member` | 点菜方，只能追加菜品和查看 |
 
-- 设计总规格：[`docs/family_v1_design.md`](/Users/actor/Documents/code/flutter-family-concept/docs/family_v1_design.md)
-- UI 架构：[`docs/ui_architecture.md`](/Users/actor/Documents/code/flutter-family-concept/docs/ui_architecture.md)
-- UI 文案：[`docs/ui_content.md`](/Users/actor/Documents/code/flutter-family-concept/docs/ui_content.md)
-- 组件说明：[`docs/ui_components.md`](/Users/actor/Documents/code/flutter-family-concept/docs/ui_components.md)
-- 视觉主题：[`docs/ui_theme.md`](/Users/actor/Documents/code/flutter-family-concept/docs/ui_theme.md)
+## 文档
+
+- 设计总规格与业务规则：[`docs/family_v1_design.md`](docs/family_v1_design.md)
+- 视觉主题规范：[`docs/ui_theme.md`](docs/ui_theme.md)
+- iOS 开发规范：[`kitchen/CLAUDE.md`](kitchen/CLAUDE.md)
+- 后端开发规范：[`worker/CLAUDE.md`](worker/CLAUDE.md)
+
+## 快速开始
+
+### iOS App
+
+用 Xcode 打开 `kitchen/kitchen.xcodeproj`，选择模拟器运行即可。不需要额外配置，当前阶段使用内存种子数据。
+
+### Worker 后端
+
+```bash
+cd worker
+pnpm install
+
+# 登录 Cloudflare
+wrangler login
+
+# 创建 D1 数据库（填返回的 database_id 到 wrangler.jsonc）
+pnpm d1:create
+
+# 创建 R2 bucket
+pnpm r2:create
+
+# 本地启动
+pnpm dev
+
+# 执行迁移（本地）
+pnpm d1:migrate:local
+
+# 执行迁移（线上）
+pnpm d1:migrate:remote
+
+# 部署
+pnpm deploy
+```
+
+## v1 明确不做
+
+- 菜品规格选项
+- 多 kitchen 归属
+- 订单轮次管理
+- Android / Web 端
+- 邮箱密码 / 第三方登录
+- 历史订单统计分析

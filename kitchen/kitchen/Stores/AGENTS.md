@@ -1,17 +1,49 @@
-# Stores 目录 Agent 规范
+# Stores — 状态管理规范
 
-本目录只放应用状态管理与领域写入编排，用于承接页面事件、维护内存状态，并逐步向 SwiftData 与服务端同步演进。
+## 概述
 
-Store 负责维护领域对象的真实状态边界与状态转换规则，不负责页面布局、视觉反馈样式或组件细节。
+全局状态存储层，使用 `ObservableObject` + `@Published`（或 `@Observable`）。Store 是唯一允许发起网络请求和管理副作用的地方。遵循父目录所有约束。
 
-购物流程必须区分“购物车”和“正式订单”两层状态；购物车表示用户暂存、可反复修改的待下单内容，正式订单表示用户已确认提交的内容。
+## 现有 Store
 
-菜单页选择菜品时，Store 默认只写入购物车，不得直接追加到正式订单；只有在用户显式执行“提交下单”动作时，才允许把购物车内容转换为订单项。
+### AppStore (`AppStore.swift`)
+全局单例，在 `kitchenApp.swift` 创建并注入。负责：
+- `device_id` 的读取与初始化（UserDefaults）
+- 当前登录设备信息（`currentDevice`）
+- 当前所在 Kitchen 信息（`currentKitchen`）
+- 当前成员角色（`currentRole: KitchenRole?`）
+- 入驻状态判断（是否有 active member 记录）
+- 顶层导航状态（是否展示入驻页）
 
-购物车状态必须支持增量加入、数量增减、单项移除、清空和提交后清空，确保误操作可以在提交前低成本恢复。
+## Store 设计规范
 
-订单状态变更与购物车编辑属于不同阶段，相关方法命名、发布属性和测试用例都应清晰区分，避免以同一集合同时承载临时态和已确认态。
+### 命名
+- Store 类名以 `Store` 结尾（`AppStore`、`OrderStore`、`DishStore`）
+- 方法名动词开头：`fetchDishes()`、`addItem(_:)`、`finishOrder()`
 
-成员身份基于设备，不使用 Apple ID 或任何登录体系。设备 ID（`currentDeviceID`）在 `AppStore.init` 时从 UserDefaults 读取或自动生成，这是应用唯一允许使用 UserDefaults 的地方。
+### 状态暴露
+- 对外状态用 `@Published private(set) var` 或只读计算属性
+- 不直接暴露可变集合让外部修改，提供明确的操作方法
 
-`members` 数组维护厨房内所有设备成员，角色只有 `owner` 和 `member` 两种；`updateRole` 只允许 owner 调用，且不能修改自己的角色。成员显示名由应用自己维护，不依赖 Apple 账号信息。
+### 异步与错误
+- 所有网络操作用 `async/await`，标注 `@MainActor` 确保 UI 更新在主线程
+- 错误状态通过 `@Published var error: String?` 暴露，View 通过 banner/toast 展示
+- 不在 Store 内弹 alert 或操控 UI
+
+### 职责边界
+- 每个 Store 只管理一个资源域（dishes / orders / members）
+- Store 之间如需共享状态，通过 `AppStore` 传递，不直接持有彼此引用
+- 不在 Store 中写 SwiftUI View 代码
+
+## 种子数据
+
+当前阶段（Phase 1-2）使用内存种子数据，无真实网络请求：
+- 种子数据在 Store 初始化时填充
+- 种子数据定义在 Store 内部或单独的 `Seeds.swift` 文件
+- 联调后端后逐步替换为真实 API 调用，种子数据文件删除
+
+## 实时同步
+
+- `OrderStore` 负责维护 WebSocket 连接（`WS /kitchens/:id/live`）
+- 收到事件后直接更新 `@Published` 状态，触发 View 刷新
+- 连接管理（建立、断开、重连）封装在 Store 内部，不暴露给 View

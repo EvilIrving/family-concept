@@ -1,7 +1,46 @@
-# 应用代码目录 Agent 规范
+# kitchen/kitchen — App 源码规范
 
-本目录只放应用运行时代码与资源，包括界面、状态、模型、能力接入和应用入口。
+## 概述
 
-新增代码时，优先按职责继续拆分子目录，例如视图、状态、服务、持久化，而不是持续堆放在根层。
+iOS App 的核心源码目录，包含模型、Store、视图和 UI 组件。遵循父目录 `kitchen/CLAUDE.md` 的所有约束，本文件只补充模块分工。
 
-交互实现必须遵循直接操作、即时反馈、可恢复、连续过渡的原则，尽量避免阻塞式弹窗和割裂式跳转。
+## 目录结构
+
+```
+kitchen/
+├── kitchenApp.swift      # App 入口，注入全局 Store
+├── Models/               # 领域模型（纯 struct，无副作用）
+├── Stores/               # 全局状态管理（ObservableObject）
+├── Views/                # 业务页面（Tab 页、子页面、sheet）
+├── UI/
+│   ├── Components/       # 可复用 UI 组件（AppButton、AppCard 等）
+│   ├── Containers/       # 布局容器（AppSheetContainer 等）
+│   └── Feedback/         # 反馈组件（Toast、Banner、Skeleton）
+└── Design/               # 设计资产（AppTheme、Color Token 等）
+```
+
+## 身份与启动流程
+
+1. App 首次启动 → 本地生成 UUID 作为 `device_id`，存入 `UserDefaults`（仅此一处允许）
+2. `AppStore` 读取 `device_id`，向后端请求或创建设备记录
+3. 若当前设备没有任何 `active` 的 `members` 记录 → 展示入驻页（`OnboardingView`）
+4. 入驻成功后进入主 Tab 界面
+
+## 入驻页逻辑
+
+- 入驻页只有单一页面结构，不 push 子页面
+- 默认模式为 `join`（输入邀请码）；点击「创建我的私厨」切换为 `create`（输入厨房名）
+- 两种模式共用同一主输入框，不新增页面结构
+- 统一调用 `POST /onboarding/complete`
+
+## 模块分工原则
+
+- Models：只定义数据结构和枚举，不含任何 UI 或网络代码
+- Stores：只管理状态和副作用（网络、持久化），不含 View 代码
+- Views：只消费 Store 状态进行布局，不直接调用网络
+- UI/Components：无业务依赖，只接受配置参数渲染
+- UI/Feedback：Toast、Banner、Skeleton 全局可用，通过环境对象触发
+
+## 全局 Store 注入
+
+`kitchenApp.swift` 创建所有顶层 Store 并通过 `.environmentObject` 注入，View 通过 `@EnvironmentObject` 获取，不直接实例化 Store。
