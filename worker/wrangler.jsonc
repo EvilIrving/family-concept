@@ -20,6 +20,20 @@
 			"database_id": "2d61deed-8de1-490a-91f9-060432d81187"
 		}
 	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "KITCHEN_LIVE",
+				"class_name": "KitchenLive"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_classes": ["KitchenLive"]
+		}
+	],
 	"r2_buckets": [
 		{
 			"binding": "ASSETS",
