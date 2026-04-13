@@ -70,7 +70,7 @@ struct SettingsView: View {
         }
         .appToast($toast)
         .sheet(item: $memberSheet) { token in
-            MemberRoleSheet(memberID: token.id)
+            MemberRoleSheet(memberDeviceRefID: token.deviceRefID)
                 .environmentObject(store)
                 .presentationBackground(.clear)
                 .presentationDetents([.fraction(0.25)])
@@ -80,7 +80,7 @@ struct SettingsView: View {
 
     private var kitchenIdentityCluster: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            if displayNameForIdentity != "本机" {
+            if displayNameForIdentity != store.storedDisplayName {
                 Text("当前：\(displayNameForIdentity)")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColor.textSecondary)
@@ -125,10 +125,12 @@ struct SettingsView: View {
             AppColor.surfaceTertiary,
             AppColor.successSoft
         ]
+
+        let isCurrentDevice = member.deviceRefId == store.currentDevice?.id
         let initials = String(member.displayName.prefix(1))
 
         return Button {
-            memberSheet = MemberSheetToken(id: member.id)
+            memberSheet = MemberSheetToken(deviceRefID: member.deviceRefId)
         } label: {
             ZStack {
                 Circle()
@@ -139,12 +141,12 @@ struct SettingsView: View {
                     )
                     .overlay(
                         Circle()
-                            .stroke(member.id == store.currentDeviceID ? AppColor.green700 : AppColor.lineSoft, lineWidth: member.id == store.currentDeviceID ? 2 : 1)
+                            .stroke(isCurrentDevice ? AppColor.green700 : AppColor.lineSoft, lineWidth: isCurrentDevice ? 2 : 1)
                     )
 
                 Text(initials)
                     .font(AppTypography.bodyStrong)
-                    .foregroundStyle(member.id == store.currentDeviceID ? AppColor.green800 : AppColor.textPrimary)
+                    .foregroundStyle(isCurrentDevice ? AppColor.green800 : AppColor.textPrimary)
             }
             .frame(width: 44, height: 44)
             .contentShape(Circle())
@@ -190,21 +192,21 @@ struct SettingsView: View {
 }
 
 private struct MemberSheetToken: Identifiable {
-    let id: UUID
+    let deviceRefID: String
+    var id: String { deviceRefID }
 }
 
 private struct MemberRoleSheet: View {
-    let memberID: UUID
+    let memberDeviceRefID: String
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
 
     private var member: Member? {
-        store.members.first { $0.id == memberID }
+        store.members.first { $0.deviceRefId == memberDeviceRefID }
     }
 
-    private var showsTransferOwnershipButton: Bool {
-        guard let member else { return false }
-        return store.isOwner && member.id != store.currentDeviceID && member.role == .member
+    private var isSelf: Bool {
+        memberDeviceRefID == store.currentDevice?.id
     }
 
     var body: some View {
@@ -246,11 +248,11 @@ private struct MemberRoleSheet: View {
                                 )
                                 .overlay(
                                     Circle()
-                                        .stroke(member.id == store.currentDeviceID ? AppColor.green700 : AppColor.lineSoft, lineWidth: member.id == store.currentDeviceID ? 2 : 1)
+                                        .stroke(isSelf ? AppColor.green700 : AppColor.lineSoft, lineWidth: isSelf ? 2 : 1)
                                 )
                             Text(String(member.displayName.prefix(1)))
                                 .font(AppTypography.bodyStrong)
-                                .foregroundStyle(member.id == store.currentDeviceID ? AppColor.green800 : AppColor.textPrimary)
+                                .foregroundStyle(isSelf ? AppColor.green800 : AppColor.textPrimary)
                         }
                         .frame(width: 44, height: 44)
 
@@ -266,7 +268,7 @@ private struct MemberRoleSheet: View {
                         Spacer(minLength: 0)
                     }
 
-                    if member.id == store.currentDeviceID {
+                    if isSelf {
                         Text("这是本机")
                             .font(AppTypography.micro)
                             .foregroundStyle(AppColor.textTertiary)
@@ -282,23 +284,25 @@ private struct MemberRoleSheet: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(.horizontal, AppSpacing.lg)
 
-            if showsTransferOwnershipButton, let member {
+            if store.isOwner && !isSelf, let member {
                 Button {
-                    store.transferOwnership(to: member.id)
-                    dismiss()
+                    Task {
+                        await store.removeMember(deviceRefID: member.deviceRefId)
+                        dismiss()
+                    }
                 } label: {
                     HStack(spacing: AppSpacing.xs) {
-                        Image(systemName: "person.badge.key")
+                        Image(systemName: "person.badge.minus")
                             .font(.system(size: 14, weight: .semibold))
-                        Text("设为管理员")
+                        Text("移除成员")
                     }
                     .font(AppTypography.button)
-                    .foregroundStyle(AppColor.textOnBrand)
+                    .foregroundStyle(AppColor.danger)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(AppColor.green700)
+                .tint(AppColor.dangerSoft)
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.top, AppSpacing.sm)
                 .padding(.bottom, AppSpacing.md)

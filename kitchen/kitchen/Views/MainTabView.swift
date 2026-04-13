@@ -23,6 +23,7 @@ private enum MainTab: CaseIterable {
 }
 
 struct MainTabView: View {
+    @EnvironmentObject private var store: AppStore
     @State private var selectedTab: MainTab = .menu
 
     var body: some View {

@@ -1,131 +1,135 @@
-//
-//  kitchenTests.swift
-//  kitchenTests
-//
-//  Created by Cain on 2026/4/9.
-//
-
 import Testing
 @testable import kitchen
 
 struct kitchenTests {
 
-    @Test func addDishTrimsInputAndSplitsIngredients() async throws {
-        let store = AppStore()
+    // MARK: - Model computed properties
 
-        store.addDish(name: "  蒜蓉西兰花 ", category: " 家常菜 ", ingredientsText: "西兰花、 蒜、盐")
-
-        #expect(store.activeDishes.first?.name == "蒜蓉西兰花")
-        #expect(store.activeDishes.first?.category == "家常菜")
-        #expect(store.activeDishes.first?.ingredients == ["西兰花", "蒜", "盐"])
+    @Test func dishIngredientsParsesValidJSON() {
+        let dish = Dish(
+            id: "1", kitchenId: "k1", name: "番茄炒蛋", category: "家常",
+            imageKey: nil, ingredientsJson: "[\"番茄\",\"鸡蛋\"]",
+            createdByDeviceId: "d1", createdAt: "", updatedAt: "", archivedAt: nil
+        )
+        #expect(dish.ingredients == ["番茄", "鸡蛋"])
     }
 
-    @Test func addToOrderAggregatesExistingDishQuantity() async throws {
-        let store = AppStore()
-        let dish = try #require(store.activeDishes.first)
-        let originalCount = store.orderItems.count
-
-        store.addToOrder(dish: dish)
-
-        #expect(store.orderItems.count == originalCount)
-        #expect(store.orderItems.first(where: { $0.dishID == dish.id })?.quantity == 3)
+    @Test func dishIngredientsReturnsEmptyOnInvalidJSON() {
+        let dish = Dish(
+            id: "1", kitchenId: "k1", name: "test", category: "test",
+            imageKey: nil, ingredientsJson: "not json",
+            createdByDeviceId: "d1", createdAt: "", updatedAt: "", archivedAt: nil
+        )
+        #expect(dish.ingredients == [])
     }
 
-    @Test func cycleStatusLoopsWaitingCookingDone() async throws {
-        let store = AppStore()
-        let itemID = try #require(store.orderItems.first?.id)
-
-        store.cycleStatus(for: itemID)
-        #expect(store.title(for: itemID) == "制作中")
-
-        store.cycleStatus(for: itemID)
-        #expect(store.title(for: itemID) == "已完成")
-
-        store.cycleStatus(for: itemID)
-        #expect(store.title(for: itemID) == "待制作")
+    @Test func dishIsArchivedWhenArchivedAtNonNil() {
+        let archived = Dish(
+            id: "1", kitchenId: "k1", name: "test", category: "test",
+            imageKey: nil, ingredientsJson: "[]",
+            createdByDeviceId: "d1", createdAt: "", updatedAt: "", archivedAt: "2026-01-01"
+        )
+        let active = Dish(
+            id: "2", kitchenId: "k1", name: "test", category: "test",
+            imageKey: nil, ingredientsJson: "[]",
+            createdByDeviceId: "d1", createdAt: "", updatedAt: "", archivedAt: nil
+        )
+        #expect(archived.isArchived == true)
+        #expect(active.isArchived == false)
     }
 
-    @Test func submitCartAggregatesIntoExistingOrderItem() async throws {
+    @Test func itemStatusTitles() {
+        #expect(ItemStatus.waiting.title == "待制作")
+        #expect(ItemStatus.cooking.title == "制作中")
+        #expect(ItemStatus.done.title == "已完成")
+        #expect(ItemStatus.cancelled.title == "已取消")
+    }
+
+    @Test func kitchenRoleTitles() {
+        #expect(KitchenRole.owner.title == "管理员")
+        #expect(KitchenRole.admin.title == "副管理员")
+        #expect(KitchenRole.member.title == "成员")
+    }
+
+    // MARK: - Cart operations (local, no API needed)
+
+    @Test func cartQuantityStartsAtZero() {
         let store = AppStore()
-        let dish = try #require(store.activeDishes.first)
+        #expect(store.cartQuantity(for: "nonexistent") == 0)
+    }
+
+    @Test func addToCartIncrementsQuantity() {
+        let store = AppStore()
+        let dish = Dish(
+            id: "d1", kitchenId: "k1", name: "番茄炒蛋", category: "家常",
+            imageKey: nil, ingredientsJson: "[]",
+            createdByDeviceId: "dev1", createdAt: "", updatedAt: "", archivedAt: nil
+        )
 
         store.addToCart(dish: dish)
-        store.submitCart()
+        #expect(store.cartCount == 1)
+        #expect(store.cartQuantity(for: "d1") == 1)
 
+        store.addToCart(dish: dish)
+        #expect(store.cartQuantity(for: "d1") == 2)
+    }
+
+    @Test func updateCartQuantityRemovesWhenZero() {
+        let store = AppStore()
+        let dish = Dish(
+            id: "d1", kitchenId: "k1", name: "test", category: "test",
+            imageKey: nil, ingredientsJson: "[]",
+            createdByDeviceId: "dev1", createdAt: "", updatedAt: "", archivedAt: nil
+        )
+
+        store.addToCart(dish: dish)
+        #expect(store.cartQuantity(for: "d1") == 1)
+
+        store.updateCartQuantity(dishID: "d1", delta: -1)
+        #expect(store.cartQuantity(for: "d1") == 0)
         #expect(store.cartItems.isEmpty)
-        #expect(store.orderItems.first(where: { $0.dishID == dish.id })?.quantity == 3)
     }
 
-    @Test func cartQuantityReflectsDishCountAndUpdateByDishIDRemovesWhenZero() async throws {
+    @Test func removeFromCartById() {
         let store = AppStore()
-        let dish = try #require(store.activeDishes.first)
+        let dish = Dish(
+            id: "d1", kitchenId: "k1", name: "test", category: "test",
+            imageKey: nil, ingredientsJson: "[]",
+            createdByDeviceId: "dev1", createdAt: "", updatedAt: "", archivedAt: nil
+        )
 
-        #expect(store.cartQuantity(for: dish.id) == 0)
-
-        store.updateCartQuantity(dishID: dish.id, delta: 1)
-        #expect(store.cartQuantity(for: dish.id) == 1)
-
-        store.updateCartQuantity(dishID: dish.id, delta: -1)
-        #expect(store.cartQuantity(for: dish.id) == 0)
-        #expect(store.cartItems.first(where: { $0.dishID == dish.id }) == nil)
+        store.addToCart(dish: dish)
+        let cartItemID = store.cartItems.first!.id
+        store.removeFromCart(itemID: cartItemID)
+        #expect(store.cartItems.isEmpty)
     }
 
-    @Test func dishCategoriesReturnsSortedDistinctValues() async throws {
+    @Test func clearCartRemovesAll() {
         let store = AppStore()
-        let expected = Array(Set(store.activeDishes.map(\.category))).sorted()
+        let d1 = Dish(id: "d1", kitchenId: "k1", name: "a", category: "b",
+                       imageKey: nil, ingredientsJson: "[]", createdByDeviceId: "dev1",
+                       createdAt: "", updatedAt: "", archivedAt: nil)
+        let d2 = Dish(id: "d2", kitchenId: "k1", name: "b", category: "b",
+                       imageKey: nil, ingredientsJson: "[]", createdByDeviceId: "dev1",
+                       createdAt: "", updatedAt: "", archivedAt: nil)
 
-        #expect(store.dishCategories == expected)
+        store.addToCart(dish: d1)
+        store.addToCart(dish: d2)
+        #expect(store.cartCount == 2)
+
+        store.clearCart()
+        #expect(store.cartItems.isEmpty)
     }
 
-    @Test func createKitchenSetsDisplayNameAndOwnerRole() async throws {
+    // MARK: - Role computed properties
+
+    @Test func rolePropertiesDefaultToNilWithoutKitchen() {
         let store = AppStore()
-        store.createKitchen(named: "测试厨房", displayName: "小厨")
-
-        let member = try #require(store.currentMember)
-        #expect(member.displayName == "小厨")
-        #expect(member.role == .owner)
-        #expect(store.kitchen?.name == "测试厨房")
-    }
-
-    @Test func joinKitchenSetsDisplayNameAndMemberRole() async throws {
-        let store = AppStore()
-        store.joinKitchen(inviteCode: "ABC123", displayName: "小明")
-
-        let member = try #require(store.currentMember)
-        #expect(member.displayName == "小明")
-        #expect(member.role == .member)
-    }
-
-    @Test func addDishBlockedForMemberRole() async throws {
-        let store = AppStore()
-        store.joinKitchen(inviteCode: "XYZ", displayName: "访客")
-        let countBefore = store.activeDishes.count
-
-        store.addDish(name: "新菜", category: "家常菜", ingredients: [])
-
-        #expect(store.activeDishes.count == countBefore)
-    }
-
-    @Test func isOwnerReturnsTrueForOwnerFalseForMember() async throws {
-        let store = AppStore()
-
-        store.createKitchen(named: "厨房", displayName: "老板")
-        #expect(store.isOwner == true)
-
-        store.joinKitchen(inviteCode: "XYZ", displayName: "访客")
+        #expect(store.currentRole == nil)
         #expect(store.isOwner == false)
-    }
-
-    @Test func transferOwnershipSwapsOwnerAndMember() async throws {
-        let store = AppStore()
-        let ownerID = store.currentDeviceID
-        let memberToPromote = try #require(store.members.first { $0.id != ownerID && $0.role == .member })
-
-        store.transferOwnership(to: memberToPromote.id)
-
-        #expect(store.members.first { $0.id == ownerID }?.role == .member)
-        #expect(store.members.first { $0.id == memberToPromote.id }?.role == .owner)
-        #expect(store.isOwner == false)
+        #expect(store.isAdmin == false)
+        #expect(store.canManageDishes == false)
+        #expect(store.canManageOrders == false)
     }
 
 }

@@ -32,12 +32,22 @@ export async function findByKitchenAndDevice(
 export async function listByKitchen(
   db: D1Database,
   kitchenId: string
-): Promise<MemberRow[]> {
+): Promise<MemberWithDevice[]> {
   const result = await db
-    .prepare("SELECT * FROM members WHERE kitchen_id = ? AND status = 'active' ORDER BY joined_at ASC")
+    .prepare(`
+      SELECT m.*, d.display_name
+      FROM members m
+      JOIN devices d ON d.id = m.device_ref_id
+      WHERE m.kitchen_id = ? AND m.status = 'active'
+      ORDER BY m.joined_at ASC
+    `)
     .bind(kitchenId)
-    .all<MemberRow>();
+    .all<MemberWithDevice>();
   return result.results;
+}
+
+export interface MemberWithDevice extends MemberRow {
+  display_name: string;
 }
 
 export async function removeMember(

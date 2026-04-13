@@ -42,9 +42,11 @@ struct OrdersView: View {
                         }
                     } else {
                         ForEach(store.orderItems) { item in
-                            OrderItemRow(item: item) {
-                                store.cycleStatus(for: item.id)
-                                toast = AppToastData(message: "\(item.dishName) 已切换为\(store.title(for: item.id))")
+                            OrderItemRow(item: item, dishName: dishName(for: item.dishId), canManage: store.canManageOrders) {
+                                Task {
+                                    await store.cycleStatus(for: item.id)
+                                    toast = AppToastData(message: "\(dishName(for: item.dishId)) 已切换为\(store.title(for: item.id))")
+                                }
                             }
                             if item.id != store.orderItems.last?.id {
                                 Divider()
@@ -63,10 +65,15 @@ struct OrdersView: View {
         .appPageBackground()
         .appToast($toast)
         .sheet(isPresented: $showShoppingList) {
-            ShoppingListSheet(items: store.shoppingList)
+            ShoppingListSheet()
+                .environmentObject(store)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
         }
+    }
+
+    private func dishName(for dishID: String) -> String {
+        store.dishes.first(where: { $0.id == dishID })?.name ?? "未知菜品"
     }
 
     private var waitingCount: Int {
@@ -88,7 +95,10 @@ struct OrdersView: View {
                 .frame(height: 1)
 
             Button {
-                showShoppingList = true
+                Task {
+                    await store.fetchShoppingList()
+                    showShoppingList = true
+                }
             } label: {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "list.bullet.rectangle.fill")
@@ -116,10 +126,10 @@ struct OrdersView: View {
     }
 
     private var shoppingListBarTitle: String {
-        if store.shoppingList.isEmpty {
+        if store.shoppingListItems.isEmpty {
             "采购清单 · 暂无食材"
         } else {
-            "共 \(store.shoppingList.count) 项 · 食材汇总"
+            "共 \(store.shoppingListItems.count) 项 · 食材汇总"
         }
     }
 
@@ -140,20 +150,20 @@ struct OrdersView: View {
 }
 
 private struct ShoppingListSheet: View {
-    let items: [(name: String, count: Int)]
+    @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         AppSheetContainer(
             title: "采购清单",
-            subtitle: items.isEmpty ? nil : "按当前订单聚合",
+            subtitle: store.shoppingListItems.isEmpty ? nil : "按当前订单聚合",
             dismissTitle: "关闭",
             confirmTitle: "完成",
             onDismiss: { dismiss() },
             onConfirm: { dismiss() }
         ) {
             ScrollView(showsIndicators: false) {
-                if items.isEmpty {
+                if store.shoppingListItems.isEmpty {
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text("暂无采购需求")
                             .font(AppTypography.bodyStrong)
@@ -166,15 +176,15 @@ private struct ShoppingListSheet: View {
                     .padding(.top, AppSpacing.xs)
                 } else {
                     AppCard {
-                        ForEach(items, id: \.name) { ingredient in
+                        ForEach(store.shoppingListItems) { item in
                             HStack(spacing: AppSpacing.sm) {
-                                Text(ingredient.name)
+                                Text(item.dishName)
                                     .font(AppTypography.bodyStrong)
                                     .foregroundStyle(AppColor.textPrimary)
                                 Spacer()
-                                AppPill(title: "\(ingredient.count) 道菜", tint: AppColor.info, background: AppColor.infoSoft)
+                                AppPill(title: "\(item.totalQuantity) 份", tint: AppColor.info, background: AppColor.infoSoft)
                             }
-                            if ingredient.name != items.last?.name {
+                            if item.dishId != store.shoppingListItems.last?.dishId {
                                 Divider()
                                     .overlay(AppColor.lineSoft)
                             }
@@ -190,6 +200,8 @@ private struct ShoppingListSheet: View {
 
 private struct OrderItemRow: View {
     let item: OrderItem
+    let dishName: String
+    let canManage: Bool
     let onTap: () -> Void
 
     var body: some View {
@@ -205,7 +217,7 @@ private struct OrderItemRow: View {
                     }
 
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                    Text(item.dishName)
+                    Text(dishName)
                         .font(AppTypography.bodyStrong)
                         .foregroundStyle(AppColor.textPrimary)
                     Text("\(item.quantity) 份")
@@ -221,6 +233,7 @@ private struct OrderItemRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(!canManage)
     }
 
     private var statusColor: Color {

@@ -148,15 +148,17 @@ struct MenuView: View {
             return
         }
 
-        store.addDish(name: addedName, category: finalCategory, ingredients: ingredientTags)
-        name = ""
-        selectedQuickCategory = "家常菜"
-        customCategory = ""
-        ingredientTags = []
-        ingredientInput = ""
-        validationMessage = nil
-        showsAddDish = false
-        toast = AppToastData(message: "已新增 \(addedName)")
+        Task {
+            await store.addDish(name: addedName, category: finalCategory, ingredients: ingredientTags)
+            name = ""
+            selectedQuickCategory = "家常菜"
+            customCategory = ""
+            ingredientTags = []
+            ingredientInput = ""
+            validationMessage = nil
+            showsAddDish = false
+            toast = AppToastData(message: "已新增 \(addedName)")
+        }
     }
 
     private func sheetTextField(_ title: String, text: Binding<String>) -> some View {
@@ -191,7 +193,7 @@ struct MenuView: View {
     }
 
     private var emptySearchHint: String {
-        if store.isOwner {
+        if store.canManageDishes {
             "换个关键词，或点搜索栏右侧「新增」。"
         } else {
             "换个关键词试试。"
@@ -274,7 +276,7 @@ struct MenuView: View {
                     .stroke(AppColor.lineSoft, lineWidth: 1)
             }
 
-            if store.isOwner {
+            if store.canManageDishes {
                 Button {
                     showsAddDish = true
                 } label: {
@@ -482,9 +484,11 @@ private struct CartSheet: View {
                         }
 
                         AppButton(title: "提交下单", systemImage: "checkmark") {
-                            store.submitCart()
-                            toast = AppToastData(message: "已下单")
-                            dismiss()
+                            Task {
+                                await store.submitCart()
+                                toast = AppToastData(message: "已下单")
+                                dismiss()
+                            }
                         }
                         .padding(.horizontal, AppSpacing.md)
                     }

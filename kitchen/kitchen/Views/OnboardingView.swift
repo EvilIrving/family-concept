@@ -9,7 +9,7 @@ struct OnboardingView: View {
     @State private var primaryIsInvalid = false
     @State private var nameShakeTrigger = 0
     @State private var primaryShakeTrigger = 0
-    var demoEnterAction: (() -> Void)? = nil
+    @State private var isSubmitting = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -47,6 +47,12 @@ struct OnboardingView: View {
                     trigger: primaryShakeTrigger
                 )
 
+                if let error = store.error {
+                    Text(error)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColor.danger)
+                }
+
                 HStack {
                     Spacer()
 
@@ -64,12 +70,6 @@ struct OnboardingView: View {
         VStack(spacing: AppSpacing.sm) {
             AppButton(title: selectedMode.buttonTitle, systemImage: selectedMode.buttonSymbol) {
                 submit()
-            }
-
-            if let demoEnterAction {
-                AppButton(title: "进入当前 Demo", style: .ghost) {
-                    demoEnterAction()
-                }
             }
         }
         .padding(.horizontal, AppSpacing.md)
@@ -99,11 +99,16 @@ struct OnboardingView: View {
 
         guard !nextNameInvalid, !nextPrimaryInvalid else { return }
 
-        switch selectedMode {
-        case .join:
-            store.joinKitchen(inviteCode: trimmedPrimary, displayName: trimmedName)
-        case .create:
-            store.createKitchen(named: trimmedPrimary, displayName: trimmedName)
+        Task {
+            isSubmitting = true
+            defer { isSubmitting = false }
+
+            switch selectedMode {
+            case .join:
+                await store.joinKitchen(inviteCode: trimmedPrimary, displayName: trimmedName)
+            case .create:
+                await store.createKitchen(named: trimmedPrimary, displayName: trimmedName)
+            }
         }
     }
 

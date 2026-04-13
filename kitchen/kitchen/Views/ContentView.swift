@@ -2,24 +2,19 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var store: AppStore
-    @State private var showsLaunchOnboardingDemo = true
 
     var body: some View {
         Group {
-            if store.hasKitchen && showsLaunchOnboardingDemo {
-                OnboardingView {
-                    showsLaunchOnboardingDemo = false
-                }
-            } else if store.hasKitchen {
+            if store.hasKitchen {
                 MainTabView()
             } else {
                 OnboardingView()
             }
         }
         .appPageBackground()
-        .onChange(of: store.hasKitchen) { _, hasKitchen in
-            if hasKitchen {
-                showsLaunchOnboardingDemo = false
+        .task(id: store.kitchen?.id) {
+            if store.kitchen != nil {
+                await store.fetchAll()
             }
         }
     }
