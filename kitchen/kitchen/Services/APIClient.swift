@@ -30,7 +30,7 @@ final class APIClient {
         if let url = Bundle.main.infoDictionary?["APIBaseURL"] as? String, !url.isEmpty {
             baseURL = url
         } else {
-            baseURL = "http://localhost:8787"
+            baseURL = "https://api.kitchen.onecat.dev"
         }
     }
 

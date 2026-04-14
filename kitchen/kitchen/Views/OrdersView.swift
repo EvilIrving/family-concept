@@ -60,7 +60,9 @@ struct OrdersView: View {
                 .padding(.bottom, AppSpacing.md)
             }
 
-            ordersShoppingListBar
+            if store.orderItems.contains(where: { $0.status != .cancelled }) {
+                ordersShoppingListBar
+            }
         }
         .appPageBackground()
         .appToast($toast)
@@ -95,10 +97,8 @@ struct OrdersView: View {
                 .frame(height: 1)
 
             Button {
-                Task {
-                    await store.fetchShoppingList()
-                    showShoppingList = true
-                }
+                store.fetchShoppingList()
+                showShoppingList = true
             } label: {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "list.bullet.rectangle.fill")
@@ -126,11 +126,7 @@ struct OrdersView: View {
     }
 
     private var shoppingListBarTitle: String {
-        if store.shoppingListItems.isEmpty {
-            "采购清单 · 暂无食材"
-        } else {
-            "共 \(store.shoppingListItems.count) 项 · 食材汇总"
-        }
+        "查看采购清单"
     }
 
     private func statusPill(title: String, value: Int, tint: Color, background: Color) -> some View {
@@ -156,42 +152,29 @@ private struct ShoppingListSheet: View {
     var body: some View {
         AppSheetContainer(
             title: "采购清单",
-            subtitle: store.shoppingListItems.isEmpty ? nil : "按当前订单聚合",
+            subtitle: "按当前订单聚合",
             dismissTitle: "关闭",
             confirmTitle: "完成",
             onDismiss: { dismiss() },
             onConfirm: { dismiss() }
         ) {
             ScrollView(showsIndicators: false) {
-                if store.shoppingListItems.isEmpty {
-                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Text("暂无采购需求")
-                            .font(AppTypography.bodyStrong)
-                            .foregroundStyle(AppColor.textPrimary)
-                        Text("有新订单后，这里会自动汇总食材。")
-                            .font(AppTypography.body)
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, AppSpacing.xs)
-                } else {
-                    AppCard {
-                        ForEach(store.shoppingListItems) { item in
-                            HStack(spacing: AppSpacing.sm) {
-                                Text(item.dishName)
-                                    .font(AppTypography.bodyStrong)
-                                    .foregroundStyle(AppColor.textPrimary)
-                                Spacer()
-                                AppPill(title: "\(item.totalQuantity) 份", tint: AppColor.info, background: AppColor.infoSoft)
-                            }
-                            if item.dishId != store.shoppingListItems.last?.dishId {
-                                Divider()
-                                    .overlay(AppColor.lineSoft)
-                            }
+                AppCard {
+                    ForEach(store.shoppingListItems) { item in
+                        HStack(spacing: AppSpacing.sm) {
+                            Text(item.ingredient)
+                                .font(AppTypography.bodyStrong)
+                                .foregroundStyle(AppColor.textPrimary)
+                            Spacer()
+                            AppPill(title: "\(item.dishCount) 道菜", tint: AppColor.info, background: AppColor.infoSoft)
+                        }
+                        if item.ingredient != store.shoppingListItems.last?.ingredient {
+                            Divider()
+                                .overlay(AppColor.lineSoft)
                         }
                     }
-                    .padding(.top, AppSpacing.xs)
                 }
+                .padding(.top, AppSpacing.xs)
             }
         }
         .presentationBackground(.clear)

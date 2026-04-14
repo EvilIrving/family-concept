@@ -161,10 +161,8 @@ struct CartItem: Identifiable, Equatable {
 
 // MARK: - ShoppingListItem
 
-struct ShoppingListItem: Identifiable, Codable, Equatable {
-    let dishId: String
-    let dishName: String
-    let category: String
-    let totalQuantity: Int
-    var id: String { dishId }
+struct ShoppingListItem: Identifiable, Equatable {
+    let ingredient: String
+    let dishCount: Int
+    var id: String { ingredient }
 }

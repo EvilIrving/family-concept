@@ -1,3 +1,13 @@
+## 真机联调切换到 Cloudflare 正式域名 · 2026-04-14 10:28 · Codex
+
+这次真机显示“网络🔗失败”，根因是 iOS 端把 API 地址写成了 `http://localhost:8787`。模拟器访问本机服务时还能工作，真机里的 `localhost` 指向手机自己，所以请求一定失败。
+
+后续决定直接走 Cloudflare 正式后端，统一使用 `https://api.kitchen.onecat.dev`。这样真机、模拟器和后续外部测试都走同一条 HTTPS 链路，省掉局域网 IP、ATS 例外和本地穿透问题。对应修改已经落在 `kitchen/kitchen/Info.plist`、`kitchen/kitchen/Services/APIClient.swift` 和 `worker/wrangler.jsonc`。
+
+部署时又遇到一个 Cloudflare 新规则：免费版 Durable Objects 需要用 `new_sqlite_classes` 声明迁移，旧写法 `new_classes` 会直接部署失败，报错代码是 `10097`。这个坑已经在 `worker/wrangler.jsonc` 修正，后面如果再新建 Durable Object，继续沿用 SQLite migration 写法。
+
+README 也补上了正式部署说明，部署目标域名固定为 `api.kitchen.onecat.dev`，流程是 `pnpm d1:migrate:remote` 后再 `pnpm deploy`，部署后先验证 `/api/v1/health` 和 `/api/v1/bootstrap`。
+
 ## 修复多因素导致的 Android 应用启动失败问题
 
 time: 2026-03-12

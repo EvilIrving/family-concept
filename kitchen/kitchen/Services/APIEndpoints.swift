@@ -267,12 +267,6 @@ extension APIClient {
 
 // MARK: - Shopping List
 
-extension APIClient {
-    func fetchShoppingList(orderID: String, deviceId: String) async throws -> [ShoppingListItem] {
-        try await request("/api/v1/orders/\(orderID)/shopping_list", deviceId: deviceId)
-    }
-}
-
 // MARK: - Shared Decodable
 
 struct OKResult: Decodable {

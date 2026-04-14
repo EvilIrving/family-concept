@@ -74,6 +74,50 @@ pnpm d1:migrate:remote
 pnpm deploy
 ```
 
+### 部署到 Cloudflare 正式环境
+
+当前正式 API 域名为 `https://api.kitchen.onecat.dev`。
+
+部署前准备：
+
+- `onecat.dev` 已接入 Cloudflare
+- `api.kitchen.onecat.dev` 交给 Worker 自定义域名路由
+- `worker/wrangler.jsonc` 已包含 `routes` 配置、D1 `database_id`、R2 bucket 绑定
+
+部署步骤：
+
+```bash
+cd worker
+pnpm install
+npx wrangler login
+
+# 执行线上迁移
+pnpm d1:migrate:remote
+
+# 部署 Worker
+pnpm deploy
+```
+
+部署完成后，验证以下地址：
+
+- `https://api.kitchen.onecat.dev/api/v1/health`
+- `https://api.kitchen.onecat.dev/api/v1/bootstrap`
+
+两个接口都返回 JSON 后，iPhone 真机即可直接连接正式后端。
+
+### 真机联调
+
+iOS App 当前默认请求地址已经配置为：
+
+- `https://api.kitchen.onecat.dev`
+
+对应配置位置：
+
+- `kitchen/kitchen/Info.plist`
+- `kitchen/kitchen/Services/APIClient.swift`
+
+真机测试时，先完成 Worker 部署，再运行 iPhone App。
+
 ## v1 明确不做
 
 - 菜品规格选项

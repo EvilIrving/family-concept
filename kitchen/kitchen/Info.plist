@@ -3,19 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>APIBaseURL</key>
-	<string>http://localhost:8787</string>
+	<string>https://api.kitchen.onecat.dev</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>localhost</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-		</dict>
 	</dict>
 	<key>UIBackgroundModes</key>
 	<array>

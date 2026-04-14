@@ -391,17 +391,21 @@ final class AppStore: ObservableObject {
         }
     }
 
-    func fetchShoppingList() async {
-        guard let order = currentOrder else {
+    func fetchShoppingList() {
+        guard currentOrder != nil else {
             shoppingListItems = []
             return
         }
-        do {
-            shoppingListItems = try await apiClient.fetchShoppingList(
-                orderID: order.id, deviceId: deviceId
-            )
-        } catch {
-            self.error = error.localizedDescription
+        let activeItems = orderItems.filter { $0.status != .cancelled }
+        var ingredientDishes: [String: Set<String>] = [:]
+        for item in activeItems {
+            guard let dish = dishes.first(where: { $0.id == item.dishId }) else { continue }
+            for ingredient in dish.ingredients {
+                ingredientDishes[ingredient, default: []].insert(dish.id)
+            }
         }
+        shoppingListItems = ingredientDishes
+            .map { ShoppingListItem(ingredient: $0.key, dishCount: $0.value.count) }
+            .sorted { $0.ingredient < $1.ingredient }
     }
 }
