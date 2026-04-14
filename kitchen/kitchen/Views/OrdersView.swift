@@ -2,7 +2,6 @@ import SwiftUI
 
 struct OrdersView: View {
     @EnvironmentObject private var store: AppStore
-    @State private var toast: AppToastData?
     @State private var showShoppingList = false
 
     var body: some View {
@@ -29,23 +28,31 @@ struct OrdersView: View {
             .padding(.horizontal, AppSpacing.md)
             .padding(.top, AppSpacing.xs)
 
-            ScrollView(showsIndicators: false) {
-                AppCard {
-                    if store.orderItems.isEmpty {
-                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                            Text("还没有出餐内容")
-                                .font(AppTypography.bodyStrong)
-                                .foregroundStyle(AppColor.textPrimary)
-                            Text("菜单页提交后，这里会直接显示当前订单。")
-                                .font(AppTypography.body)
-                                .foregroundStyle(AppColor.textSecondary)
-                        }
-                    } else {
+            if store.orderItems.isEmpty {
+                VStack(spacing: AppSpacing.sm) {
+                    Spacer(minLength: 0)
+
+                    Text("还没有出餐内容")
+                        .font(AppTypography.sectionTitle)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .multilineTextAlignment(.center)
+
+                    Text("菜单页提交后，这里会直接显示当前订单。")
+                        .font(AppTypography.body)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, AppSpacing.xl)
+
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    AppCard {
                         ForEach(store.orderItems) { item in
                             OrderItemRow(item: item, dishName: dishName(for: item.dishId), canManage: store.canManageOrders) {
                                 Task {
                                     await store.cycleStatus(for: item.id)
-                                    toast = AppToastData(message: "\(dishName(for: item.dishId)) 已切换为\(store.title(for: item.id))")
                                 }
                             }
                             if item.id != store.orderItems.last?.id {
@@ -65,7 +72,6 @@ struct OrdersView: View {
             }
         }
         .appPageBackground()
-        .appToast($toast)
         .sheet(isPresented: $showShoppingList) {
             ShoppingListSheet()
                 .environmentObject(store)

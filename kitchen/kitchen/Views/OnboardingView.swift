@@ -1,5 +1,10 @@
 import SwiftUI
 
+private enum OnboardingField: Hashable {
+    case displayName
+    case primary
+}
+
 struct OnboardingView: View {
     @EnvironmentObject private var store: AppStore
     @State private var displayName = ""
@@ -10,6 +15,7 @@ struct OnboardingView: View {
     @State private var nameShakeTrigger = 0
     @State private var primaryShakeTrigger = 0
     @State private var isSubmitting = false
+    @FocusState private var focusedField: OnboardingField?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -24,6 +30,7 @@ struct OnboardingView: View {
             bottomBar
         }
         .appPageBackground()
+        .appDismissKeyboardOnTap()
     }
 
     private var formCard: some View {
@@ -37,15 +44,29 @@ struct OnboardingView: View {
                     text: $displayName,
                     isInvalid: $nameIsInvalid,
                     prompt: "你的名字",
+                    fieldID: .displayName,
+                    focusedField: $focusedField,
+                    submitLabel: .next,
                     trigger: nameShakeTrigger
                 )
+                .onSubmit {
+                    focusedField = .primary
+                }
+
                 AppInputField(
                     text: $primaryInput,
                     isInvalid: $primaryIsInvalid,
                     prompt: selectedMode.placeholder,
+                    fieldID: .primary,
+                    focusedField: $focusedField,
                     autocapitalization: selectedMode.autocapitalization,
+                    submitLabel: .done,
                     trigger: primaryShakeTrigger
                 )
+                .onSubmit {
+                    focusedField = nil
+                    submit()
+                }
 
                 if let error = store.error {
                     Text(error)
@@ -79,6 +100,7 @@ struct OnboardingView: View {
     }
 
     private func submit() {
+        focusedField = nil
         let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedPrimary = primaryInput.trimmingCharacters(in: .whitespacesAndNewlines)
         let nextNameInvalid = trimmedName.isEmpty
@@ -120,9 +142,17 @@ struct OnboardingView: View {
         guard selectedMode != mode else { return }
         withAnimation(.easeInOut(duration: 0.2)) {
             selectedMode = mode
-            primaryInput = ""
             primaryIsInvalid = false
         }
+        primaryInput = ""
+        focusedField = nextFocusFieldAfterModeSwitch()
+    }
+
+    private func nextFocusFieldAfterModeSwitch() -> OnboardingField {
+        if displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return .displayName
+        }
+        return .primary
     }
 }
 
@@ -189,18 +219,28 @@ private struct AppInputField: View {
     @Binding var text: String
     @Binding var isInvalid: Bool
     let prompt: String
+    let fieldID: OnboardingField
+    var focusedField: FocusState<OnboardingField?>.Binding
     var autocapitalization: TextInputAutocapitalization = .sentences
+    var submitLabel: SubmitLabel = .done
     var trigger: Int = 0
 
     var body: some View {
         TextField(prompt, text: $text)
             .textInputAutocapitalization(autocapitalization)
+            .autocorrectionDisabled()
             .font(AppTypography.body)
             .foregroundStyle(AppColor.textPrimary)
+            .focused(focusedField, equals: fieldID)
             .padding(.horizontal, AppSpacing.md)
             .frame(height: 52)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
-            .submitLabel(.done)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                focusedField.wrappedValue = fieldID
+            }
+            .submitLabel(submitLabel)
             .appValidationFeedback(isInvalid: isInvalid, trigger: trigger)
             .onChange(of: text) { oldValue, newValue in
                 guard isInvalid, oldValue != newValue else { return }

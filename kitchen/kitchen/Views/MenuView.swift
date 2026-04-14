@@ -1,9 +1,11 @@
 import SwiftUI
+import SwiftUI
 
 fileprivate enum MenuField {
     case name
     case customCategory
     case ingredient
+    case search
 }
 
 struct MenuView: View {
@@ -21,6 +23,7 @@ struct MenuView: View {
     @State private var validationMessage: String?
     @State private var toast: AppToastData?
     @FocusState private var focusedField: MenuField?
+    @FocusState private var isSearchFocused: Bool
 
     private let quickCategories = ["家常菜", "快手菜", "汤羹", "主食", "饮品", "甜点", "其他"]
 
@@ -34,8 +37,30 @@ struct MenuView: View {
             .padding(.horizontal, AppSpacing.md)
             .padding(.top, AppSpacing.xs)
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: AppSpacing.md) {
+            if filteredDishes.isEmpty {
+                VStack(spacing: AppSpacing.sm) {
+                    Spacer(minLength: 0)
+
+                    Text(emptyMenuTitle)
+                        .font(AppTypography.sectionTitle)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .multilineTextAlignment(.center)
+
+                    Text(emptySearchHint)
+                        .font(AppTypography.body)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, AppSpacing.xl)
+
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isSearchFocused = false
+                }
+            } else {
+                ScrollView(showsIndicators: false) {
                     LazyVGrid(columns: gridColumns, spacing: AppSpacing.md) {
                         ForEach(filteredDishes) { dish in
                             MenuDishCard(
@@ -52,27 +77,21 @@ struct MenuView: View {
                             )
                         }
                     }
-
-                    if filteredDishes.isEmpty {
-                        AppCard {
-                            Text("没有找到匹配的菜品")
-                                .font(AppTypography.bodyStrong)
-                                .foregroundStyle(AppColor.textPrimary)
-                            Text(emptySearchHint)
-                                .font(AppTypography.body)
-                                .foregroundStyle(AppColor.textSecondary)
-                        }
-                    }
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.top, AppSpacing.sm)
+                    .padding(.bottom, AppSpacing.md)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, AppSpacing.md)
-                .padding(.top, AppSpacing.sm)
-                .padding(.bottom, AppSpacing.md)
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        isSearchFocused = false
+                    }
+                )
             }
 
             menuCartBar
         }
         .appPageBackground()
+        .appDismissKeyboardOnTap()
         .sheet(isPresented: $showsAddDish) {
             AppSheetContainer(
                 title: "新增菜品",
@@ -83,8 +102,7 @@ struct MenuView: View {
             ) {
                 ScrollView {
                     VStack(spacing: AppSpacing.sm) {
-                        sheetTextField("菜名", text: $name)
-                            .focused($focusedField, equals: .name)
+                        sheetTextField("菜名", text: $name, field: .name)
 
                         VStack(alignment: .leading, spacing: AppSpacing.xs) {
                             Text("常用分类")
@@ -94,8 +112,7 @@ struct MenuView: View {
                             categoryChips(categories: quickCategories, selection: $selectedQuickCategory)
 
                             if selectedQuickCategory == "其他" {
-                                sheetTextField("自定义分类", text: $customCategory)
-                                    .focused($focusedField, equals: .customCategory)
+                                sheetTextField("自定义分类", text: $customCategory, field: .customCategory)
                             }
                         }
 
@@ -111,11 +128,11 @@ struct MenuView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .scrollDismissesKeyboard(.interactively)
+                .appDismissKeyboardOnTap()
             }
             .presentationBackground(AppColor.surfacePrimary)
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.hidden)
-            .presentationBackgroundInteraction(.enabled(upThrough: .large))
             .onAppear {
                 validationMessage = nil
                 focusedField = .name
@@ -161,13 +178,21 @@ struct MenuView: View {
         }
     }
 
-    private func sheetTextField(_ title: String, text: Binding<String>) -> some View {
+    private func sheetTextField(_ title: String, text: Binding<String>, field: MenuField) -> some View {
         TextField(title, text: text)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
             .font(AppTypography.body)
             .foregroundStyle(AppColor.textPrimary)
+            .focused($focusedField, equals: field)
             .padding(.horizontal, AppSpacing.md)
             .frame(height: 52)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                focusedField = field
+            }
             .overlay {
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .stroke(AppColor.lineSoft, lineWidth: 1)
@@ -197,6 +222,14 @@ struct MenuView: View {
             "换个关键词，或点搜索栏右侧「新增」。"
         } else {
             "换个关键词试试。"
+        }
+    }
+
+    private var emptyMenuTitle: String {
+        if debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            "菜单还没有菜品"
+        } else {
+            "没有找到匹配的菜品"
         }
     }
 
@@ -255,11 +288,15 @@ struct MenuView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(AppColor.textTertiary)
                 TextField("搜菜名", text: $searchText)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
                     .font(AppTypography.body)
                     .foregroundStyle(AppColor.textPrimary)
+                    .focused($isSearchFocused)
                 if !searchText.isEmpty {
                     Button {
                         searchText = ""
+                        isSearchFocused = true
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(AppColor.textTertiary)
@@ -271,6 +308,10 @@ struct MenuView: View {
             .frame(height: 50)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isSearchFocused = true
+            }
             .overlay {
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .stroke(AppColor.lineSoft, lineWidth: 1)
@@ -363,36 +404,39 @@ private struct IngredientTagInput: View {
             }
 
             TextField("添加食材", text: $input)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
                 .font(AppTypography.body)
                 .foregroundStyle(AppColor.textPrimary)
+                .focused(focusedField, equals: .ingredient)
+                .onSubmit {
+                    commitTag()
+                }
+                .onChange(of: input) { _, newValue in
+                    if newValue.last == " " {
+                        commitTag()
+                    }
+                }
                 .padding(.horizontal, AppSpacing.md)
                 .frame(height: 52)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    focusedField.wrappedValue = .ingredient
+                }
                 .overlay {
                     RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                         .stroke(AppColor.lineSoft, lineWidth: 1)
                 }
-                .onChange(of: input) { _, newValue in
-                    commitIfNeeded(newValue)
-                }
-                .onSubmit { commitCurrentInput() }
-                .focused(focusedField, equals: .ingredient)
         }
     }
 
-    private func commitIfNeeded(_ value: String) {
-        guard let last = value.last else { return }
-        if last == " " || last == "、" || last == "," {
-            let tag = value.dropLast().trimmingCharacters(in: .whitespaces)
-            if !tag.isEmpty { tags.append(tag) }
-            input = ""
-        }
-    }
-
-    private func commitCurrentInput() {
+    private func commitTag() {
         let tag = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !tag.isEmpty { tags.append(tag) }
         input = ""
+        if !tag.isEmpty { tags.append(tag) }
+        focusedField.wrappedValue = .ingredient
     }
 }
 
