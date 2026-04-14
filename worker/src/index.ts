@@ -1,20 +1,18 @@
 import type { Env, Route } from './types';
 import { matchRoute, json, notFound } from './router';
-import { deviceRoutes } from './routes/devices';
 import { kitchenRoutes } from './routes/kitchens';
 import { memberRoutes } from './routes/members';
 import { onboardingRoutes } from './routes/onboarding';
 import { dishRoutes } from './routes/dishes';
 import { orderRoutes } from './routes/orders';
 import { authRoutes } from './routes/auth';
-import { withDevice } from './middleware/auth';
-import { findByKitchenAndDevice } from './db/members';
+import { withAuth } from './middleware/auth';
+import { findByKitchenAndAccount } from './db/members';
 
 export { KitchenLive } from './durable-objects/kitchen-live';
 
 const routes: Route[] = [
   ...authRoutes,
-  ...deviceRoutes,
   ...kitchenRoutes,
   ...memberRoutes,
   ...onboardingRoutes,
@@ -50,8 +48,8 @@ const routes: Route[] = [
   {
     method: 'GET',
     pattern: /^\/api\/v1\/kitchens\/(?<id>[^/]+)\/live$/,
-    handler: withDevice(async (req, env, ctx, params) => {
-      const member = await findByKitchenAndDevice(env.DB, params.id, ctx.device.id);
+    handler: withAuth(async (req, env, ctx, params) => {
+      const member = await findByKitchenAndAccount(env.DB, params.id, ctx.account.id);
       if (!member) return json({ message: '你不是该 kitchen 的成员' }, { status: 403 });
 
       const doId = env.KITCHEN_LIVE.idFromName(params.id);

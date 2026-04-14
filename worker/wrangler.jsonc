@@ -37,7 +37,9 @@
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_sqlite_classes": ["KitchenLive"]
+			"new_sqlite_classes": [
+				"KitchenLive"
+			]
 		}
 	],
 	"r2_buckets": [
@@ -49,5 +51,14 @@
 			"bucket_name": "kitchen-assets",
 			"binding": "kitchen_assets"
 		}
-	]
+	],
+	"observability": {
+		"logs": {
+			"enabled": false,
+			"invocation_logs": true
+		},
+		"traces": {
+			"enabled": false
+		}
+	}
 }

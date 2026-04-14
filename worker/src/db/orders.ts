@@ -4,11 +4,11 @@ export async function insertOrder(
   db: D1Database,
   id: string,
   kitchenId: string,
-  createdByDeviceId: string
+  createdByAccountId: string
 ): Promise<OrderRow> {
   await db
-    .prepare('INSERT INTO orders (id, kitchen_id, created_by_device_id) VALUES (?, ?, ?)')
-    .bind(id, kitchenId, createdByDeviceId)
+    .prepare('INSERT INTO orders (id, kitchen_id, created_by_account_id) VALUES (?, ?, ?)')
+    .bind(id, kitchenId, createdByAccountId)
     .run();
   return findById(db, id) as Promise<OrderRow>;
 }

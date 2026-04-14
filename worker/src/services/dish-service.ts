@@ -4,14 +4,14 @@ import { insertDish, findById, updateDish as dbUpdateDish, archiveDish as dbArch
 export async function createDish(
   db: D1Database,
   kitchenId: string,
-  createdByDeviceId: string,
+  createdByAccountId: string,
   name: string,
   category: string,
   ingredients?: unknown[]
 ): Promise<DishRow> {
   const id = crypto.randomUUID();
   const ingredientsJson = JSON.stringify(ingredients ?? []);
-  return insertDish(db, id, kitchenId, name, category, createdByDeviceId, ingredientsJson);
+  return insertDish(db, id, kitchenId, name, category, createdByAccountId, ingredientsJson);
 }
 
 export async function getDishForKitchen(

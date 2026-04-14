@@ -1,6 +1,6 @@
 import type { Route } from '../types';
 import { json, badRequest, forbidden } from '../router';
-import { withDevice } from '../middleware/auth';
+import { withAuth } from '../middleware/auth';
 import { withRole } from '../middleware/role';
 import { findById, updateName, rotateInviteCode } from '../db/kitchens';
 import { createKitchen, joinByInviteCode } from '../services/kitchen-service';
@@ -10,11 +10,11 @@ export const kitchenRoutes: Route[] = [
   {
     method: 'POST',
     pattern: /^\/api\/v1\/kitchens$/,
-    handler: withDevice(async (req, env, ctx) => {
+    handler: withAuth(async (req, env, ctx) => {
       const body = await req.json<{ name?: string }>();
       if (!body?.name) return badRequest('name 为必填项');
 
-      const { kitchen } = await createKitchen(env.DB, ctx.device.id, body.name);
+      const { kitchen } = await createKitchen(env.DB, ctx.account.id, body.name);
       return json(kitchen, { status: 201 });
     }),
   },
@@ -23,7 +23,7 @@ export const kitchenRoutes: Route[] = [
   {
     method: 'GET',
     pattern: /^\/api\/v1\/kitchens\/(?<id>[^/]+)$/,
-    handler: withDevice(
+    handler: withAuth(
       withRole(['owner', 'admin', 'member'])(async (_req, _env, ctx) => {
         return json(ctx.kitchen);
       })
@@ -34,7 +34,7 @@ export const kitchenRoutes: Route[] = [
   {
     method: 'PATCH',
     pattern: /^\/api\/v1\/kitchens\/(?<id>[^/]+)$/,
-    handler: withDevice(
+    handler: withAuth(
       withRole(['owner'])(async (req, env, ctx) => {
         const body = await req.json<{ name?: string }>();
         if (!body?.name) return badRequest('name 为必填项');
@@ -49,7 +49,7 @@ export const kitchenRoutes: Route[] = [
   {
     method: 'POST',
     pattern: /^\/api\/v1\/kitchens\/(?<id>[^/]+)\/rotate_invite$/,
-    handler: withDevice(
+    handler: withAuth(
       withRole(['owner', 'admin'])(async (_req, env, ctx) => {
         const newCode = crypto.randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase();
         await rotateInviteCode(env.DB, ctx.kitchen!.id, newCode);
@@ -62,12 +62,12 @@ export const kitchenRoutes: Route[] = [
   {
     method: 'POST',
     pattern: /^\/api\/v1\/kitchens\/join$/,
-    handler: withDevice(async (req, env, ctx) => {
+    handler: withAuth(async (req, env, ctx) => {
       const body = await req.json<{ invite_code?: string }>();
       if (!body?.invite_code) return badRequest('invite_code 为必填项');
 
       try {
-        const { kitchen, member } = await joinByInviteCode(env.DB, ctx.device.id, body.invite_code);
+        const { kitchen, member } = await joinByInviteCode(env.DB, ctx.account.id, body.invite_code);
         return json({ kitchen, member }, { status: 201 });
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : '加入失败';

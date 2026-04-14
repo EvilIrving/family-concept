@@ -4,14 +4,14 @@ export async function insertKitchen(
   db: D1Database,
   id: string,
   name: string,
-  ownerDeviceId: string,
+  ownerAccountId: string,
   inviteCode: string
 ): Promise<KitchenRow> {
   await db
     .prepare(
-      'INSERT INTO kitchens (id, name, owner_device_id, invite_code) VALUES (?, ?, ?, ?)'
+      'INSERT INTO kitchens (id, name, owner_account_id, invite_code) VALUES (?, ?, ?, ?)'
     )
-    .bind(id, name, ownerDeviceId, inviteCode)
+    .bind(id, name, ownerAccountId, inviteCode)
     .run();
   return findById(db, id) as Promise<KitchenRow>;
 }

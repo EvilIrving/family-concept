@@ -1,13 +1,13 @@
 import type { Env, RouteParams, AuthedHandler, Role, RequestContext } from '../types';
-import { findByKitchenAndDevice } from '../db/members';
+import { findByKitchenAndAccount } from '../db/members';
 import { findById as findKitchenById } from '../db/kitchens';
 import { forbidden, json } from '../router';
 
 /**
- * withRole wraps an authed handler (already has ctx.device) and additionally
+ * withRole wraps an authed handler (already has ctx.account) and additionally
  * resolves the member record for the given kitchen, enforcing role requirements.
  *
- * Usage: withDevice(withRole(['owner', 'admin'], 'id')(handler))
+ * Usage: withAuth(withRole(['owner', 'admin'], 'id')(handler))
  * The kitchenIdParam is the name of the URL param holding the kitchen id (default 'id').
  */
 export function withRole(
@@ -27,7 +27,7 @@ export function withRole(
       const kitchen = await findKitchenById(env.DB, kitchenId);
       if (!kitchen) return json({ message: 'Kitchen 不存在' }, { status: 404 });
 
-      const member = await findByKitchenAndDevice(env.DB, kitchenId, ctx.device.id);
+      const member = await findByKitchenAndAccount(env.DB, kitchenId, ctx.account.id);
       if (!member) return forbidden('你不是该 kitchen 的成员');
 
       if (!allowedRoles.includes(member.role)) return forbidden('权限不足');

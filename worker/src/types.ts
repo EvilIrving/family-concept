@@ -7,17 +7,26 @@ export interface Env {
 
 // ─── DB Row Types ────────────────────────────────────────────────────────────
 
-export interface DeviceRow {
+export interface AccountRow {
   id: string;
-  device_id: string;
-  display_name: string;
+  user_name: string;
+  password_hash: string;
+  nick_name: string;
+  created_at: string;
+}
+
+export interface SessionRow {
+  id: string;
+  account_id: string;
+  token_hash: string;
+  expires_at: string;
   created_at: string;
 }
 
 export interface KitchenRow {
   id: string;
   name: string;
-  owner_device_id: string;
+  owner_account_id: string;
   invite_code: string;
   invite_code_rotated_at: string;
   created_at: string;
@@ -26,7 +35,7 @@ export interface KitchenRow {
 export interface MemberRow {
   id: string;
   kitchen_id: string;
-  device_ref_id: string;
+  account_id: string;
   role: Role;
   status: MemberStatus;
   joined_at: string;
@@ -40,7 +49,7 @@ export interface DishRow {
   category: string;
   image_key: string | null;
   ingredients_json: string;
-  created_by_device_id: string;
+  created_by_account_id: string;
   created_at: string;
   updated_at: string;
   archived_at: string | null;
@@ -50,7 +59,7 @@ export interface OrderRow {
   id: string;
   kitchen_id: string;
   status: OrderStatus;
-  created_by_device_id: string;
+  created_by_account_id: string;
   created_at: string;
   finished_at: string | null;
 }
@@ -59,7 +68,7 @@ export interface OrderItemRow {
   id: string;
   order_id: string;
   dish_id: string;
-  added_by_device_id: string;
+  added_by_account_id: string;
   quantity: number;
   status: OrderItemStatus;
   created_at: string;
@@ -76,7 +85,8 @@ export type OrderItemStatus = 'waiting' | 'cooking' | 'done' | 'cancelled';
 // ─── Request Context ─────────────────────────────────────────────────────────
 
 export interface RequestContext {
-  device: DeviceRow;
+  account: AccountRow;
+  session: SessionRow;
   member?: MemberRow;
   kitchen?: KitchenRow;
 }

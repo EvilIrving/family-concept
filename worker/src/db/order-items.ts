@@ -5,14 +5,14 @@ export async function insertItem(
   id: string,
   orderId: string,
   dishId: string,
-  addedByDeviceId: string,
+  addedByAccountId: string,
   quantity: number
 ): Promise<OrderItemRow> {
   await db
     .prepare(
-      'INSERT INTO order_items (id, order_id, dish_id, added_by_device_id, quantity) VALUES (?, ?, ?, ?, ?)'
+      'INSERT INTO order_items (id, order_id, dish_id, added_by_account_id, quantity) VALUES (?, ?, ?, ?, ?)'
     )
-    .bind(id, orderId, dishId, addedByDeviceId, quantity)
+    .bind(id, orderId, dishId, addedByAccountId, quantity)
     .run();
   return findItemById(db, id) as Promise<OrderItemRow>;
 }

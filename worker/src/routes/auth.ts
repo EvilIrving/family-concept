@@ -1,41 +1,93 @@
 import type { Route } from '../types';
-import { json, badRequest } from '../router';
-import { findByDisplayName } from '../db/devices';
+import { conflict, json, badRequest, unauthorized } from '../router';
+import { hashPassword, verifyPassword, generateSessionToken, hashSessionToken, sessionExpiresAt } from '../auth';
+import { findByUserName, insertAccount } from '../db/accounts';
+import { insertSession, deleteByTokenHash } from '../db/sessions';
+import { withAuth } from '../middleware/auth';
+
+function sanitizeAccount(account: { id: string; user_name: string; nick_name: string; created_at: string }) {
+  return {
+    id: account.id,
+    user_name: account.user_name,
+    nick_name: account.nick_name,
+    created_at: account.created_at,
+  };
+}
 
 export const authRoutes: Route[] = [
   {
     method: 'POST',
+    pattern: /^\/api\/v1\/auth\/register$/,
+    handler: async (req, env) => {
+      const body = await req.json<{ user_name?: string; password?: string; nick_name?: string }>();
+      const userName = body?.user_name?.trim();
+      const password = body?.password;
+      const nickName = body?.nick_name?.trim();
+
+      if (!userName || !password || !nickName) {
+        return badRequest('user_name、password、nick_name 为必填项');
+      }
+      if (password.length < 8) return badRequest('password 至少 8 位');
+
+      const existing = await findByUserName(env.DB, userName);
+      if (existing) return conflict('user_name 已存在');
+
+      const passwordHash = await hashPassword(password);
+      const account = await insertAccount(env.DB, crypto.randomUUID(), userName, passwordHash, nickName);
+
+      const token = generateSessionToken();
+      await insertSession(
+        env.DB,
+        crypto.randomUUID(),
+        account.id,
+        await hashSessionToken(token),
+        sessionExpiresAt()
+      );
+
+      return json({ token, account: sanitizeAccount(account) }, { status: 201 });
+    },
+  },
+  {
+    method: 'POST',
     pattern: /^\/api\/v1\/auth\/login$/,
     handler: async (req, env) => {
-      const body = await req.json<{ display_name?: string }>();
-      const displayName = body?.display_name?.trim();
-      if (!displayName) return badRequest('display_name 为必填项');
+      const body = await req.json<{ user_name?: string; password?: string }>();
+      const userName = body?.user_name?.trim();
+      const password = body?.password;
 
-      const device = await findByDisplayName(env.DB, displayName);
-      if (!device) return json({ found: false });
+      if (!userName || !password) return badRequest('user_name 和 password 为必填项');
 
-      // Find active membership with display_name
-      const member = await env.DB
-        .prepare(
-          `SELECT m.*, d.display_name
-           FROM members m
-           JOIN devices d ON d.id = m.device_ref_id
-           WHERE m.device_ref_id = ? AND m.status = 'active'
-           LIMIT 1`
-        )
-        .bind(device.id)
-        .first();
+      const account = await findByUserName(env.DB, userName);
+      if (!account) return unauthorized('用户名或密码错误');
 
-      if (!member) return json({ found: false });
+      const passwordMatches = await verifyPassword(password, account.password_hash);
+      if (!passwordMatches) return unauthorized('用户名或密码错误');
 
-      const kitchen = await env.DB
-        .prepare('SELECT * FROM kitchens WHERE id = ?')
-        .bind(member.kitchen_id)
-        .first();
+      const token = generateSessionToken();
+      await insertSession(
+        env.DB,
+        crypto.randomUUID(),
+        account.id,
+        await hashSessionToken(token),
+        sessionExpiresAt()
+      );
 
-      if (!kitchen) return json({ found: false });
-
-      return json({ found: true, device, kitchen, member });
+      return json({ token, account: sanitizeAccount(account) });
     },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/v1\/auth\/logout$/,
+    handler: withAuth(async (_req, env, ctx) => {
+      await deleteByTokenHash(env.DB, ctx.session.token_hash);
+      return json({ ok: true });
+    }),
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/v1\/auth\/me$/,
+    handler: withAuth(async (_req, _env, ctx) => {
+      return json({ account: sanitizeAccount(ctx.account) });
+    }),
   },
 ];

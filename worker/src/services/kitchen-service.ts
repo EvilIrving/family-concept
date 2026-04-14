@@ -1,6 +1,6 @@
 import type { KitchenRow, MemberRow } from '../types';
 import { findByInviteCode } from '../db/kitchens';
-import { insertMember, findByKitchenAndDevice } from '../db/members';
+import { insertMember, findByKitchenAndAccount } from '../db/members';
 
 function generateInviteCode(): string {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase();
@@ -8,7 +8,7 @@ function generateInviteCode(): string {
 
 export async function createKitchen(
   db: D1Database,
-  ownerDeviceId: string,
+  ownerAccountId: string,
   name: string
 ): Promise<{ kitchen: KitchenRow; member: MemberRow }> {
   const kitchenId = crypto.randomUUID();
@@ -18,11 +18,11 @@ export async function createKitchen(
   // Atomic insert of kitchen + owner member
   await db.batch([
     db
-      .prepare('INSERT INTO kitchens (id, name, owner_device_id, invite_code) VALUES (?, ?, ?, ?)')
-      .bind(kitchenId, name, ownerDeviceId, inviteCode),
+      .prepare('INSERT INTO kitchens (id, name, owner_account_id, invite_code) VALUES (?, ?, ?, ?)')
+      .bind(kitchenId, name, ownerAccountId, inviteCode),
     db
-      .prepare('INSERT INTO members (id, kitchen_id, device_ref_id, role) VALUES (?, ?, ?, ?)')
-      .bind(memberId, kitchenId, ownerDeviceId, 'owner'),
+      .prepare('INSERT INTO members (id, kitchen_id, account_id, role) VALUES (?, ?, ?, ?)')
+      .bind(memberId, kitchenId, ownerAccountId, 'owner'),
   ]);
 
   const [k, m] = await Promise.all([
@@ -35,17 +35,17 @@ export async function createKitchen(
 
 export async function joinByInviteCode(
   db: D1Database,
-  deviceRefId: string,
+  accountId: string,
   inviteCode: string
 ): Promise<{ kitchen: KitchenRow; member: MemberRow }> {
   const kitchen = await findByInviteCode(db, inviteCode);
   if (!kitchen) throw new Error('邀请码无效');
 
-  const existing = await findByKitchenAndDevice(db, kitchen.id, deviceRefId);
+  const existing = await findByKitchenAndAccount(db, kitchen.id, accountId);
   if (existing) {
     return { kitchen, member: existing };
   }
 
-  const member = await insertMember(db, crypto.randomUUID(), kitchen.id, deviceRefId, 'member');
+  const member = await insertMember(db, crypto.randomUUID(), kitchen.id, accountId, 'member');
   return { kitchen, member };
 }

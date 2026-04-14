@@ -6,14 +6,14 @@ export async function insertDish(
   kitchenId: string,
   name: string,
   category: string,
-  createdByDeviceId: string,
+  createdByAccountId: string,
   ingredientsJson = '[]'
 ): Promise<DishRow> {
   await db
     .prepare(
-      'INSERT INTO dishes (id, kitchen_id, name, category, created_by_device_id, ingredients_json) VALUES (?, ?, ?, ?, ?, ?)'
+      'INSERT INTO dishes (id, kitchen_id, name, category, created_by_account_id, ingredients_json) VALUES (?, ?, ?, ?, ?, ?)'
     )
-    .bind(id, kitchenId, name, category, createdByDeviceId, ingredientsJson)
+    .bind(id, kitchenId, name, category, createdByAccountId, ingredientsJson)
     .run();
   return findById(db, id) as Promise<DishRow>;
 }

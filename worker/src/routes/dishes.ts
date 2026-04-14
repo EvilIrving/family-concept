@@ -1,6 +1,6 @@
 import type { Route } from '../types';
 import { json, badRequest } from '../router';
-import { withDevice } from '../middleware/auth';
+import { withAuth } from '../middleware/auth';
 import { withRole } from '../middleware/role';
 import { createDish, getDishForKitchen, updateDish, archiveDish, listByKitchen, findById } from '../services/dish-service';
 
@@ -9,7 +9,7 @@ export const dishRoutes: Route[] = [
   {
     method: 'GET',
     pattern: /^\/api\/v1\/kitchens\/(?<id>[^/]+)\/dishes$/,
-    handler: withDevice(
+    handler: withAuth(
       withRole(['owner', 'admin', 'member'])(async (_req, env, ctx) => {
         const dishes = await listByKitchen(env.DB, ctx.kitchen!.id);
         return json(dishes);
@@ -21,7 +21,7 @@ export const dishRoutes: Route[] = [
   {
     method: 'POST',
     pattern: /^\/api\/v1\/kitchens\/(?<id>[^/]+)\/dishes$/,
-    handler: withDevice(
+    handler: withAuth(
       withRole(['owner', 'admin'])(async (req, env, ctx) => {
         const body = await req.json<{ name?: string; category?: string; ingredients?: unknown[] }>();
         if (!body?.name || !body?.category) return badRequest('name 和 category 为必填项');
@@ -29,7 +29,7 @@ export const dishRoutes: Route[] = [
         const dish = await createDish(
           env.DB,
           ctx.kitchen!.id,
-          ctx.device.id,
+          ctx.account.id,
           body.name,
           body.category,
           body.ingredients
@@ -43,20 +43,18 @@ export const dishRoutes: Route[] = [
   {
     method: 'PATCH',
     pattern: /^\/api\/v1\/dishes\/(?<dish_id>[^/]+)$/,
-    handler: withDevice(async (req, env, ctx, params) => {
+    handler: withAuth(async (req, env, ctx, params) => {
       const dish = await findById(env.DB, params.dish_id);
       if (!dish || dish.archived_at !== null) return json({ message: '菜品不存在' }, { status: 404 });
 
       // Check role in dish's kitchen
-      const { withRole: _wr } = await import('../middleware/role');
-      // Inline role check for dynamic kitchen_id
-      const { findByKitchenAndDevice } = await import('../db/members');
+      const { findByKitchenAndAccount } = await import('../db/members');
       const { findById: findKitchen } = await import('../db/kitchens');
 
       const kitchen = await findKitchen(env.DB, dish.kitchen_id);
       if (!kitchen) return json({ message: 'Kitchen 不存在' }, { status: 404 });
 
-      const member = await findByKitchenAndDevice(env.DB, dish.kitchen_id, ctx.device.id);
+      const member = await findByKitchenAndAccount(env.DB, dish.kitchen_id, ctx.account.id);
       if (!member) return json({ message: '你不是该 kitchen 的成员' }, { status: 403 });
       if (member.role === 'member') return json({ message: '权限不足' }, { status: 403 });
 
@@ -77,12 +75,12 @@ export const dishRoutes: Route[] = [
   {
     method: 'DELETE',
     pattern: /^\/api\/v1\/dishes\/(?<dish_id>[^/]+)$/,
-    handler: withDevice(async (_req, env, ctx, params) => {
+    handler: withAuth(async (_req, env, ctx, params) => {
       const dish = await findById(env.DB, params.dish_id);
       if (!dish || dish.archived_at !== null) return json({ message: '菜品不存在' }, { status: 404 });
 
-      const { findByKitchenAndDevice } = await import('../db/members');
-      const member = await findByKitchenAndDevice(env.DB, dish.kitchen_id, ctx.device.id);
+      const { findByKitchenAndAccount } = await import('../db/members');
+      const member = await findByKitchenAndAccount(env.DB, dish.kitchen_id, ctx.account.id);
       if (!member) return json({ message: '你不是该 kitchen 的成员' }, { status: 403 });
       if (member.role === 'member') return json({ message: '权限不足' }, { status: 403 });
 
@@ -95,12 +93,12 @@ export const dishRoutes: Route[] = [
   {
     method: 'POST',
     pattern: /^\/api\/v1\/dishes\/(?<dish_id>[^/]+)\/image_upload_url$/,
-    handler: withDevice(async (_req, env, ctx, params) => {
+    handler: withAuth(async (_req, env, ctx, params) => {
       const dish = await findById(env.DB, params.dish_id);
       if (!dish || dish.archived_at !== null) return json({ message: '菜品不存在' }, { status: 404 });
 
-      const { findByKitchenAndDevice } = await import('../db/members');
-      const member = await findByKitchenAndDevice(env.DB, dish.kitchen_id, ctx.device.id);
+      const { findByKitchenAndAccount } = await import('../db/members');
+      const member = await findByKitchenAndAccount(env.DB, dish.kitchen_id, ctx.account.id);
       if (!member) return json({ message: '你不是该 kitchen 的成员' }, { status: 403 });
       if (member.role === 'member') return json({ message: '权限不足' }, { status: 403 });
 
@@ -117,12 +115,12 @@ export const dishRoutes: Route[] = [
   {
     method: 'PUT',
     pattern: /^\/api\/v1\/dishes\/(?<dish_id>[^/]+)\/image$/,
-    handler: withDevice(async (req, env, ctx, params) => {
+    handler: withAuth(async (req, env, ctx, params) => {
       const dish = await findById(env.DB, params.dish_id);
       if (!dish || dish.archived_at !== null) return json({ message: '菜品不存在' }, { status: 404 });
 
-      const { findByKitchenAndDevice } = await import('../db/members');
-      const member = await findByKitchenAndDevice(env.DB, dish.kitchen_id, ctx.device.id);
+      const { findByKitchenAndAccount } = await import('../db/members');
+      const member = await findByKitchenAndAccount(env.DB, dish.kitchen_id, ctx.account.id);
       if (!member) return json({ message: '你不是该 kitchen 的成员' }, { status: 403 });
       if (member.role === 'member') return json({ message: '权限不足' }, { status: 403 });
 
