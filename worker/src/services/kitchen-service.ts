@@ -42,7 +42,9 @@ export async function joinByInviteCode(
   if (!kitchen) throw new Error('邀请码无效');
 
   const existing = await findByKitchenAndDevice(db, kitchen.id, deviceRefId);
-  if (existing) throw new Error('已经是该 kitchen 的成员');
+  if (existing) {
+    return { kitchen, member: existing };
+  }
 
   const member = await insertMember(db, crypto.randomUUID(), kitchen.id, deviceRefId, 'member');
   return { kitchen, member };

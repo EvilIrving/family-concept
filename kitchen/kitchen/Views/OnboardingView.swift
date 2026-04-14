@@ -18,19 +18,17 @@ struct OnboardingView: View {
     @FocusState private var focusedField: OnboardingField?
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
-
+        ScrollView {
             formCard
                 .padding(.horizontal, AppSpacing.md)
-
-            Spacer(minLength: 0)
+                .padding(.vertical, AppSpacing.xxl)
+                .frame(maxWidth: .infinity)
         }
+        .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
             bottomBar
         }
         .appPageBackground()
-        .appDismissKeyboardOnTap()
     }
 
     private var formCard: some View {
@@ -40,32 +38,43 @@ struct OnboardingView: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColor.textSecondary)
 
-                AppInputField(
+                AppTextField(
+                    title: "你的名字",
                     text: $displayName,
-                    isInvalid: $nameIsInvalid,
-                    prompt: "你的名字",
-                    fieldID: .displayName,
                     focusedField: $focusedField,
+                    field: .displayName,
+                    autocapitalization: .sentences,
                     submitLabel: .next,
-                    trigger: nameShakeTrigger
+                    onSubmit: { focusedField = .primary },
+                    isInvalid: nameIsInvalid,
+                    validationTrigger: nameShakeTrigger
                 )
-                .onSubmit {
-                    focusedField = .primary
+                .onChange(of: displayName) { oldValue, newValue in
+                    guard nameIsInvalid, oldValue != newValue else { return }
+                    withAnimation(.easeInOut(duration: 0.16)) {
+                        nameIsInvalid = false
+                    }
                 }
 
-                AppInputField(
+                AppTextField(
+                    title: selectedMode.placeholder,
                     text: $primaryInput,
-                    isInvalid: $primaryIsInvalid,
-                    prompt: selectedMode.placeholder,
-                    fieldID: .primary,
                     focusedField: $focusedField,
+                    field: .primary,
                     autocapitalization: selectedMode.autocapitalization,
                     submitLabel: .done,
-                    trigger: primaryShakeTrigger
+                    onSubmit: {
+                        focusedField = nil
+                        submit()
+                    },
+                    isInvalid: primaryIsInvalid,
+                    validationTrigger: primaryShakeTrigger
                 )
-                .onSubmit {
-                    focusedField = nil
-                    submit()
+                .onChange(of: primaryInput) { oldValue, newValue in
+                    guard primaryIsInvalid, oldValue != newValue else { return }
+                    withAnimation(.easeInOut(duration: 0.16)) {
+                        primaryIsInvalid = false
+                    }
                 }
 
                 if let error = store.error {
@@ -212,39 +221,6 @@ private enum EntryMode: CaseIterable {
         case .create:
             return "已有邀请码，改为加入"
         }
-    }
-}
-
-private struct AppInputField: View {
-    @Binding var text: String
-    @Binding var isInvalid: Bool
-    let prompt: String
-    let fieldID: OnboardingField
-    var focusedField: FocusState<OnboardingField?>.Binding
-    var autocapitalization: TextInputAutocapitalization = .sentences
-    var submitLabel: SubmitLabel = .done
-    var trigger: Int = 0
-
-    var body: some View {
-        TextField(prompt, text: $text)
-            .textInputAutocapitalization(autocapitalization)
-            .autocorrectionDisabled()
-            .font(AppTypography.body)
-            .foregroundStyle(AppColor.textPrimary)
-            .focused(focusedField, equals: fieldID)
-            .padding(.horizontal, AppSpacing.md)
-            .frame(height: 52)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
-            .contentShape(Rectangle())
-            .submitLabel(submitLabel)
-            .appValidationFeedback(isInvalid: isInvalid, trigger: trigger)
-            .onChange(of: text) { oldValue, newValue in
-                guard isInvalid, oldValue != newValue else { return }
-                withAnimation(.easeInOut(duration: 0.16)) {
-                    isInvalid = false
-                }
-            }
     }
 }
 

@@ -40,6 +40,7 @@ kitchen/
 - Views：只消费 Store 状态进行布局，不直接调用网络
 - UI/Components：无业务依赖，只接受配置参数渲染
 - UI/Feedback：Toast、Banner、Skeleton 全局可用，通过环境对象触发
+- 输入类组件遵循“行为尽量原生，样式单独封装”：焦点、键盘、输入法联动优先交给系统控件，组件层负责外观、布局、点击热区和校验态
 
 ## 全局 Store 注入
 

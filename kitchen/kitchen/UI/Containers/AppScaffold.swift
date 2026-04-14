@@ -14,6 +14,7 @@ struct AppScrollPage<Header: View, Content: View>: View {
             .padding(.top, AppSpacing.xs)
             .padding(.bottom, 110)
         }
+        .scrollDismissesKeyboard(.interactively)
         .appPageBackground()
     }
 }

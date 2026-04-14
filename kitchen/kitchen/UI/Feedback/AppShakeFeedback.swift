@@ -21,6 +21,7 @@ struct AppValidationFeedbackModifier: ViewModifier {
             .overlay {
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .stroke(isInvalid ? AppColor.danger : AppColor.lineSoft, lineWidth: 1)
+                    .allowsHitTesting(false)
             }
             .animation(.easeInOut(duration: 0.34), value: trigger)
             .animation(.easeInOut(duration: 0.16), value: isInvalid)

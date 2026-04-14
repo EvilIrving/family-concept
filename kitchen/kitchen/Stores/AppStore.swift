@@ -133,6 +133,7 @@ final class AppStore: ObservableObject {
         let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !trimmedName.isEmpty else { return }
 
+        error = nil
         storedDisplayName = trimmedName
         UserDefaults.standard.set(trimmedName, forKey: "displayName")
 
@@ -160,6 +161,7 @@ final class AppStore: ObservableObject {
         let trimmedCode = inviteCode.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedCode.isEmpty, !trimmedName.isEmpty else { return }
+        error = nil
         storedDisplayName = trimmedName
         UserDefaults.standard.set(trimmedName, forKey: "displayName")
 

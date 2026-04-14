@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 enum AppColor {
     static let green900 = Color(hex: 0x1F4D3A)
@@ -83,12 +82,5 @@ extension Color {
 extension View {
     func appPageBackground() -> some View {
         background(AppColor.backgroundBase.ignoresSafeArea())
-    }
-
-    func appDismissKeyboardOnTap() -> some View {
-        contentShape(Rectangle())
-            .onTapGesture {
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            }
     }
 }
