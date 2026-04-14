@@ -23,9 +23,9 @@ struct AppSheetContainer<Content: View>: View {
     let title: String
     var subtitle: String? = nil
     let dismissTitle: String
-    let confirmTitle: String
+    var confirmTitle: String? = nil
     let onDismiss: () -> Void
-    let onConfirm: () -> Void
+    var onConfirm: (() -> Void)? = nil
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -56,9 +56,16 @@ struct AppSheetContainer<Content: View>: View {
 
                 Spacer()
 
-                Button(confirmTitle, action: onConfirm)
-                    .font(AppTypography.bodyStrong)
-                    .foregroundStyle(AppColor.green800)
+                if let confirmTitle, let onConfirm {
+                    Button(confirmTitle, action: onConfirm)
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppColor.green800)
+                } else {
+                    Button(dismissTitle, action: onDismiss)
+                        .font(AppTypography.bodyStrong)
+                        .hidden()
+                        .accessibilityHidden(true)
+                }
             }
             .padding(.horizontal, AppSpacing.lg)
             .padding(.bottom, AppSpacing.md)

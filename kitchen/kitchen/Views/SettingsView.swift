@@ -210,32 +210,7 @@ private struct MemberRoleSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Capsule()
-                .fill(AppColor.green200)
-                .frame(width: 42, height: 5)
-                .padding(.top, AppSpacing.sm)
-                .padding(.bottom, AppSpacing.md)
-
-            HStack(alignment: .center) {
-                Button("关闭") { dismiss() }
-                    .font(AppTypography.bodyStrong)
-                    .foregroundStyle(AppColor.textSecondary)
-
-                Spacer()
-
-                Text("成员")
-                    .font(AppTypography.cardTitle)
-                    .foregroundStyle(AppColor.textPrimary)
-
-                Spacer()
-
-                Color.clear
-                    .frame(width: 44, height: 1)
-            }
-            .padding(.horizontal, AppSpacing.lg)
-            .padding(.bottom, AppSpacing.md)
-
+        AppSheetContainer(title: "成员", dismissTitle: "关闭", onDismiss: { dismiss() }) {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 if let member {
                     HStack(alignment: .center, spacing: AppSpacing.sm) {
@@ -279,38 +254,30 @@ private struct MemberRoleSheet: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
 
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(.horizontal, AppSpacing.lg)
-
-            if store.isOwner && !isSelf, let member {
-                Button {
-                    Task {
-                        await store.removeMember(deviceRefID: member.deviceRefId)
-                        dismiss()
+                if store.isOwner && !isSelf, let member {
+                    Button {
+                        Task {
+                            await store.removeMember(deviceRefID: member.deviceRefId)
+                            dismiss()
+                        }
+                    } label: {
+                        HStack(spacing: AppSpacing.xs) {
+                            Image(systemName: "person.badge.minus")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("移除成员")
+                        }
+                        .font(AppTypography.button)
+                        .foregroundStyle(AppColor.danger)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
                     }
-                } label: {
-                    HStack(spacing: AppSpacing.xs) {
-                        Image(systemName: "person.badge.minus")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text("移除成员")
-                    }
-                    .font(AppTypography.button)
-                    .foregroundStyle(AppColor.danger)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColor.dangerSoft)
+                    .padding(.top, AppSpacing.xs)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColor.dangerSoft)
-                .padding(.horizontal, AppSpacing.lg)
-                .padding(.top, AppSpacing.sm)
-                .padding(.bottom, AppSpacing.md)
             }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppColor.surfacePrimary)
-        .clipShape(RoundedRectangle(cornerRadius: AppRadius.xxl, style: .continuous))
     }
 }
 

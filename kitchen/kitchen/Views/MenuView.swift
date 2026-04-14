@@ -94,7 +94,7 @@ struct MenuView: View {
         .sheet(isPresented: $showsAddDish) {
             AppSheetContainer(
                 title: "新增菜品",
-                dismissTitle: "取消",
+                dismissTitle: "关闭",
                 confirmTitle: "保存",
                 onDismiss: dismissAddDish,
                 onConfirm: saveDish
@@ -144,7 +144,9 @@ struct MenuView: View {
         .sheet(isPresented: $showsCart) {
             CartSheet()
                 .environmentObject(store)
+                .presentationBackground(.clear)
                 .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.hidden)
         }
         .task(id: searchText) {
             try? await Task.sleep(for: .milliseconds(250))
@@ -485,7 +487,19 @@ private struct CartSheet: View {
     @State private var toast: AppToastData?
 
     var body: some View {
-        NavigationStack {
+        AppSheetContainer(
+            title: "购物车",
+            dismissTitle: "关闭",
+            confirmTitle: "提交下单",
+            onDismiss: { dismiss() },
+            onConfirm: {
+                Task {
+                    await store.submitCart()
+                    toast = AppToastData(message: "已下单")
+                    dismiss()
+                }
+            }
+        ) {
             ScrollView {
                 VStack(spacing: AppSpacing.sm) {
                     if store.cartItems.isEmpty {
@@ -523,30 +537,12 @@ private struct CartSheet: View {
                                 }
                             }
                         }
-
-                        AppButton(title: "提交下单", systemImage: "checkmark") {
-                            Task {
-                                await store.submitCart()
-                                toast = AppToastData(message: "已下单")
-                                dismiss()
-                            }
-                        }
-                        .padding(.horizontal, AppSpacing.md)
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(AppSpacing.md)
             }
-            .background(AppColor.backgroundBase)
-            .navigationTitle("购物车")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") { dismiss() }
-                }
-            }
-            .appToast($toast)
         }
+        .appToast($toast)
     }
 }
 
