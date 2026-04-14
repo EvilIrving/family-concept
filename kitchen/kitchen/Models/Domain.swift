@@ -159,6 +159,15 @@ struct CartItem: Identifiable, Equatable {
     var quantity: Int
 }
 
+// MARK: - LoginResponse
+
+struct LoginResponse: Codable {
+    let found: Bool
+    let device: Device?
+    let kitchen: Kitchen?
+    let member: Member?
+}
+
 // MARK: - ShoppingListItem
 
 struct ShoppingListItem: Identifiable, Equatable {

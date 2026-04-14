@@ -1,6 +1,6 @@
 import type { Route } from '../types';
 import { json, badRequest, conflict } from '../router';
-import { insertDevice, findByDeviceId } from '../db/devices';
+import { insertDevice, findByDeviceId, findByDisplayName } from '../db/devices';
 
 export const deviceRoutes: Route[] = [
   {
@@ -15,6 +15,9 @@ export const deviceRoutes: Route[] = [
 
       const existing = await findByDeviceId(env.DB, device_id);
       if (existing) return conflict('设备已注册');
+
+      const nameTaken = await findByDisplayName(env.DB, display_name);
+      if (nameTaken) return conflict('该名字已被使用');
 
       const id = crypto.randomUUID();
       const device = await insertDevice(env.DB, id, device_id, display_name);

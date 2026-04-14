@@ -1,5 +1,17 @@
 import Foundation
 
+// MARK: - Auth
+
+extension APIClient {
+    func login(displayName: String) async throws -> LoginResponse {
+        try await request(
+            "/api/v1/auth/login",
+            method: "POST",
+            body: ["display_name": displayName]
+        )
+    }
+}
+
 // MARK: - Onboarding
 
 extension APIClient {

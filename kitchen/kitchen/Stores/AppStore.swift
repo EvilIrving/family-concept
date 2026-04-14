@@ -13,10 +13,11 @@ final class AppStore: ObservableObject {
     @Published var shoppingListItems: [ShoppingListItem] = []
     @Published var isLoading: Bool = false
     @Published var error: String?
+    @Published var loginNotFound: Bool = false
 
     let apiClient = APIClient()
 
-    let deviceId: String
+    private(set) var deviceId: String
     private(set) var storedDisplayName: String
 
     init() {
@@ -120,6 +121,37 @@ final class AppStore: ObservableObject {
             } else {
                 self.currentOrder = nil
                 self.orderItems = []
+            }
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    // MARK: - Login
+
+    func login(displayName: String) async {
+        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        error = nil
+        loginNotFound = false
+
+        do {
+            let result = try await apiClient.login(displayName: trimmed)
+            if result.found, let device = result.device, let kitchen = result.kitchen, let member = result.member {
+                // Update local deviceId to match the found device
+                deviceId = device.deviceId
+                UserDefaults.standard.set(device.deviceId, forKey: "deviceID")
+                storedDisplayName = trimmed
+                UserDefaults.standard.set(trimmed, forKey: "displayName")
+
+                currentDevice = device
+                self.kitchen = kitchen
+                members = [member]
+            } else {
+                loginNotFound = true
+                storedDisplayName = trimmed
+                UserDefaults.standard.set(trimmed, forKey: "displayName")
             }
         } catch {
             self.error = error.localizedDescription

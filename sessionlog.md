@@ -52,3 +52,13 @@ refs:
 * `lib/data/database_helper.dart`
 * `flutter doctor -v`
 * `cd android && export JAVA_HOME=... && ./gradlew assembleDebug`
+
+## 基于 display name 的登录流落地 · 2026-04-14 · Codex
+
+这批未提交改动把首次进入流程改成了“先按名字登录，再决定加入或创建”。后端新增 `POST /api/v1/auth/login`，按 `display_name` 查找设备、活跃成员和所属私厨；命中时直接返回 `device`、`member`、`kitchen`，未命中时返回 `found: false`，由客户端继续走创建或加入分支。
+
+数据层同时补上 display name 唯一性约束。`worker/migrations/0002_unique_display_name.sql` 新增 `devices(display_name)` 唯一索引，`worker/src/routes/devices.ts` 在注册设备时先检查重名，`worker/src/services/onboarding-service.ts` 也把 onboarding 里的设备 upsert 改成“存在则按需更新 display_name，不存在则创建”，保证名字修改和首次注册都遵守同一套唯一性规则。
+
+iOS 端围绕这条新登录流做了完整接线。`kitchen/kitchen/Services/APIEndpoints.swift` 和 `kitchen/kitchen/Models/Domain.swift` 新增登录接口与 `LoginResponse`，`kitchen/kitchen/Stores/AppStore.swift` 新增 `login(displayName:)` 和 `loginNotFound` 状态，命中已有设备后同步更新本地 `deviceId` 与保存的名字，未命中时保留输入名字并切到后续 onboarding。`kitchen/kitchen/Views/OnboardingView.swift` 也重写成 login-first 三阶段界面：先输入名字登录，找不到名字时再展示“输入邀请码加入”或“创建私厨”两个分支。
+
+这次还合入了 Codex review 后确认的修正。P1 继续保留“按名字登录”的方案，作为当前产品阶段的设计取舍；P2 的 stale name 问题通过 `updateDisplayName` 修复，已有设备再次 onboarding 时会更新名字；另一个 P2 的 duplicate name 风险也在设备注册和 onboarding 两条路径都补上了冲突检查。

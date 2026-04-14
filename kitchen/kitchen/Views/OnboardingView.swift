@@ -2,18 +2,24 @@ import SwiftUI
 
 private enum OnboardingField: Hashable {
     case displayName
-    case primary
+    case secondary
+}
+
+private enum OnboardingPhase {
+    case login
+    case join
+    case create
 }
 
 struct OnboardingView: View {
     @EnvironmentObject private var store: AppStore
     @State private var displayName = ""
-    @State private var primaryInput = ""
-    @State private var selectedMode: EntryMode = .join
+    @State private var secondaryInput = ""
+    @State private var phase: OnboardingPhase = .login
     @State private var nameIsInvalid = false
-    @State private var primaryIsInvalid = false
+    @State private var secondaryIsInvalid = false
     @State private var nameShakeTrigger = 0
-    @State private var primaryShakeTrigger = 0
+    @State private var secondaryShakeTrigger = 0
     @State private var isSubmitting = false
     @FocusState private var focusedField: OnboardingField?
 
@@ -29,12 +35,19 @@ struct OnboardingView: View {
             bottomBar
         }
         .appPageBackground()
+        .onChange(of: store.loginNotFound) { _, notFound in
+            if notFound {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    phase = .login
+                }
+            }
+        }
     }
 
     private var formCard: some View {
         AppCard(padding: AppSpacing.lg) {
             VStack(alignment: .leading, spacing: AppSpacing.md) {
-                Text(selectedMode.hint)
+                Text(hintText)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColor.textSecondary)
 
@@ -44,8 +57,15 @@ struct OnboardingView: View {
                     focusedField: $focusedField,
                     field: .displayName,
                     autocapitalization: .sentences,
-                    submitLabel: .next,
-                    onSubmit: { focusedField = .primary },
+                    submitLabel: phase == .login ? .done : .next,
+                    onSubmit: {
+                        if phase == .login {
+                            focusedField = nil
+                            submit()
+                        } else {
+                            focusedField = .secondary
+                        }
+                    },
                     isInvalid: nameIsInvalid,
                     validationTrigger: nameShakeTrigger
                 )
@@ -54,27 +74,41 @@ struct OnboardingView: View {
                     withAnimation(.easeInOut(duration: 0.16)) {
                         nameIsInvalid = false
                     }
+                    // Reset to login phase when name changes after not-found
+                    if store.loginNotFound {
+                        store.loginNotFound = false
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            phase = .login
+                        }
+                    }
                 }
 
-                AppTextField(
-                    title: selectedMode.placeholder,
-                    text: $primaryInput,
-                    focusedField: $focusedField,
-                    field: .primary,
-                    autocapitalization: selectedMode.autocapitalization,
-                    submitLabel: .done,
-                    onSubmit: {
-                        focusedField = nil
-                        submit()
-                    },
-                    isInvalid: primaryIsInvalid,
-                    validationTrigger: primaryShakeTrigger
-                )
-                .onChange(of: primaryInput) { oldValue, newValue in
-                    guard primaryIsInvalid, oldValue != newValue else { return }
-                    withAnimation(.easeInOut(duration: 0.16)) {
-                        primaryIsInvalid = false
+                if store.loginNotFound {
+                    modeButtons
+                }
+
+                if phase == .join || phase == .create {
+                    AppTextField(
+                        title: phase == .join ? "邀请码" : "私厨名称",
+                        text: $secondaryInput,
+                        focusedField: $focusedField,
+                        field: .secondary,
+                        autocapitalization: phase == .join ? .characters : .words,
+                        submitLabel: .done,
+                        onSubmit: {
+                            focusedField = nil
+                            submit()
+                        },
+                        isInvalid: secondaryIsInvalid,
+                        validationTrigger: secondaryShakeTrigger
+                    )
+                    .onChange(of: secondaryInput) { oldValue, newValue in
+                        guard secondaryIsInvalid, oldValue != newValue else { return }
+                        withAnimation(.easeInOut(duration: 0.16)) {
+                            secondaryIsInvalid = false
+                        }
                     }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
                 if let error = store.error {
@@ -82,23 +116,33 @@ struct OnboardingView: View {
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColor.danger)
                 }
-
-                HStack {
-                    Spacer()
-
-                    Button(selectedMode.switchTitle) {
-                        switchMode()
-                    }
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-                }
             }
+        }
+    }
+
+    private var modeButtons: some View {
+        HStack(spacing: AppSpacing.md) {
+            Button("输入邀请码加入") {
+                switchPhase(to: .join)
+            }
+            .font(AppTypography.caption)
+            .foregroundStyle(phase == .join ? AppColor.textPrimary : AppColor.textSecondary)
+
+            Text("或")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColor.textSecondary)
+
+            Button("创建私厨") {
+                switchPhase(to: .create)
+            }
+            .font(AppTypography.caption)
+            .foregroundStyle(phase == .create ? AppColor.textPrimary : AppColor.textSecondary)
         }
     }
 
     private var bottomBar: some View {
         VStack(spacing: AppSpacing.sm) {
-            AppButton(title: selectedMode.buttonTitle, systemImage: selectedMode.buttonSymbol) {
+            AppButton(title: buttonTitle, systemImage: buttonSymbol) {
                 submit()
             }
         }
@@ -108,118 +152,86 @@ struct OnboardingView: View {
         .background(.regularMaterial)
     }
 
+    private var hintText: String {
+        switch phase {
+        case .login:
+            store.loginNotFound
+                ? "没有找到该名字，选择加入或创建"
+                : "输入名字登录"
+        case .join:
+            "输入邀请码加入已有私厨"
+        case .create:
+            "给你的私厨起个名字"
+        }
+    }
+
+    private var buttonTitle: String {
+        switch phase {
+        case .login: "登录"
+        case .join: "加入"
+        case .create: "创建并进入"
+        }
+    }
+
+    private var buttonSymbol: String {
+        switch phase {
+        case .login: "arrow.right"
+        case .join: "arrow.right"
+        case .create: "plus"
+        }
+    }
+
+    private func switchPhase(to newPhase: OnboardingPhase) {
+        guard phase != newPhase else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            phase = newPhase
+            secondaryIsInvalid = false
+        }
+        secondaryInput = ""
+        focusedField = .secondary
+    }
+
     private func submit() {
         focusedField = nil
         let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedPrimary = primaryInput.trimmingCharacters(in: .whitespacesAndNewlines)
         let nextNameInvalid = trimmedName.isEmpty
-        let nextPrimaryInvalid = trimmedPrimary.isEmpty
 
         withAnimation(.easeInOut(duration: 0.34)) {
             nameIsInvalid = nextNameInvalid
-            primaryIsInvalid = nextPrimaryInvalid
         }
-
         if nextNameInvalid {
             nameShakeTrigger += 1
+            return
         }
 
-        if nextPrimaryInvalid {
-            primaryShakeTrigger += 1
-        }
-
-        guard !nextNameInvalid, !nextPrimaryInvalid else { return }
-
-        Task {
-            isSubmitting = true
-            defer { isSubmitting = false }
-
-            switch selectedMode {
-            case .join:
-                await store.joinKitchen(inviteCode: trimmedPrimary, displayName: trimmedName)
-            case .create:
-                await store.createKitchen(named: trimmedPrimary, displayName: trimmedName)
+        switch phase {
+        case .login:
+            Task {
+                isSubmitting = true
+                defer { isSubmitting = false }
+                await store.login(displayName: trimmedName)
             }
-        }
-    }
+        case .join, .create:
+            let trimmedSecondary = secondaryInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            let nextSecondaryInvalid = trimmedSecondary.isEmpty
 
-    private func switchMode() {
-        switchMode(to: selectedMode == .join ? .create : .join)
-    }
+            withAnimation(.easeInOut(duration: 0.34)) {
+                secondaryIsInvalid = nextSecondaryInvalid
+            }
+            if nextSecondaryInvalid {
+                secondaryShakeTrigger += 1
+                return
+            }
 
-    private func switchMode(to mode: EntryMode) {
-        guard selectedMode != mode else { return }
-        withAnimation(.easeInOut(duration: 0.2)) {
-            selectedMode = mode
-            primaryIsInvalid = false
-        }
-        primaryInput = ""
-        focusedField = nextFocusFieldAfterModeSwitch()
-    }
-
-    private func nextFocusFieldAfterModeSwitch() -> OnboardingField {
-        if displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return .displayName
-        }
-        return .primary
-    }
-}
-
-private enum EntryMode: CaseIterable {
-    case join
-    case create
-
-    var hint: String {
-        switch self {
-        case .join:
-            return "输入名字和邀请码，直接进入"
-        case .create:
-            return "输入名字和私厨名称，立即创建"
-        }
-    }
-
-    var placeholder: String {
-        switch self {
-        case .join:
-            return "邀请码"
-        case .create:
-            return "私厨名称"
-        }
-    }
-
-    var buttonTitle: String {
-        switch self {
-        case .join:
-            return "加入"
-        case .create:
-            return "创建并进入"
-        }
-    }
-
-    var buttonSymbol: String {
-        switch self {
-        case .join:
-            return "arrow.right"
-        case .create:
-            return "plus"
-        }
-    }
-
-    var autocapitalization: TextInputAutocapitalization {
-        switch self {
-        case .join:
-            return .characters
-        case .create:
-            return .words
-        }
-    }
-
-    var switchTitle: String {
-        switch self {
-        case .join:
-            return "创建我的私厨"
-        case .create:
-            return "已有邀请码，改为加入"
+            Task {
+                isSubmitting = true
+                defer { isSubmitting = false }
+                if phase == .join {
+                    await store.joinKitchen(inviteCode: trimmedSecondary, displayName: trimmedName)
+                } else {
+                    await store.createKitchen(named: trimmedSecondary, displayName: trimmedName)
+                }
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
 import type { DeviceRow, KitchenRow, MemberRow } from '../types';
-import { findByDeviceId, insertDevice } from '../db/devices';
+import { findByDeviceId, findByDisplayName, insertDevice, updateDisplayName } from '../db/devices';
 import { createKitchen, joinByInviteCode } from './kitchen-service';
 
 export async function onboardingComplete(
@@ -14,10 +14,17 @@ export async function onboardingComplete(
 ): Promise<{ device: DeviceRow; kitchen: KitchenRow; member: MemberRow }> {
   const { mode, device_id, display_name, kitchen_name, invite_code } = params;
 
-  // Upsert device
+  // Upsert device (update display_name if changed)
   let device = await findByDeviceId(db, device_id);
   if (!device) {
+    const nameTaken = await findByDisplayName(db, display_name);
+    if (nameTaken) throw new Error('该名字已被使用');
     device = await insertDevice(db, crypto.randomUUID(), device_id, display_name);
+  } else if (device.display_name !== display_name) {
+    const nameTaken = await findByDisplayName(db, display_name);
+    if (nameTaken) throw new Error('该名字已被使用');
+    await updateDisplayName(db, device.id, display_name);
+    device = { ...device, display_name };
   }
 
   if (mode === 'create') {

@@ -23,6 +23,27 @@ export async function findByDeviceId(
     .first<DeviceRow>();
 }
 
+export async function findByDisplayName(
+  db: D1Database,
+  displayName: string
+): Promise<DeviceRow | null> {
+  return db
+    .prepare('SELECT * FROM devices WHERE display_name = ?')
+    .bind(displayName)
+    .first<DeviceRow>();
+}
+
+export async function updateDisplayName(
+  db: D1Database,
+  id: string,
+  displayName: string
+): Promise<void> {
+  await db
+    .prepare('UPDATE devices SET display_name = ? WHERE id = ?')
+    .bind(displayName, id)
+    .run();
+}
+
 export async function findById(
   db: D1Database,
   id: string
