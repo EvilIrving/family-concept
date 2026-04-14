@@ -1,5 +1,5 @@
 const PASSWORD_SCHEME = 'pbkdf2_sha256';
-const PASSWORD_ITERATIONS = 210000;
+const PASSWORD_ITERATIONS = 10000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function toHex(bytes: Uint8Array): string {
