@@ -1,20 +1,65 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="77" y="77" width="870" height="870" rx="190" fill="url(#bg3)"/>
+  <g filter="url(#shadow-board)">
+    <rect x="77" y="77" width="870" height="870" rx="190" fill="url(#bg3)"/>
+  </g>
+  <rect x="109" y="109" width="806" height="806" rx="160" fill="url(#board-glow)" opacity="0.45"/>
   <g transform="translate(512 512) scale(0.78) translate(-512 -512)">
-    <path d="M276 520H748C748 679 650 786 512 786C374 786 276 679 276 520Z" fill="#FFF9EF"/>
-    <path d="M240 484C240 460 260 440 284 440H740C764 440 784 460 784 484C784 508 764 528 740 528H284C260 528 240 508 240 484Z" fill="#F2C879"/>
-    <rect x="684" y="270" width="26" height="286" rx="13" transform="rotate(20 684 270)" fill="#FFF9EF"/>
-    <rect x="622" y="250" width="26" height="286" rx="13" transform="rotate(20 622 250)" fill="#FFF9EF"/>
-    <path d="M414 274C414 233 438 206 470 184" stroke="#FFF9EF" stroke-width="26" stroke-linecap="round"/>
-    <path d="M512 258C512 217 536 190 568 168" stroke="#FFF9EF" stroke-width="26" stroke-linecap="round"/>
-    <path d="M610 274C610 233 634 206 666 184" stroke="#FFF9EF" stroke-width="26" stroke-linecap="round"/>
-    <path d="M366 612H658" stroke="#2D6A4F" stroke-width="28" stroke-linecap="round"/>
-    <path d="M402 670H622" stroke="#BFE3CF" stroke-width="24" stroke-linecap="round"/>
+    <path d="M276 520H748C748 679 650 786 512 786C374 786 276 679 276 520Z" fill="url(#bowl-body)"/>
+    <path d="M300 542H724C711 676 624 758 512 758C400 758 313 676 300 542Z" fill="url(#bowl-inner)"/>
+    <path d="M240 484C240 460 260 440 284 440H740C764 440 784 460 784 484C784 508 764 528 740 528H284C260 528 240 508 240 484Z" fill="url(#rim-fill)"/>
+    <path d="M268 464H756" stroke="#FFE3A8" stroke-width="16" stroke-linecap="round" opacity="0.75"/>
+    <rect x="684" y="270" width="26" height="286" rx="13" transform="rotate(20 684 270)" fill="url(#chopstick-light)"/>
+    <rect x="622" y="250" width="26" height="286" rx="13" transform="rotate(20 622 250)" fill="url(#chopstick-light)"/>
+    <path d="M414 274C414 233 438 206 470 184" stroke="url(#steam)" stroke-width="26" stroke-linecap="round"/>
+    <path d="M512 258C512 217 536 190 568 168" stroke="url(#steam)" stroke-width="26" stroke-linecap="round"/>
+    <path d="M610 274C610 233 634 206 666 184" stroke="url(#steam)" stroke-width="26" stroke-linecap="round"/>
+    <path d="M366 612H658" stroke="#2A6B4C" stroke-width="28" stroke-linecap="round"/>
+    <path d="M402 670H622" stroke="#B9E0C9" stroke-width="24" stroke-linecap="round"/>
+    <ellipse cx="492" cy="775" rx="176" ry="34" fill="#1E513C" opacity="0.18"/>
+    <path d="M332 568C348 660 416 722 504 734" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round" opacity="0.45"/>
+    <path d="M294 452C312 444 340 440 370 440H654" stroke="#FFF4D1" stroke-width="14" stroke-linecap="round" opacity="0.5"/>
   </g>
   <defs>
+    <filter id="shadow-board" x="47" y="53" width="930" height="930" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="18"/>
+      <feGaussianBlur stdDeviation="15"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.11 0 0 0 0 0.28 0 0 0 0 0.2 0 0 0 0.26 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
     <linearGradient id="bg3" x1="77" y1="77" x2="947" y2="947" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#2D6A4F"/>
-      <stop offset="1" stop-color="#3F8A67"/>
+      <stop stop-color="#2E7151"/>
+      <stop offset="0.52" stop-color="#418764"/>
+      <stop offset="1" stop-color="#2A6248"/>
+    </linearGradient>
+    <radialGradient id="board-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(724 200) rotate(134.541) scale(779.838)">
+      <stop stop-color="#9BD0B3"/>
+      <stop offset="1" stop-color="#9BD0B3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bowl-body" x1="334" y1="462" x2="682" y2="802" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF8"/>
+      <stop offset="0.45" stop-color="#F8F1E5"/>
+      <stop offset="1" stop-color="#E9DDCC"/>
+    </linearGradient>
+    <linearGradient id="bowl-inner" x1="378" y1="552" x2="640" y2="744" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rim-fill" x1="240" y1="440" x2="784" y2="528" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFBF63"/>
+      <stop offset="0.5" stop-color="#F6CF7B"/>
+      <stop offset="1" stop-color="#E8B757"/>
+    </linearGradient>
+    <linearGradient id="chopstick-light" x1="697" y1="270" x2="697" y2="556" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF7"/>
+      <stop offset="1" stop-color="#F1E7D8"/>
+    </linearGradient>
+    <linearGradient id="steam" x1="426" y1="184" x2="666" y2="274" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF7" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#F6F0E6" stop-opacity="0.75"/>
     </linearGradient>
   </defs>
 </svg>
