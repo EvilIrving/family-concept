@@ -237,9 +237,6 @@ private struct AppInputField: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
             .contentShape(Rectangle())
-            .onTapGesture {
-                focusedField.wrappedValue = fieldID
-            }
             .submitLabel(submitLabel)
             .appValidationFeedback(isInvalid: isInvalid, trigger: trigger)
             .onChange(of: text) { oldValue, newValue in

@@ -190,9 +190,6 @@ struct MenuView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
             .contentShape(Rectangle())
-            .onTapGesture {
-                focusedField = field
-            }
             .overlay {
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .stroke(AppColor.lineSoft, lineWidth: 1)
@@ -422,9 +419,6 @@ private struct IngredientTagInput: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
                 .contentShape(Rectangle())
-                .onTapGesture {
-                    focusedField.wrappedValue = .ingredient
-                }
                 .overlay {
                     RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                         .stroke(AppColor.lineSoft, lineWidth: 1)

@@ -1,3 +1,13 @@
+## 修复食材输入框输入法立即消失问题 · 2026-04-14 · Claude
+
+食材输入框（"添加食材"）使用中文输入法时，每输入一个字母拼音，输入法候选框就会立即消失，无法正常组字。
+
+根因是该输入框使用了 `UIViewRepresentable` 包装 `UITextField`。用户输入时 `textChanged` 更新 `@Binding var text`，触发 SwiftUI 重新调用 `updateUIView`，其中 `uiView.text = text` 会清除 UITextField 的 `markedText`（IME 组字状态），导致输入法被强制中断。
+
+修复方案：删除整个 `IngredientTextField`（UIViewRepresentable，约 85 行），替换为原生 SwiftUI `TextField`。原生 TextField 内部正确处理 IME 组字，不存在此问题。空格提交和回车提交功能通过 `.onChange(of:)` 和 `.onSubmit` 保留。同时将 `import UIKit` 改为 `import SwiftUI`。
+
+修改文件：`kitchen/kitchen/Views/MenuView.swift`
+
 ## 真机联调切换到 Cloudflare 正式域名 · 2026-04-14 10:28 · Codex
 
 这次真机显示“网络🔗失败”，根因是 iOS 端把 API 地址写成了 `http://localhost:8787`。模拟器访问本机服务时还能工作，真机里的 `localhost` 指向手机自己，所以请求一定失败。
