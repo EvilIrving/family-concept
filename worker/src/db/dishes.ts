@@ -7,13 +7,14 @@ export async function insertDish(
   name: string,
   category: string,
   createdByAccountId: string,
-  ingredientsJson = '[]'
+  ingredientsJson = '[]',
+  imageKey: string | null = null
 ): Promise<DishRow> {
   await db
     .prepare(
-      'INSERT INTO dishes (id, kitchen_id, name, category, created_by_account_id, ingredients_json) VALUES (?, ?, ?, ?, ?, ?)'
+      'INSERT INTO dishes (id, kitchen_id, name, category, image_key, created_by_account_id, ingredients_json) VALUES (?, ?, ?, ?, ?, ?, ?)'
     )
-    .bind(id, kitchenId, name, category, createdByAccountId, ingredientsJson)
+    .bind(id, kitchenId, name, category, imageKey, createdByAccountId, ingredientsJson)
     .run();
   return findById(db, id) as Promise<DishRow>;
 }

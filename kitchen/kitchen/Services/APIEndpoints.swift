@@ -145,9 +145,30 @@ extension APIClient {
         name: String,
         category: String,
         ingredients: [String]? = nil,
+        imageFileURL: URL? = nil,
         authToken: String
     ) async throws -> Dish {
-        try await request(
+        if let imageFileURL {
+            let fileData = try Data(contentsOf: imageFileURL)
+            let fields = [
+                "name": name,
+                "category": category
+            ]
+
+            return try await requestMultipart(
+                "/api/v1/kitchens/\(kitchenID)/dishes",
+                method: "POST",
+                fields: fields,
+                repeatedFields: ingredients.map { ["ingredients[]": $0] } ?? [:],
+                fileField: "image",
+                fileName: "dish.png",
+                fileData: fileData,
+                fileContentType: DishImageSpec.mimeType,
+                authToken: authToken
+            )
+        }
+
+        return try await request(
             "/api/v1/kitchens/\(kitchenID)/dishes",
             method: "POST",
             body: CreateDishBody(name: name, category: category, ingredients: ingredients),
@@ -177,6 +198,82 @@ extension APIClient {
             method: "DELETE",
             authToken: authToken
         )
+    }
+}
+
+// MARK: - Dish Images
+
+extension APIClient {
+    struct DishImageUploadTicket: Decodable {
+        let uploadURL: String
+        let imageKey: String
+        let method: String
+        let contentType: String
+    }
+
+    struct DishImageUploadResult: Decodable {
+        let ok: Bool
+        let imageKey: String
+    }
+
+    func requestDishImageUploadURL(dishID: String, authToken: String) async throws -> DishImageUploadTicket {
+        try await request(
+            "/api/v1/dishes/\(dishID)/image_upload_url",
+            method: "POST",
+            authToken: authToken
+        )
+    }
+
+    @discardableResult
+    func uploadDishImage(
+        uploadPath: String,
+        fileURL: URL,
+        contentType: String,
+        fallbackImageKey: String,
+        authToken: String
+    ) async throws -> DishImageUploadResult {
+        let data = try Data(contentsOf: fileURL)
+        let responseData = try await uploadBinaryAllowingEmptyBody(
+            uploadPath,
+            data: data,
+            contentType: contentType,
+            authToken: authToken
+        )
+
+        guard let responseData else {
+            return DishImageUploadResult(ok: true, imageKey: fallbackImageKey)
+        }
+
+        do {
+            return try uploadDecoder.decode(DishImageUploadResult.self, from: responseData)
+        } catch {
+            if let text = String(data: responseData, encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+               text == "ok" {
+                return DishImageUploadResult(ok: true, imageKey: fallbackImageKey)
+            }
+            throw uploadDecodeError(error, data: responseData)
+        }
+    }
+
+    private var uploadDecoder: JSONDecoder {
+        let d = JSONDecoder()
+        d.keyDecodingStrategy = .convertFromSnakeCase
+        return d
+    }
+
+    private func uploadDecodeError(_ error: Error, data: Data) -> APIError {
+        if data.isEmpty {
+            return .invalidResponse("接口返回为空")
+        }
+
+        if let text = String(data: data, encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !text.isEmpty {
+            return .invalidResponse("接口返回格式异常：\(String(text.prefix(120)))")
+        }
+
+        return .decoding(error)
     }
 }
 

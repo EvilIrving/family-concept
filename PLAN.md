@@ -1,150 +1,510 @@
-# 菜品图片统一裁剪与透明 PNG 上传方案
+# 菜品图片链路增量实现计划
 
 ## Summary
-在 iOS App 中实现两条图片入口：`拍照上传` 和 `相册上传`。两条路径都收敛到同一套规则：固定比例取景器裁出有效区域，本地执行去背景，导出统一尺寸透明底 `PNG`，用户确认保存菜品时再同步上传到 R2，数据库保存可访问图片地址。
 
-核心约束：
-- 拍照页取景器比例、相册裁剪页取景器比例、菜单展示比例完全一致
-- 客户端只上传处理后的成品 `PNG`
-- 原图和中间文件只在本地临时缓存，上传成功后立即清理
-- 后端负责签发上传地址，客户端负责拼接最终访问地址并随菜品保存
+本计划以当前仓库现状为事实源，目标是在现有 `AppStore + APIClient + Worker` 体系上，补齐菜品图片的完整闭环：
 
-## Key Changes
-### iOS 端图片链路
-- 新增统一图片规格常量 `DishImageSpec`：
-  - `viewportAspectRatio`：拍照、裁剪、展示共用同一比例，建议 `4:3`
-  - `outputPixelSize`：统一输出尺寸，例如 `1200x900`
-  - `displayAspectRatio`：菜单卡片图片容器使用同一比例
-  - `mimeType`：`image/png`
-- 新增图片草稿状态 `DishDraftImageState`：
-  - `empty`
-  - `capturing`
-  - `cropping`
-  - `processing`
-  - `ready(previewImage, pngFileURL, publicURL)`
-  - `failed(message)`
-- 新增本地协调器 `DishImageCoordinator`，负责：
-  - 原图导入
-  - 临时文件路径分配
-  - 裁剪参数保存
-  - 去背景处理
-  - PNG 导出
-  - 上传前缓存管理
-  - 上传成功后的清理
+- iOS 端支持两条入口：`拍照上传`、`相册上传`
+- 两条入口统一收敛到同一套裁剪比例、同一套图片处理规格、同一套上传流程
+- 客户端只上传处理后的成品图
+- Worker 继续承担上传入口、权限校验、R2 写入和 `image_key` 持久化
+- 菜单页使用真实菜品图展示，无图时保留现有占位视觉
 
-### 拍照流程
-- 新增自定义拍照页 `DishCameraCaptureView`
-- 使用 `AVCaptureSession + AVCapturePhotoOutput`
-- 页面中央叠加固定比例取景器遮罩：
-  - 可视区之外做半透明遮罩
-  - 拍照按钮、关闭按钮、闪光灯切换放在安全区内
-- 拍照结果处理：
-  1. 获取原始照片
-  2. 将预览层坐标系中的取景器区域映射到照片像素坐标
-  3. 直接裁出取景器范围作为有效图
-  4. 把裁后的图送入去背景流水线
-  5. 生成透明底 PNG 预览
-- 拍照页不再提供二次自由裁剪，拍摄时的取景器就是最终裁切规则
+本计划服务当前代码库，不引入新的身份模型，不拆分新的 Store 体系，不重做上传协议形态。
 
-### 相册流程
-- 使用 `PhotosPicker` 选择图片
-- 选中后进入自定义裁剪页 `DishPhotoCropView`
-- 裁剪页与拍照页保持同一取景器比例和视觉样式
-- 用户交互：
-  - 拖拽图片调整主体位置
-  - 双指缩放调整主体大小
-  - 限制最小缩放，保证取景器始终被图片覆盖
-- 确认裁剪后：
-  1. 根据当前平移缩放参数裁出取景器区域
-  2. 将裁后图送入去背景流水线
-  3. 生成透明底 PNG 预览
+## Current Source Of Truth
 
-### 图像处理
-- 新增 `DishImagePipeline`
-- 输入统一为“取景器范围内的裁后图”
-- 处理步骤：
-  1. 规范方向
-  2. 缩放到输出规格附近，控制处理成本
-  3. 使用 `Vision` 的 `VNGenerateForegroundInstanceMaskRequest` 做主体提取
-  4. 用 mask 生成透明背景图
-  5. 输出为统一尺寸透明底 `PNG`
-- 本版不做主体有效性检查
-- 处理失败时展示明确错误：读取失败、裁剪失败、去背景失败、导出失败
+当前代码中的既有约束如下：
 
-### 保存与上传
-- 用户完成图片处理后只缓存本地成品，不立即上传
-- 用户点击“保存菜品”时执行串行流程：
-  1. 若菜品未创建，先创建菜品基础信息
-  2. 请求后端上传票据
-  3. 直接上传本地 `PNG` 成品到 R2
-  4. 基于 `image_key` 拼接公开访问地址
-  5. 将图片地址或对应字段写入菜品记录
-  6. 删除本地原图与全部中间文件
-- 如果图片上传失败：
-  - 菜品基础信息保留
-  - 当前页面保留可重试状态
-  - 用户可再次点击保存继续上传图片
-
-### 展示层
-- `MenuDishCard` 改为使用真实菜品图
-- 图片容器比例与 `DishImageSpec.viewportAspectRatio` 一致
-- 使用 `AsyncImage` 或等价远程图方案
-- 内容模式固定为适配透明 PNG 的展示模式，避免拉伸变形
-- 无图时回退到现有占位视觉
-
-### 后端
-- 保留“只签发上传地址、保存图片字段”的职责
-- 调整图片 key 规则：
-  - `"{kitchen_id}/{dish_id}.png"`
-- `POST /api/v1/dishes/:dish_id/image_upload_url` 返回：
-  - `upload_url`
-  - `image_key`
-  - `method`
-  - `headers`
-  - `expires_at`
-- 上传目标 content type 固定 `image/png`
-- 菜品更新接口支持写入图片字段：
-  - 如果当前库里存的是 `image_key`，客户端存 `image_key`
-  - 如果你准备改成图片完整地址，新增 `image_url` 字段后再写完整地址
-- 推荐继续存 `image_key`，读取时由客户端拼接访问地址，数据更稳定
-
-## Public Interfaces
-- iOS 新增类型：
-  - `DishImageSpec`
-  - `DishDraftImageState`
-  - `DishImageCoordinator`
-  - `DishImagePipeline`
-  - `DishImageUploadTicket`
-- iOS API 新增响应模型：
-  - `RequestDishImageUploadURLResponse { uploadURL, imageKey, method, headers, expiresAt }`
-- 后端接口保持：
+- iOS 使用单一 `AppStore` 管理 `kitchen / members / dishes / orders`
+- iOS 网络层由 `APIClient` 统一发起
+- 领域模型使用 `Account / accountId / auth token`
+- `Dish` 已有 `imageKey: String?`
+- Worker 已提供图片相关接口：
   - `POST /api/v1/dishes/:dish_id/image_upload_url`
-  - `PATCH /api/v1/dishes/:dish_id`
-- 数据字段推荐：
-  - DB 继续保存 `image_key`
-  - App 侧增加 `publicImageURL(baseURL:)` 计算属性用于展示
+  - `PUT /api/v1/dishes/:dish_id/image`
+- Worker 当前负责：
+  - 校验 dish 存在性
+  - 校验成员身份与角色权限
+  - 接收客户端上传的图片流
+  - 写入 R2
+  - 更新 dishes 表中的 `image_key`
+
+后续新增能力都基于这套结构演进。
+
+## Goals
+
+1. 统一拍照、相册裁剪、菜单展示的图片比例
+2. 在 iOS 端完成裁剪、去背景、导出透明底 PNG
+3. 保持 Worker 代理上传模式，避免新增直传 R2 的复杂协议
+4. 保存菜品时完成图片上传与 `image_key` 写入
+5. 菜单卡片接入真实图片展示
+
+## Non-Goals
+
+- 不重构为 `DishStore / OrderStore / MemberStore`
+- 不改回 `device_id / devices` 模型
+- 不把图片上传改成客户端直传 R2
+- 不在本阶段引入图片编辑历史、滤镜、多图、草稿箱
+- 不在本阶段实现服务端图片二次处理
+
+## Architecture
+
+### iOS 端职责
+
+- 提供拍照页和相册裁剪页
+- 统一管理菜品图片草稿状态
+- 完成裁剪、方向修正、前景抠图、透明 PNG 导出
+- 在用户点击“保存菜品”时上传处理后的成品图
+- 上传成功后刷新本地 `Dish`
+
+### Worker 端职责
+
+- 提供上传入口
+- 统一做权限校验
+- 接收处理后的 PNG 数据流
+- 将 PNG 写入 R2
+- 将 `image_key` 写回 `dishes.image_key`
+
+### 数据层职责
+
+- `dishes` 表继续保留 `image_key`
+- 客户端展示时基于 `image_key` 拼接可访问 URL
+- 数据库存储继续只保存 key，不存本地临时文件信息
+
+## Worker 上传链路
+
+### 现有模型
+
+当前仓库中的上传模型是“Worker 代理上传”，不是“客户端直传 R2”。
+
+链路如下：
+
+1. iOS 创建或更新菜品基础信息
+2. iOS 调用 `POST /api/v1/dishes/:dish_id/image_upload_url`
+3. Worker 校验：
+   - 菜品存在
+   - 菜品未归档
+   - 当前用户属于该 kitchen
+   - 当前用户角色为 `owner` 或 `admin`
+4. Worker 返回上传信息
+5. iOS 使用返回的上传入口，发起 `PUT` 上传成品图
+6. Worker 接收请求体并写入 R2
+7. Worker 更新 `dishes.image_key`
+8. Worker 返回上传成功结果
+9. iOS 刷新本地 dish 数据并展示真实图片
+
+### 推荐保留的协议形态
+
+本阶段继续保留两段式接口：
+
+- `POST /api/v1/dishes/:dish_id/image_upload_url`
+- `PUT /api/v1/dishes/:dish_id/image`
+
+保留原因：
+
+- 兼容当前代码结构
+- 权限校验集中在 Worker
+- 客户端实现简单
+- 后续若需要加入限流、审计、内容检查，也有统一入口
+
+### 本阶段要调整的点
+
+当前 Worker 使用 `.jpg` 和 `image/jpeg`。本计划统一改为透明底 PNG：
+
+- `image_key` 规则改为 `"{kitchen_id}/{dish_id}.png"`
+- `PUT /api/v1/dishes/:dish_id/image` 写入 R2 时使用 `contentType: image/png`
+- `POST /image_upload_url` 返回的 `image_key` 同步变为 `.png`
+
+### 接口约定
+
+#### `POST /api/v1/dishes/:dish_id/image_upload_url`
+
+职责：
+
+- 校验权限
+- 返回当前 dish 的上传入口和目标 key
+
+建议响应：
+
+```json
+{
+  "upload_url": "/api/v1/dishes/<dish_id>/image",
+  "image_key": "<kitchen_id>/<dish_id>.png",
+  "method": "PUT",
+  "content_type": "image/png"
+}
+```
+
+说明：
+
+- `upload_url` 继续指向 Worker 自己的上传入口
+- `method` 和 `content_type` 返回给 iOS，便于客户端统一上传实现
+
+#### `PUT /api/v1/dishes/:dish_id/image`
+
+职责：
+
+- 校验权限
+- 接收 PNG 请求体
+- 写入 R2
+- 更新 dishes 表中的 `image_key`
+
+建议返回：
+
+```json
+{
+  "ok": true,
+  "image_key": "<kitchen_id>/<dish_id>.png"
+}
+```
+
+### Worker 实现要求
+
+#### 路由层
+
+- 保持当前 `worker/src/routes/dishes.ts` 作为图片接口入口
+- 上传前校验 dish、member、role
+- 对归档菜品返回 `404`
+- 对成员权限不足返回 `403`
+
+#### R2 写入
+
+- key 统一使用 `"{kitchen_id}/{dish_id}.png"`
+- `httpMetadata.contentType` 固定为 `image/png`
+
+#### DB 更新
+
+- R2 写入成功后再更新 `dishes.image_key`
+- 数据库更新失败时返回错误，避免客户端误判上传完成
+
+#### 错误语义
+
+- 菜品不存在：`404`
+- 当前用户不是 kitchen 成员：`403`
+- 当前用户是 member 无管理权限：`403`
+- R2 写入失败：`500`
+- DB 更新失败：`500`
+
+## iOS 图片实现
+
+### 总体原则
+
+- 拍照入口和相册入口共用同一套图片规格
+- 最终上传物统一为透明底 PNG
+- 原图、中间图、导出图只在本地临时目录保留
+- 用户点击“保存菜品”时再上传
+- 上传成功后清理临时文件
+
+### 图片规格
+
+新增统一规格类型 `DishImageSpec`：
+
+- `viewportAspectRatio`: 拍照、裁剪、展示共用比例，先采用 `4:3`
+- `outputPixelSize`: 导出尺寸，先采用 `1200x900`
+- `mimeType`: `image/png`
+- `fileExtension`: `png`
+
+图片相关页面和菜单卡片都以这组常量为准。
+
+### 本地图片状态
+
+新增 `DishDraftImageState`，用于新增菜品 sheet 内部管理图片流程：
+
+- `empty`
+- `capturing`
+- `cropping`
+- `processing`
+- `ready(previewImage, pngFileURL)`
+- `uploading`
+- `failed(message)`
+
+这个状态先作为新增菜品页面的本地 `@State` 或图片协调对象状态存在，不单独拆 Store。
+
+### 图片协调器
+
+新增 `DishImageCoordinator`，负责串联端侧图片流程：
+
+- 导入原图
+- 分配临时文件路径
+- 保存裁剪参数
+- 调用去背景流水线
+- 输出 PNG 文件
+- 上传前读取最终文件
+- 上传完成后清理临时文件
+
+### 相册上传实现
+
+#### 入口
+
+- 在新增菜品 sheet 中加入“从相册选择”
+- 使用 `PhotosPicker`
+
+#### 交互流程
+
+1. 用户从相册选图
+2. 进入自定义裁剪页 `DishPhotoCropView`
+3. 裁剪页提供固定比例取景器
+4. 用户可拖拽图片调整主体位置
+5. 用户可双指缩放调整主体大小
+6. 限制最小缩放，确保取景器始终被图片完整覆盖
+7. 用户确认后导出取景器范围图像
+8. 将裁后图送入去背景流水线
+9. 输出透明 PNG 预览
+
+#### 裁剪页要求
+
+- 取景器比例与拍照页完全一致
+- 非取景器区域使用半透明遮罩
+- 顶部保留关闭与确认动作
+- 视觉风格遵循现有 `AppTheme`
+
+### 拍照上传实现
+
+#### 入口
+
+- 在新增菜品 sheet 中加入“拍照上传”
+- 进入自定义拍照页 `DishCameraCaptureView`
+
+#### 拍照页实现
+
+- 使用 `AVCaptureSession + AVCapturePhotoOutput`
+- 页面中央叠加固定比例取景器
+- 取景器外区域使用半透明遮罩
+- 操作按钮放在安全区内，包含：
+  - 关闭
+  - 拍照
+  - 闪光灯切换
+
+#### 拍照后处理
+
+1. 获取原始照片数据
+2. 统一处理方向信息
+3. 将取景器区域从预览层坐标映射到原始图像像素坐标
+4. 直接裁出取景器范围
+5. 将裁后图送入去背景流水线
+6. 生成透明 PNG 预览
+
+#### 交互约束
+
+- 拍照流程采用“拍时即裁”
+- 拍照后不进入自由裁剪页
+- 拍照页取景器就是最终裁剪规则
+
+### 去背景与导出
+
+新增 `DishImagePipeline`，输入统一为“已经裁好的取景器图像”。
+
+处理步骤：
+
+1. 修正图片方向
+2. 将输入图缩放到目标处理尺寸附近
+3. 使用 `Vision` 的 `VNGenerateForegroundInstanceMaskRequest` 提取主体
+4. 基于 mask 生成透明背景图
+5. 缩放并导出为统一尺寸 PNG
+
+失败时给出明确错误：
+
+- 图片读取失败
+- 裁剪失败
+- 去背景失败
+- 导出失败
+
+### 保存菜品时的上传逻辑
+
+当前新增菜品流程在 `MenuView` 中调用 `store.addDish(...)`。图片能力接入后，保存流程调整为串行步骤：
+
+1. 先创建菜品基础信息
+2. 若当前没有图片，流程结束
+3. 若当前有处理完成的 PNG：
+   - 调用 `POST /api/v1/dishes/:dish_id/image_upload_url`
+   - 按返回的 `upload_url` 发起 `PUT`
+   - 上传本地 PNG 成品
+4. 上传成功后：
+   - 清理临时文件
+   - 重新拉取 dishes，或直接用返回值更新对应 dish 的 `imageKey`
+5. 若上传失败：
+   - 保留已创建的菜品基础信息
+   - 保留页面上的本地图片状态
+   - 允许用户再次点击保存重试上传
+
+### APIClient 扩展
+
+iOS 端新增接口模型：
+
+```swift
+struct DishImageUploadTicket: Decodable {
+    let uploadURL: String
+    let imageKey: String
+    let method: String
+    let contentType: String
+}
+```
+
+新增 API：
+
+- `requestDishImageUploadURL(dishID:authToken:)`
+- `uploadDishImage(uploadURL:fileURL:contentType:authToken:)`
+
+说明：
+
+- 上传请求仍然走 Worker 接口
+- 若 `upload_url` 为相对路径，按当前 `baseURL` 拼接成绝对地址后再发请求
+
+## 展示层接入
+
+### Dish 模型
+
+继续使用现有 `imageKey: String?`，不新增 `imageURL` 持久化字段。
+
+可以增加便捷计算属性：
+
+```swift
+func publicImageURL(baseURL: String) -> URL?
+```
+
+用于菜单展示层拼接访问地址。
+
+### MenuDishCard
+
+当前 `MenuDishCard` 使用系统图占位。接入真实图片后改为：
+
+- 有 `imageKey` 时展示远程图片
+- 无图时保留现有渐变占位和图标
+- 图片容器比例与 `DishImageSpec.viewportAspectRatio` 一致
+- 透明 PNG 使用适合主体展示的内容模式，避免拉伸
+
+### MenuView
+
+`MenuView` 的新增菜品 sheet 需要补充：
+
+- 图片入口区
+- 图片预览区
+- 处理状态展示
+- 上传失败重试提示
+
+这部分先在现有 `MenuView` 内实现，等流程稳定后再视体量拆分 `AddDishSheet`。
+
+## File Plan
+
+### Worker
+
+- `worker/src/routes/dishes.ts`
+  - 将 `.jpg` 改为 `.png`
+  - 返回 `method`、`content_type`
+  - 写入 R2 时使用 `image/png`
+
+### iOS Models / Services
+
+- `kitchen/kitchen/Models/Domain.swift`
+  - 保持 `imageKey`
+  - 视需要增加图片 URL 计算属性
+
+- `kitchen/kitchen/Services/APIEndpoints.swift`
+  - 新增图片上传 ticket 请求
+  - 新增图片上传方法
+
+### iOS UI / Views
+
+- `kitchen/kitchen/Views/MenuView.swift`
+  - 新增图片入口与保存串行流程
+
+- `kitchen/kitchen/UI/Components/MenuDishCard.swift`
+  - 支持远程图片展示
+
+### iOS New Files
+
+- `kitchen/kitchen/Models/DishImageSpec.swift`
+- `kitchen/kitchen/Models/DishDraftImageState.swift`
+- `kitchen/kitchen/Services/DishImagePipeline.swift`
+- `kitchen/kitchen/Services/DishImageCoordinator.swift`
+- `kitchen/kitchen/Views/DishCameraCaptureView.swift`
+- `kitchen/kitchen/Views/DishPhotoCropView.swift`
+
+## Delivery Phases
+
+### Phase 1
+
+文档与协议对齐
+
+- 更新 `PLAN.md`
+- 明确 Worker 代理上传链路
+- 明确 PNG 规格
+
+### Phase 2
+
+Worker PNG 上传链路
+
+- 上传 key 从 `.jpg` 改为 `.png`
+- R2 metadata 改为 `image/png`
+- 返回 upload ticket
+
+### Phase 3
+
+iOS 相册链路
+
+- `PhotosPicker`
+- 自定义裁剪页
+- 去背景与 PNG 导出
+- 保存时上传
+
+### Phase 4
+
+菜单真实图片展示
+
+- `MenuDishCard` 展示远程图
+- `MenuView` 接入预览和上传结果
+
+### Phase 5
+
+iOS 拍照链路
+
+- 自定义拍照页
+- 固定比例取景器
+- 拍后直接裁切
+
+### Phase 6
+
+测试与体验打磨
+
+- 异常处理
+- 文件清理
+- UI 调整
 
 ## Test Plan
-- 单测
-  - 裁剪参数能正确从取景器映射到原图像素坐标
-  - 拍照页与相册裁剪页输出尺寸一致
-  - 去背景后输出文件格式为透明底 PNG
-  - 上传成功后原图、裁剪图、mask、导出图全部删除
-- UI 测试
-  - 相册入口可进入裁剪页，拖拽缩放后生成预览
-  - 拍照入口可见固定比例取景器，拍照后直接生成预览
-  - 保存菜品时带图上传成功，菜单卡片显示真实图片
-  - 上传失败时菜品文本保留，图片可重试上传
-- 端到端
-  - R2 中只有处理后的成品 PNG
-  - 数据库存储的图片字段可还原出可访问地址
-  - 拍照、裁剪、展示三处比例一致，视觉无变形
 
-## Assumptions
-- 最低系统版本 `iOS 17.6`，可直接使用 `PhotosPicker` 和 `Vision`
-- 取景器比例采用 `4:3`
-- 输出尺寸采用 `1200x900`
-- 数据库存 `image_key`，客户端通过配置的 `IMAGE_BASE_URL` 拼接访问地址
-- 去背景能力完全在端侧完成，后端不参与任何图片后处理
+### Worker
 
-先按这套方案实现，优先顺序是：统一图片规格常量、拍照页、相册裁剪页、本地去背景流水线、保存时上传、菜单展示接入真实图片。
+- `POST /image_upload_url` 返回 `.png` key
+- `PUT /image` 能写入 PNG 到 R2
+- 上传成功后 dishes 表的 `image_key` 被更新
+- member 角色上传返回 `403`
+- 已归档菜品上传返回 `404`
+
+### iOS 单测
+
+- 裁剪参数到原图坐标映射正确
+- 相册裁剪输出尺寸正确
+- 拍照裁切输出比例正确
+- 去背景后导出文件格式为透明 PNG
+- 上传成功后临时文件被清理
+
+### iOS UI 测试
+
+- 相册入口进入裁剪页并生成预览
+- 拍照入口显示固定比例取景器
+- 保存菜品时可上传图片
+- 上传失败后可再次重试
+- 菜单卡片成功显示真实图片
+
+## Implementation Order
+
+1. Worker 图片链路升级到 PNG
+2. iOS `APIClient` 增加 upload ticket 和上传方法
+3. iOS 相册裁剪与图片处理
+4. 保存菜品时上传图片
+5. 菜单真实图片展示
+6. iOS 拍照页
+7. 测试与细节打磨
+
+先完成相册链路和菜单展示闭环，再接拍照链路。这条顺序最稳，验证成本最低，和现有体系最一致。

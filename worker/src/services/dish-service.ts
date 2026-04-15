@@ -7,11 +7,21 @@ export async function createDish(
   createdByAccountId: string,
   name: string,
   category: string,
-  ingredients?: unknown[]
+  ingredients?: unknown[],
+  options?: { id?: string; imageKey?: string | null }
 ): Promise<DishRow> {
-  const id = crypto.randomUUID();
+  const id = options?.id ?? crypto.randomUUID();
   const ingredientsJson = JSON.stringify(ingredients ?? []);
-  return insertDish(db, id, kitchenId, name, category, createdByAccountId, ingredientsJson);
+  return insertDish(
+    db,
+    id,
+    kitchenId,
+    name,
+    category,
+    createdByAccountId,
+    ingredientsJson,
+    options?.imageKey ?? null
+  );
 }
 
 export async function getDishForKitchen(

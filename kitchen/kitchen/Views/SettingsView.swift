@@ -6,7 +6,7 @@ struct SettingsView: View {
     @State private var notificationsEnabled = true
     @State private var hapticsEnabled = true
     @State private var toast: AppToastData?
-    @State private var memberSheet: MemberSheetToken?
+    @StateObject private var modalRouter = ModalRouter<SettingsModalRoute>()
 
     var body: some View {
         AppScrollPage {
@@ -84,7 +84,7 @@ struct SettingsView: View {
             }
         }
         .appToast($toast)
-        .sheet(item: $memberSheet) { token in
+        .sheet(item: memberSheetBinding, onDismiss: { modalRouter.didDismissCurrent() }) { token in
             MemberRoleSheet(memberAccountID: token.accountID)
                 .environmentObject(store)
                 .presentationBackground(.clear)
@@ -141,7 +141,7 @@ struct SettingsView: View {
         let initials = String(member.nickName.prefix(1))
 
         return Button {
-            memberSheet = MemberSheetToken(accountID: member.accountId)
+            modalRouter.present(.member(MemberSheetToken(accountID: member.accountId)))
         } label: {
             ZStack {
                 Circle()
@@ -200,11 +200,40 @@ struct SettingsView: View {
         }
         .frame(minHeight: 44)
     }
+
+    private var memberSheetBinding: Binding<MemberSheetToken?> {
+        Binding(
+            get: {
+                if case .member(let token) = modalRouter.current {
+                    return token
+                }
+                return nil
+            },
+            set: { token in
+                if let token {
+                    modalRouter.present(.member(token))
+                } else if case .member = modalRouter.current {
+                    modalRouter.dismiss()
+                }
+            }
+        )
+    }
 }
 
 private struct MemberSheetToken: Identifiable {
     let accountID: String
     var id: String { accountID }
+}
+
+private enum SettingsModalRoute: Identifiable {
+    case member(MemberSheetToken)
+
+    var id: String {
+        switch self {
+        case .member(let token):
+            return token.id
+        }
+    }
 }
 
 private struct MemberRoleSheet: View {

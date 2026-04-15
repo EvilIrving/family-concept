@@ -1,5 +1,5 @@
 import SwiftUI
-import SwiftUI
+import PhotosUI
 
 fileprivate enum MenuField {
     case name
@@ -8,10 +8,34 @@ fileprivate enum MenuField {
     case search
 }
 
+private struct CropPresentation: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+private enum MenuModalRoute: Identifiable {
+    case addDish
+    case cart
+    case camera
+    case crop(CropPresentation)
+
+    var id: String {
+        switch self {
+        case .addDish:
+            return "add-dish"
+        case .cart:
+            return "cart"
+        case .camera:
+            return "camera"
+        case .crop(let presentation):
+            return "crop-\(presentation.id.uuidString)"
+        }
+    }
+}
+
 struct MenuView: View {
     @EnvironmentObject private var store: AppStore
-    @State private var showsAddDish = false
-    @State private var showsCart = false
+    @StateObject private var modalRouter = ModalRouter<MenuModalRoute>()
     @State private var searchText = ""
     @State private var debouncedSearchText = ""
     @State private var selectedCategory = "全部"
@@ -23,6 +47,9 @@ struct MenuView: View {
     @State private var validationMessage: String?
     @State private var toast: AppToastData?
     @FocusState private var focusedField: MenuField?
+
+    @StateObject private var imageCoordinator = DishImageCoordinator()
+    @State private var selectedPhotoItem: PhotosPickerItem?
 
     private let quickCategories = ["家常菜", "快手菜", "汤羹", "主食", "饮品", "甜点", "其他"]
 
@@ -66,6 +93,7 @@ struct MenuView: View {
                                 title: dish.name,
                                 category: dish.category,
                                 quantity: store.cartQuantity(for: dish.id),
+                                imageURL: dish.publicImageURL(baseURL: DishImageSpec.r2PublicBaseURL),
                                 onDecrease: {
                                     guard store.cartQuantity(for: dish.id) > 0 else { return }
                                     store.updateCartQuantity(dishID: dish.id, delta: -1)
@@ -91,7 +119,7 @@ struct MenuView: View {
             menuCartBar
         }
         .appPageBackground()
-        .sheet(isPresented: $showsAddDish) {
+        .sheet(isPresented: addDishBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
             AppSheetContainer(
                 title: "新增菜品",
                 dismissTitle: "关闭",
@@ -101,6 +129,12 @@ struct MenuView: View {
             ) {
                 ScrollView {
                     VStack(spacing: AppSpacing.sm) {
+                        DishImagePickerSection(
+                            coordinator: imageCoordinator,
+                            selectedPhotoItem: $selectedPhotoItem,
+                            onCameraRequest: { modalRouter.transition(to: .camera) }
+                        )
+
                         sheetTextField("菜名", text: $name, field: .name)
 
                         VStack(alignment: .leading, spacing: AppSpacing.xs) {
@@ -136,12 +170,12 @@ struct MenuView: View {
                 focusedField = nil
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(180))
-                    guard showsAddDish else { return }
+                    guard isPresentingAddDish else { return }
                     focusedField = .name
                 }
             }
         }
-        .sheet(isPresented: $showsCart) {
+        .sheet(isPresented: cartBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
             CartSheet()
                 .environmentObject(store)
                 .presentationBackground(.clear)
@@ -153,12 +187,52 @@ struct MenuView: View {
             guard !Task.isCancelled else { return }
             debouncedSearchText = searchText
         }
+        .onChange(of: selectedPhotoItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    await MainActor.run {
+                        modalRouter.transition(to: .crop(CropPresentation(image: image)))
+                    }
+                }
+                await MainActor.run {
+                    selectedPhotoItem = nil
+                }
+            }
+        }
+        .fullScreenCover(isPresented: cameraBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
+            DishCameraCaptureView(
+                onCapture: { image in
+                    imageCoordinator.processImage(image)
+                    modalRouter.transition(to: .addDish)
+                },
+                onCancel: {
+                    modalRouter.transition(to: .addDish)
+                }
+            )
+            .ignoresSafeArea()
+        }
+        .fullScreenCover(item: cropBinding, onDismiss: { modalRouter.didDismissCurrent() }) { presentation in
+            DishPhotoCropView(
+                sourceImage: presentation.image,
+                onConfirm: { cropped in
+                    imageCoordinator.processImage(cropped)
+                    modalRouter.transition(to: .addDish)
+                },
+                onCancel: {
+                    modalRouter.transition(to: .addDish)
+                }
+            )
+        }
         .appToast($toast)
     }
 
     private func saveDish() {
         let addedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalCategory = resolvedCategory
+        store.error = nil
+        validationMessage = nil
         guard !addedName.isEmpty else {
             validationMessage = "请输入菜名"
             focusedField = .name
@@ -171,15 +245,62 @@ struct MenuView: View {
         }
 
         Task {
-            await store.addDish(name: addedName, category: finalCategory, ingredients: ingredientTags)
+            guard store.kitchen != nil else {
+                validationMessage = "当前还没有进入 kitchen"
+                return
+            }
+
+            let previousImageState = imageCoordinator.imageState
+            let imageFileURL: URL?
+            switch imageCoordinator.imageState {
+            case .ready(_, let url), .uploadFailed(_, let url, _):
+                imageCoordinator.imageState = .uploading
+                imageFileURL = url
+            default:
+                imageFileURL = nil
+            }
+
+            guard let dish = await store.addDish(
+                name: addedName,
+                category: finalCategory,
+                ingredients: ingredientTags,
+                imageFileURL: imageFileURL
+            ) else {
+                validationMessage = store.error ?? "保存失败"
+                if let imageFileURL {
+                    restoreUploadState(previousState: previousImageState, fileURL: imageFileURL, message: validationMessage ?? "保存失败")
+                }
+                return
+            }
+
+            if let imageFileURL {
+                imageCoordinator.cleanupAfterUpload(fileURL: imageFileURL)
+            }
+
+            // Reset and close
+            let savedName = dish.name
             name = ""
             selectedQuickCategory = "家常菜"
             customCategory = ""
             ingredientTags = []
             ingredientInput = ""
             validationMessage = nil
-            showsAddDish = false
-            toast = AppToastData(message: "已新增 \(addedName)")
+            imageCoordinator.clearImage()
+            modalRouter.dismiss()
+            toast = AppToastData(message: "已新增 \(savedName)")
+        }
+    }
+
+    private func restoreUploadState(previousState: DishDraftImageState, fileURL: URL, message: String) {
+        switch previousState {
+        case .uploadFailed(let previewImage, _, _), .ready(let previewImage, _):
+            imageCoordinator.imageState = .uploadFailed(
+                previewImage: previewImage,
+                fileURL: fileURL,
+                message: message
+            )
+        default:
+            imageCoordinator.imageState = .failed(message)
         }
     }
 
@@ -240,9 +361,9 @@ struct MenuView: View {
                 .fill(AppColor.lineSoft)
                 .frame(height: 1)
 
-            Button {
-                showsCart = true
-            } label: {
+                Button {
+                    modalRouter.present(.cart)
+                } label: {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "cart.fill")
                         .font(.system(size: 16, weight: .semibold))
@@ -325,7 +446,7 @@ struct MenuView: View {
 
             if store.canManageDishes {
                 Button {
-                    showsAddDish = true
+                    modalRouter.present(.addDish)
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "plus.circle.fill")
@@ -373,7 +494,200 @@ struct MenuView: View {
         ingredientTags = []
         ingredientInput = ""
         validationMessage = nil
-        showsAddDish = false
+        imageCoordinator.clearImage()
+        modalRouter.dismiss()
+    }
+
+    private var isPresentingAddDish: Bool {
+        if case .addDish = modalRouter.current {
+            return true
+        }
+        return false
+    }
+
+    private var addDishBinding: Binding<Bool> {
+        Binding(
+            get: { isPresentingAddDish },
+            set: { isPresented in
+                if isPresented {
+                    modalRouter.present(.addDish)
+                } else if isPresentingAddDish {
+                    modalRouter.dismiss()
+                }
+            }
+        )
+    }
+
+    private var cartBinding: Binding<Bool> {
+        Binding(
+            get: {
+                if case .cart = modalRouter.current {
+                    return true
+                }
+                return false
+            },
+            set: { isPresented in
+                if isPresented {
+                    modalRouter.present(.cart)
+                } else if case .cart = modalRouter.current {
+                    modalRouter.dismiss()
+                }
+            }
+        )
+    }
+
+    private var cameraBinding: Binding<Bool> {
+        Binding(
+            get: {
+                if case .camera = modalRouter.current {
+                    return true
+                }
+                return false
+            },
+            set: { isPresented in
+                if isPresented {
+                    modalRouter.present(.camera)
+                } else if case .camera = modalRouter.current {
+                    modalRouter.dismiss()
+                }
+            }
+        )
+    }
+
+    private var cropBinding: Binding<CropPresentation?> {
+        Binding(
+            get: {
+                if case .crop(let presentation) = modalRouter.current {
+                    return presentation
+                }
+                return nil
+            },
+            set: { presentation in
+                if let presentation {
+                    modalRouter.present(.crop(presentation))
+                } else if case .crop = modalRouter.current {
+                    modalRouter.dismiss()
+                }
+            }
+        )
+    }
+}
+
+private struct DishImagePickerSection: View {
+    @ObservedObject var coordinator: DishImageCoordinator
+    @Binding var selectedPhotoItem: PhotosPickerItem?
+    let onCameraRequest: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            Text("菜品图片")
+                .font(AppTypography.micro)
+                .foregroundStyle(AppColor.textSecondary)
+
+            switch coordinator.imageState {
+            case .empty:
+                pickerButtons
+
+            case .processing:
+                HStack {
+                    ProgressView()
+                        .tint(AppColor.green800)
+                    Text("处理中…")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 80)
+                .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
+
+            case .cropping:
+                HStack {
+                    ProgressView()
+                        .tint(AppColor.green800)
+                    Text("裁剪中…")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 80)
+                .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
+
+            case .ready(let previewImage, _):
+                imagePreview(previewImage)
+
+            case .uploading:
+                HStack {
+                    ProgressView()
+                        .tint(AppColor.green800)
+                    Text("上传中…")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 80)
+                .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
+
+            case .uploadFailed(let previewImage, _, let message):
+                VStack(spacing: AppSpacing.xs) {
+                    imagePreview(previewImage)
+                    Text(message)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColor.danger)
+                }
+
+            case .failed(let message):
+                VStack(spacing: AppSpacing.xs) {
+                    Text(message)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColor.danger)
+                    pickerButtons
+                }
+
+            }
+        }
+    }
+
+    private var pickerButtons: some View {
+        HStack(spacing: AppSpacing.sm) {
+            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                Label("相册", systemImage: "photo.on.rectangle")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColor.green800)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(AppColor.green100, in: RoundedRectangle(cornerRadius: AppRadius.sm))
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                onCameraRequest()
+            } label: {
+                Label("拍照", systemImage: "camera")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColor.green800)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(AppColor.green100, in: RoundedRectangle(cornerRadius: AppRadius.sm))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func imagePreview(_ image: UIImage) -> some View {
+        ZStack(alignment: .topTrailing) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .frame(height: 120)
+                .background(AppColor.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+
+            Button {
+                coordinator.clearImage()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .padding(AppSpacing.xs)
+            }
+            .buttonStyle(.plain)
+        }
     }
 }
 

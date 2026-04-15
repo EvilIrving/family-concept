@@ -4,6 +4,12 @@
 <dict>
 	<key>APIBaseURL</key>
 	<string>https://api.kitchen.onecat.dev</string>
+	<key>R2PublicBaseURL</key>
+	<string>https://pub-8d33170109064c1fb885324588ce359a.r2.dev</string>
+	<key>NSCameraUsageDescription</key>
+	<string>需要访问相机以拍摄菜品照片，用于在菜单中展示。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>需要访问相册以选择菜品照片，用于在菜单中展示。</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

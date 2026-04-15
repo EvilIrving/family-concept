@@ -1,5 +1,5 @@
 import type { Route } from '../types';
-import { json, badRequest } from '../router';
+import { json, badRequest, conflict } from '../router';
 import { withAuth } from '../middleware/auth';
 import { withRole } from '../middleware/role';
 import { createDish, getDishForKitchen, updateDish, archiveDish, listByKitchen, findById } from '../services/dish-service';
@@ -23,18 +23,73 @@ export const dishRoutes: Route[] = [
     pattern: /^\/api\/v1\/kitchens\/(?<id>[^/]+)\/dishes$/,
     handler: withAuth(
       withRole(['owner', 'admin'])(async (req, env, ctx) => {
-        const body = await req.json<{ name?: string; category?: string; ingredients?: unknown[] }>();
-        if (!body?.name || !body?.category) return badRequest('name 和 category 为必填项');
+        const contentType = req.headers.get('content-type') ?? '';
 
-        const dish = await createDish(
-          env.DB,
-          ctx.kitchen!.id,
-          ctx.account.id,
-          body.name,
-          body.category,
-          body.ingredients
-        );
-        return json(dish, { status: 201 });
+        let name: string | undefined
+        let category: string | undefined
+        let ingredients: unknown[] | undefined
+        let imageBytes: ArrayBuffer | undefined
+
+        if (contentType.includes('multipart/form-data')) {
+          const form = await req.formData();
+          name = form.get('name')?.toString().trim();
+          category = form.get('category')?.toString().trim();
+
+          const ingredientValues = form
+            .getAll('ingredients[]')
+            .map(value => value.toString().trim())
+            .filter(Boolean);
+          if (ingredientValues.length > 0) ingredients = ingredientValues;
+
+          const imageFile = form.get('image');
+          if (imageFile instanceof File) {
+            imageBytes = await imageFile.arrayBuffer();
+            if (imageBytes.byteLength === 0) return badRequest('图片内容为空');
+          }
+        } else {
+          const body = await req.json<{ name?: string; category?: string; ingredients?: unknown[] }>();
+          name = body?.name?.trim();
+          category = body?.category?.trim();
+          if (body.ingredients !== undefined) {
+            if (!Array.isArray(body.ingredients)) return badRequest('ingredients 格式错误');
+            ingredients = body.ingredients;
+          }
+        }
+
+        if (!name || !category) return badRequest('name 和 category 为必填项');
+
+        const dishID = crypto.randomUUID();
+        const imageKey = imageBytes ? `${ctx.kitchen!.id}/${dishID}.png` : null;
+
+        try {
+          if (imageBytes && imageKey) {
+            await env.ASSETS.put(imageKey, imageBytes, {
+              httpMetadata: { contentType: 'image/png' },
+            });
+          }
+
+          const dish = await createDish(
+            env.DB,
+            ctx.kitchen!.id,
+            ctx.account.id,
+            name,
+            category,
+            ingredients,
+            { id: dishID, imageKey }
+          );
+          return json(dish, { status: 201 });
+        } catch (error) {
+          if (imageKey) {
+            try {
+              await env.ASSETS.delete(imageKey);
+            } catch {}
+          }
+          const message = error instanceof Error ? error.message : String(error);
+          if (message.includes('UNIQUE constraint failed: dishes.kitchen_id, dishes.name')) {
+            return conflict('菜名已存在');
+          }
+          throw error;
+        }
       })
     ),
   },
@@ -104,10 +159,10 @@ export const dishRoutes: Route[] = [
 
       // Return the image_key and a worker-proxied upload URL
       // Client PUTs image to this URL, worker streams to R2
-      const imageKey = `${dish.kitchen_id}/${dish.id}.jpg`;
+      const imageKey = `${dish.kitchen_id}/${dish.id}.png`;
       const uploadUrl = `/api/v1/dishes/${dish.id}/image`;
 
-      return json({ upload_url: uploadUrl, image_key: imageKey });
+      return json({ upload_url: uploadUrl, image_key: imageKey, method: 'PUT', content_type: 'image/png' });
     }),
   },
 
@@ -124,9 +179,14 @@ export const dishRoutes: Route[] = [
       if (!member) return json({ message: '你不是该 kitchen 的成员' }, { status: 403 });
       if (member.role === 'member') return json({ message: '权限不足' }, { status: 403 });
 
-      const imageKey = `${dish.kitchen_id}/${dish.id}.jpg`;
-      await env.ASSETS.put(imageKey, req.body, {
-        httpMetadata: { contentType: 'image/jpeg' },
+      const imageBytes = await req.arrayBuffer();
+      if (imageBytes.byteLength === 0) {
+        return json({ message: '图片内容为空' }, { status: 400 });
+      }
+
+      const imageKey = `${dish.kitchen_id}/${dish.id}.png`;
+      await env.ASSETS.put(imageKey, imageBytes, {
+        httpMetadata: { contentType: 'image/png' },
       });
 
       await updateDish(env.DB, dish.id, { image_key: imageKey });

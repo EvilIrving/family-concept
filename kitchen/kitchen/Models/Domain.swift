@@ -124,6 +124,11 @@ struct Dish: Identifiable, Codable, Equatable {
     }
 
     var isArchived: Bool { archivedAt != nil }
+
+    func publicImageURL(baseURL: String) -> URL? {
+        guard let key = imageKey, !baseURL.isEmpty else { return nil }
+        return URL(string: "\(baseURL)/\(key)")
+    }
 }
 
 // MARK: - Order

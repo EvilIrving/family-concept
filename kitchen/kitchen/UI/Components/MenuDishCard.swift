@@ -4,6 +4,7 @@ struct MenuDishCard: View {
     let title: String
     let category: String
     var quantity: Int = 0
+    var imageURL: URL? = nil
     var imageSystemName: String = "fork.knife"
     let onDecrease: () -> Void
     let onIncrease: () -> Void
@@ -14,13 +15,11 @@ struct MenuDishCard: View {
                 dishArtwork
 
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Text(title)
-                            .font(AppTypography.cardTitle)
-                            .foregroundStyle(AppColor.textPrimary)
-                            .lineLimit(2)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    Text(title)
+                        .font(AppTypography.cardTitle)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     HStack {
                         Spacer()
@@ -69,18 +68,45 @@ struct MenuDishCard: View {
                 endPoint: .bottomTrailing
             )
         )
-            .frame(height: 112)
-            .overlay(alignment: .topTrailing) {
-                AppPill(title: category)
-                    .padding(AppSpacing.sm)
+        .frame(height: 112)
+        .overlay(alignment: .topTrailing) {
+            AppPill(title: category)
+                .padding(AppSpacing.sm)
+        }
+        .overlay {
+            if let imageURL {
+                AsyncImage(url: imageURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .padding(AppSpacing.xs)
+                    default:
+                        placeholderIcon
+                    }
+                }
+            } else {
+                placeholderIcon
             }
-            .overlay {
-                Image(systemName: imageSystemName)
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(AppColor.green800)
-            }
+        }
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: AppRadius.md,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: AppRadius.md,
+                style: .continuous
+            )
+        )
     }
 
+    private var placeholderIcon: some View {
+        Image("MenuDishPlaceholder")
+            .resizable()
+            .scaledToFit()
+            .padding(AppSpacing.xs)
+    }
 }
 
 #Preview {

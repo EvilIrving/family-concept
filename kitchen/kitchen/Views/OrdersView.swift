@@ -2,7 +2,7 @@ import SwiftUI
 
 struct OrdersView: View {
     @EnvironmentObject private var store: AppStore
-    @State private var showShoppingList = false
+    @StateObject private var modalRouter = ModalRouter<OrdersModalRoute>()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -72,7 +72,7 @@ struct OrdersView: View {
             }
         }
         .appPageBackground()
-        .sheet(isPresented: $showShoppingList) {
+        .sheet(isPresented: shoppingListBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
             ShoppingListSheet()
                 .environmentObject(store)
                 .presentationDetents([.medium, .large])
@@ -104,7 +104,7 @@ struct OrdersView: View {
 
             Button {
                 store.fetchShoppingList()
-                showShoppingList = true
+                modalRouter.present(.shoppingList)
             } label: {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "list.bullet.rectangle.fill")
@@ -135,6 +135,24 @@ struct OrdersView: View {
         "查看采购清单"
     }
 
+    private var shoppingListBinding: Binding<Bool> {
+        Binding(
+            get: {
+                if case .shoppingList = modalRouter.current {
+                    return true
+                }
+                return false
+            },
+            set: { isPresented in
+                if isPresented {
+                    modalRouter.present(.shoppingList)
+                } else if case .shoppingList = modalRouter.current {
+                    modalRouter.dismiss()
+                }
+            }
+        )
+    }
+
     private func statusPill(title: String, value: Int, tint: Color, background: Color) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text(title)
@@ -149,6 +167,12 @@ struct OrdersView: View {
         .padding(.vertical, AppSpacing.sm)
         .background(background, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
     }
+}
+
+private enum OrdersModalRoute: String, Identifiable {
+    case shoppingList
+
+    var id: String { rawValue }
 }
 
 private struct ShoppingListSheet: View {
