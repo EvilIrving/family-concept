@@ -21,15 +21,7 @@ struct DishImagePipeline {
     /// Output: transparent PNG preview + temp file URL.
     func process(_ image: UIImage) async throws -> (preview: UIImage, fileURL: URL) {
         let normalized = image.normalized()
-
-        let processSize = CGSize(width: 800, height: 600)
-        guard let scaled = normalized.scaled(to: processSize) else {
-            throw DishImagePipelineError.readFailed
-        }
-
-        let masked = try await applyForegroundMask(to: scaled)
-
-        guard let final = masked.scaled(to: DishImageSpec.outputSize) else {
+        guard let final = try await applyForegroundMask(to: normalized) else {
             throw DishImagePipelineError.exportFailed
         }
 
@@ -44,7 +36,7 @@ struct DishImagePipeline {
         return (preview: final, fileURL: fileURL)
     }
 
-    private func applyForegroundMask(to image: UIImage) async throws -> UIImage {
+    private func applyForegroundMask(to image: UIImage) async throws -> UIImage? {
         guard let cgImage = image.cgImage else {
             throw DishImagePipelineError.readFailed
         }
@@ -65,19 +57,28 @@ struct DishImagePipeline {
             throw DishImagePipelineError.maskFailed
         }
 
-        let maskedBuffer = try observation.generateMaskedImage(
-            ofInstances: observation.allInstances,
-            from: handler,
-            croppedToInstancesExtent: false
+        let maskBuffer = try observation.generateScaledMaskForImage(
+            forInstances: observation.allInstances,
+            from: handler
         )
 
-        let ciImage = CIImage(cvPixelBuffer: maskedBuffer)
+        let scaledMask = CIImage(cvPixelBuffer: maskBuffer)
+            .cropped(to: CGRect(origin: .zero, size: image.size))
+        let sourceCI = CIImage(cgImage: cgImage)
+        let clearBackground = CIImage(color: .clear).cropped(to: sourceCI.extent)
+        let blended = sourceCI.applyingFilter(
+            "CIBlendWithMask",
+            parameters: [
+                kCIInputBackgroundImageKey: clearBackground,
+                kCIInputMaskImageKey: scaledMask
+            ]
+        )
         let context = CIContext()
-        guard let outputCGImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+        guard let outputCGImage = context.createCGImage(blended, from: sourceCI.extent) else {
             throw DishImagePipelineError.exportFailed
         }
 
-        return UIImage(cgImage: outputCGImage)
+        return UIImage(cgImage: outputCGImage, scale: image.scale, orientation: .up)
     }
 }
 
@@ -86,10 +87,5 @@ private extension UIImage {
         guard imageOrientation != .up else { return self }
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { _ in draw(in: CGRect(origin: .zero, size: size)) }
-    }
-
-    func scaled(to targetSize: CGSize) -> UIImage? {
-        let renderer = UIGraphicsImageRenderer(size: targetSize)
-        return renderer.image { _ in draw(in: CGRect(origin: .zero, size: targetSize)) }
     }
 }
