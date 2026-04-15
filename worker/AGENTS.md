@@ -38,11 +38,13 @@ src/
 
 ## 身份与鉴权
 
-- 所有接口默认要求请求携带 `device_id`（Header 或 Body）
-- Worker 先解析 `device_id` → 查 `devices` 表获取设备身份
-- 再查 `members` 表获取该设备在目标 kitchen 中的角色
+- 所有业务接口默认要求请求携带 `Authorization: Bearer <token>`
+- Worker 先解析 session token → 查 `sessions` 表获取当前登录账号
+- 再查 `members` 表获取该账号在目标 kitchen 中的角色
 - 权限判断基于角色，D1 无 RLS 能力，必须在 Worker 层手动校验
-- 无账号密码、无 session、无 JWT、无 OAuth
+- 账号登录字段为 `user_name + password`
+- token 只在服务端以 `token_hash` 形式存储
+- v1 使用 session token，不使用 JWT、OAuth
 
 ## 权限矩阵
 
@@ -62,9 +64,12 @@ src/
 ## API 接口列表
 
 ```
-POST   /onboarding/complete                 — 入驻统一入口 {mode, device_id, display_name, invite_code?|kitchen_name?}
-POST   /devices/register                    — 注册设备 {device_id, display_name}
-GET    /devices/by-device/:device_id        — 当前设备信息
+POST   /auth/register                       — 注册账号 {user_name, password, nick_name}
+POST   /auth/login                          — 登录 {user_name, password}
+POST   /auth/logout                         — 登出当前 session
+GET    /auth/me                             — 当前账号信息
+
+POST   /onboarding/complete                 — 入驻统一入口 {mode, nick_name?, invite_code?|kitchen_name?}
 
 POST   /kitchens                            — 创建 kitchen（成为 owner）
 GET    /kitchens/:id                        — 获取 kitchen 信息
@@ -73,7 +78,7 @@ POST   /kitchens/:id/rotate_invite          — 刷新邀请码（owner/admin）
 POST   /kitchens/join                       — 输入邀请码加入
 
 GET    /kitchens/:id/members                — 成员列表
-DELETE /kitchens/:id/members/:device_ref_id — 踢人
+DELETE /kitchens/:id/members/:account_id    — 踢人
 POST   /kitchens/:id/leave                  — 主动退出
 
 GET    /kitchens/:id/dishes                 — 菜单列表（不含已归档）
@@ -94,16 +99,24 @@ WS     /kitchens/:id/live                   — Durable Object 实时推送
 
 ## 数据库表结构（D1 SQLite）
 
-### devices
+### accounts
 - `id TEXT PRIMARY KEY`
-- `device_id TEXT NOT NULL UNIQUE`
-- `display_name TEXT NOT NULL`
+- `user_name TEXT NOT NULL UNIQUE`
+- `password_hash TEXT NOT NULL`
+- `nick_name TEXT NOT NULL`
+- `created_at TEXT NOT NULL DEFAULT (datetime('now'))`
+
+### sessions
+- `id TEXT PRIMARY KEY`
+- `account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE`
+- `token_hash TEXT NOT NULL UNIQUE`
+- `expires_at TEXT NOT NULL`
 - `created_at TEXT NOT NULL DEFAULT (datetime('now'))`
 
 ### kitchens
 - `id TEXT PRIMARY KEY`
 - `name TEXT NOT NULL`
-- `owner_device_id TEXT NOT NULL REFERENCES devices(id)`
+- `owner_account_id TEXT NOT NULL REFERENCES accounts(id)`
 - `invite_code TEXT NOT NULL UNIQUE`
 - `invite_code_rotated_at TEXT NOT NULL DEFAULT (datetime('now'))`
 - `created_at TEXT NOT NULL DEFAULT (datetime('now'))`
@@ -111,12 +124,12 @@ WS     /kitchens/:id/live                   — Durable Object 实时推送
 ### members
 - `id TEXT PRIMARY KEY`
 - `kitchen_id TEXT NOT NULL REFERENCES kitchens(id) ON DELETE CASCADE`
-- `device_ref_id TEXT NOT NULL REFERENCES devices(id) ON DELETE CASCADE`
+- `account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE`
 - `role TEXT NOT NULL CHECK (role IN ('owner','admin','member'))`
 - `status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','removed'))`
 - `joined_at TEXT NOT NULL DEFAULT (datetime('now'))`
 - `removed_at TEXT`
-- `UNIQUE (kitchen_id, device_ref_id)`
+- `UNIQUE (kitchen_id, account_id)`
 
 ### dishes
 - `id TEXT PRIMARY KEY`
@@ -125,7 +138,7 @@ WS     /kitchens/:id/live                   — Durable Object 实时推送
 - `category TEXT NOT NULL`
 - `image_key TEXT` — R2 key，格式 `{kitchen_id}/{dish_id}.jpg`
 - `ingredients_json TEXT NOT NULL DEFAULT '[]'`
-- `created_by_device_id TEXT NOT NULL REFERENCES devices(id)`
+- `created_by_account_id TEXT NOT NULL REFERENCES accounts(id)`
 - `created_at TEXT NOT NULL DEFAULT (datetime('now'))`
 - `updated_at TEXT NOT NULL DEFAULT (datetime('now'))`
 - `archived_at TEXT` — 软删除
@@ -135,7 +148,7 @@ WS     /kitchens/:id/live                   — Durable Object 实时推送
 - `id TEXT PRIMARY KEY`
 - `kitchen_id TEXT NOT NULL REFERENCES kitchens(id) ON DELETE RESTRICT`
 - `status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','finished'))`
-- `created_by_device_id TEXT NOT NULL REFERENCES devices(id)`
+- `created_by_account_id TEXT NOT NULL REFERENCES accounts(id)`
 - `created_at TEXT NOT NULL DEFAULT (datetime('now'))`
 - `finished_at TEXT`
 - 唯一索引：每个 kitchen 同时至多一个 `open` 订单
@@ -144,7 +157,7 @@ WS     /kitchens/:id/live                   — Durable Object 实时推送
 - `id TEXT PRIMARY KEY`
 - `order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE`
 - `dish_id TEXT NOT NULL REFERENCES dishes(id)`
-- `added_by_device_id TEXT NOT NULL REFERENCES devices(id)`
+- `added_by_account_id TEXT NOT NULL REFERENCES accounts(id)`
 - `quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0)`
 - `status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting','cooking','done','cancelled'))`
 - `created_at TEXT NOT NULL DEFAULT (datetime('now'))`
@@ -167,10 +180,12 @@ WS     /kitchens/:id/live                   — Durable Object 实时推送
 - 迁移文件在 `migrations/` 目录，按序号命名（`0001_init.sql`）
 - 只允许向前迁移，不写回滚脚本
 - 新字段必须有默认值或允许 NULL，确保迁移不破坏已有数据
+- 已存在对象的迁移要优先使用幂等写法（如 `IF NOT EXISTS`），避免远端库和本地状态不一致时卡住 migration 链
 
 ## 禁止事项
 
 - 禁止在 Worker 层直接拼接 SQL 字符串（用参数化查询）
-- 禁止把 `device_id` 当做信任凭证跳过角色校验
+- 禁止把 `account_id` 或 session token 当做信任凭证跳过角色校验
+- 禁止在接口响应里返回 `password_hash` 或 `token_hash`
 - 禁止在接口层写业务逻辑（应在 service 层）
 - v1 明确不做：菜品规格、多 kitchen 归属、订单轮次、外部分享、Android/Web

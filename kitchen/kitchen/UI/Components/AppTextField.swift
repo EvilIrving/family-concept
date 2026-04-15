@@ -19,6 +19,7 @@ struct AppTextField<Field: Hashable>: View {
     /// 在 `.card` 下扩大输入区域相对可视框的点击范围（外扩，不放大灰底与描边）。
     var focusHitOutsetVertical: CGFloat = AppSpacing.xs
     var focusHitOutsetHorizontal: CGFloat = AppSpacing.xxs
+    var isSecure: Bool = false
     var autocapitalization: TextInputAutocapitalization = .never
     var autocorrectionDisabled: Bool = true
     var submitLabel: SubmitLabel = .done
@@ -32,17 +33,23 @@ struct AppTextField<Field: Hashable>: View {
     }
 
     private var fieldContent: some View {
-        TextField("", text: $text, prompt: prompt)
-            .focused(focusedField, equals: field)
-            .font(AppTypography.body)
-            .foregroundStyle(AppColor.textPrimary)
-            .tint(AppColor.green800)
-            .textInputAutocapitalization(autocapitalization)
-            .autocorrectionDisabled(autocorrectionDisabled)
-            .submitLabel(submitLabel)
-            .onSubmit {
-                onSubmit?()
+        Group {
+            if isSecure {
+                SecureField("", text: $text, prompt: prompt)
+            } else {
+                TextField("", text: $text, prompt: prompt)
+                    .textInputAutocapitalization(autocapitalization)
+                    .autocorrectionDisabled(autocorrectionDisabled)
             }
+        }
+        .focused(focusedField, equals: field)
+        .font(AppTypography.body)
+        .foregroundStyle(AppColor.textPrimary)
+        .tint(AppColor.green800)
+        .submitLabel(submitLabel)
+        .onSubmit {
+            onSubmit?()
+        }
     }
 
     var body: some View {

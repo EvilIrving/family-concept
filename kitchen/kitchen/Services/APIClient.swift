@@ -11,7 +11,7 @@ enum APIError: LocalizedError {
         case .network: "网络连接失败，请检查网络"
         case .server(_, let msg): msg
         case .decoding: "数据解析失败"
-        case .unauthorized: "未授权，请重新入驻"
+        case .unauthorized: "未授权，请重新登录"
         }
     }
 }
@@ -38,15 +38,15 @@ final class APIClient {
         _ path: String,
         method: String = "GET",
         body: Encodable? = nil,
-        deviceId: String? = nil
+        authToken: String? = nil
     ) async throws -> T {
         let url = URL(string: "\(baseURL)\(path)")!
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        if let deviceId {
-            request.setValue(deviceId, forHTTPHeaderField: "X-Device-Id")
+        if let authToken, !authToken.isEmpty {
+            request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
         }
 
         if let body {

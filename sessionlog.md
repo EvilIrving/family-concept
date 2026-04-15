@@ -1,3 +1,31 @@
+## iOS 端切换到账号制 · 2026-04-15 · Claude
+
+这次把 iOS 端从旧的 `device_id + displayName + X-Device-Id` 体系完整切到账号制，与 worker 侧已落地的 `/auth/*` 接口对齐。
+
+**模型层（Domain.swift）**：`Device` → `Account`（字段 `id`、`userName`、`nickName`、`createdAt`）；`Kitchen.ownerDeviceId` → `ownerAccountId`；`Member.deviceRefId` → `accountId`、`displayName` → `nickName`；`Dish/Order/OrderItem` 的 `*DeviceId` 字段全部改成 `*AccountId`；删除 `LoginResponse`，新增 `AuthResponse { token, account }` 和 `AuthMeResponse { account }`。
+
+**网络层（APIClient + APIEndpoints）**：`request()` 的 `deviceId` 参数改成 `authToken`，请求头从 `X-Device-Id` 换成 `Authorization: Bearer <token>`。新增 `register`、`login`、`logout`、`fetchMe` 四个 auth 接口；`onboardingComplete` body 去掉 `device_id`，改为 `{ mode, nick_name?, invite_code?, kitchen_name? }` + Bearer 鉴权；所有业务接口（kitchens、members、dishes、orders）同步换成 `authToken` 参数；成员删除接口参数从 `deviceRefID` 改成 `accountID`；移除 `registerDevice`、`fetchDevice`、旧 `login(displayName:)`。
+
+**AppStore**：核心状态从 `currentDevice + deviceId` 换成 `currentAccount + authToken`；UserDefaults 存储项改为 `authToken`、`accountID`、`nickName`、`lastKitchenID`，不再存 `deviceID`。新增 `bootstrap()` 启动恢复逻辑：有 token → 调 `auth/me` → 有 `lastKitchenID` 则恢复 kitchen，401 则清空本地 session。新增 `login(userName:password:inviteCode:kitchenName:)`、`register(...)`、`signOut()`、`clearSession()`；`leaveKitchen` 和成员被踢出后清空 `lastKitchenID`；onboarding 成功后写入 `lastKitchenID`；`currentMember` 匹配逻辑改为 `accountId == currentAccount?.id`。
+
+**ContentView**：增加 `isBootstrapping` 态（显示空白页防止闪烁），加入 `.task { await store.bootstrap() }` 在启动时触发恢复流程。
+
+**OnboardingView**：重写为单页多模式状态机。`authMode`（login/register）+ `kitchenMode`（join/create）双轴控制；未登录时展示用户名/密码表单，注册模式额外显示昵称字段，下方可选择加入/创建 kitchen；已登录但无 kitchen 时只展示 join/create 选择区；密码字段通过新增的 `AppTextField.isSecure` 参数走 `SecureField`。
+
+**SettingsView**：成员头像、身份显示、"这是我的账号"判断全部基于 `accountId`；`removeMember` 调用改为 `accountID` 参数；底部新增"退出登录"按钮卡片。
+
+**AppTextField**：新增 `isSecure: Bool = false` 参数，为 true 时切换为 `SecureField`。
+
+## 账号制重构与 Cloudflare 线上落地 · 2026-04-15 10:19 · Codex
+
+这次把 worker 的身份体系从 `device_id + display_name` 重构成真正的账号制。核心模型改成 `accounts(id, user_name, password_hash, nick_name)` 和 `sessions(account_id, token_hash, expires_at)`，所有业务表和接口也同步从 device 语义切到 account 语义：`kitchens.owner_account_id`、`members.account_id`、`dishes.created_by_account_id`、`orders.created_by_account_id`、`order_items.added_by_account_id`。`X-Device-Id` 鉴权被统一替换成 `Authorization: Bearer <token>`，新增 `POST /api/v1/auth/register`、`POST /api/v1/auth/login`、`POST /api/v1/auth/logout`、`GET /api/v1/auth/me`，原来的 `devices/register` 和 `by-device` 路由已经废弃。
+
+数据库侧新增了 `worker/migrations/0003_accounts_auth.sql`。这条迁移会创建 `accounts`、`sessions`，再用重建表的方式把 `kitchens`、`members`、`dishes`、`orders`、`order_items` 全量迁到 account 外键，同时把旧 `devices` 数据映射到 `accounts`，最后删除 `devices` 表。为了让本地和远端 migration 链路一致，`0002_unique_display_name.sql` 需要改成幂等写法 `CREATE UNIQUE INDEX IF NOT EXISTS ...`，否则远端已经存在该索引时会卡死在 `0002`，`0003` 根本不会开始执行。
+
+业务逻辑也一起收口了。`onboarding` 现在依赖当前登录账号，不再接收 `device_id`；如果请求里带了 `nick_name`，会先更新账号昵称，再执行加入或创建 kitchen。成员列表展示名统一来自 `accounts.nick_name`。本地验证脚本 `worker/test-local.sh` 已经改成账号制，覆盖注册、登录、`auth/me`、创建/加入 kitchen、成员权限、菜品、订单、登出失效，全链路在本地 `wrangler dev + D1 local` 下跑通。
+
+这次线上还踩到了两个 Cloudflare 相关的坑。第一，远端 D1 migration 是否成功只取决于本地 migration 文件和 D1 migration 记录，手工在 Dashboard 执行 SQL 不会让 `wrangler d1 migrations apply --remote` 跳过那条 migration。第二，Workers 的 PBKDF2 iteration 上限是 `100000`，本地代码最初用的 `210000` 在本地可跑、线上注册会直接报 `NotSupportedError`。最终把 `worker/src/auth.ts` 里的 `PASSWORD_ITERATIONS` 固定为 `100000`，重新 deploy 后线上注册恢复正常。期间还顺手修了一个安全问题：`onboarding/complete` 一度把 `password_hash` 原样带回响应，现在已经在路由层做了脱敏，只返回 `id`、`user_name`、`nick_name`、`created_at`。
+
 ## 修复食材输入框输入法立即消失问题 · 2026-04-14 · Claude
 
 食材输入框（"添加食材"）使用中文输入法时，每输入一个字母拼音，输入法候选框就会立即消失，无法正常组字。

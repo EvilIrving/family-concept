@@ -67,10 +67,25 @@ struct SettingsView: View {
                 rowDivider
                 toggleRow(title: "震动反馈", isOn: $hapticsEnabled)
             }
+
+            AppCard {
+                Button {
+                    Task { await store.signOut() }
+                } label: {
+                    HStack {
+                        Text("退出登录")
+                            .font(AppTypography.bodyStrong)
+                            .foregroundStyle(AppColor.danger)
+                        Spacer()
+                    }
+                    .frame(minHeight: 44)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .appToast($toast)
         .sheet(item: $memberSheet) { token in
-            MemberRoleSheet(memberDeviceRefID: token.deviceRefID)
+            MemberRoleSheet(memberAccountID: token.accountID)
                 .environmentObject(store)
                 .presentationBackground(.clear)
                 .presentationDetents([.fraction(0.25)])
@@ -80,8 +95,8 @@ struct SettingsView: View {
 
     private var kitchenIdentityCluster: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            if displayNameForIdentity != store.storedDisplayName {
-                Text("当前：\(displayNameForIdentity)")
+            if let nickName = store.currentMember?.nickName {
+                Text("当前：\(nickName)")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColor.textSecondary)
             }
@@ -112,10 +127,6 @@ struct SettingsView: View {
         }
     }
 
-    private var displayNameForIdentity: String {
-        store.currentMember?.displayName ?? store.storedDisplayName
-    }
-
     private func memberAvatarButton(_ member: Member, colorIndex: Int) -> some View {
         let colors: [Color] = [
             AppColor.green200,
@@ -126,11 +137,11 @@ struct SettingsView: View {
             AppColor.successSoft
         ]
 
-        let isCurrentDevice = member.deviceRefId == store.currentDevice?.id
-        let initials = String(member.displayName.prefix(1))
+        let isCurrentAccount = member.accountId == store.currentAccount?.id
+        let initials = String(member.nickName.prefix(1))
 
         return Button {
-            memberSheet = MemberSheetToken(deviceRefID: member.deviceRefId)
+            memberSheet = MemberSheetToken(accountID: member.accountId)
         } label: {
             ZStack {
                 Circle()
@@ -141,19 +152,19 @@ struct SettingsView: View {
                     )
                     .overlay(
                         Circle()
-                            .stroke(isCurrentDevice ? AppColor.green700 : AppColor.lineSoft, lineWidth: isCurrentDevice ? 2 : 1)
+                            .stroke(isCurrentAccount ? AppColor.green700 : AppColor.lineSoft, lineWidth: isCurrentAccount ? 2 : 1)
                     )
 
                 Text(initials)
                     .font(AppTypography.bodyStrong)
-                    .foregroundStyle(isCurrentDevice ? AppColor.green800 : AppColor.textPrimary)
+                    .foregroundStyle(isCurrentAccount ? AppColor.green800 : AppColor.textPrimary)
             }
             .frame(width: 44, height: 44)
             .contentShape(Circle())
             .shadow(color: AppColor.green900.opacity(0.06), radius: 1, y: 1)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(member.displayName)，\(member.role.title)")
+        .accessibilityLabel("\(member.nickName)，\(member.role.title)")
     }
 
     private var rowDivider: some View {
@@ -192,21 +203,21 @@ struct SettingsView: View {
 }
 
 private struct MemberSheetToken: Identifiable {
-    let deviceRefID: String
-    var id: String { deviceRefID }
+    let accountID: String
+    var id: String { accountID }
 }
 
 private struct MemberRoleSheet: View {
-    let memberDeviceRefID: String
+    let memberAccountID: String
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
 
     private var member: Member? {
-        store.members.first { $0.deviceRefId == memberDeviceRefID }
+        store.members.first { $0.accountId == memberAccountID }
     }
 
     private var isSelf: Bool {
-        memberDeviceRefID == store.currentDevice?.id
+        memberAccountID == store.currentAccount?.id
     }
 
     var body: some View {
@@ -225,14 +236,14 @@ private struct MemberRoleSheet: View {
                                     Circle()
                                         .stroke(isSelf ? AppColor.green700 : AppColor.lineSoft, lineWidth: isSelf ? 2 : 1)
                                 )
-                            Text(String(member.displayName.prefix(1)))
+                            Text(String(member.nickName.prefix(1)))
                                 .font(AppTypography.bodyStrong)
                                 .foregroundStyle(isSelf ? AppColor.green800 : AppColor.textPrimary)
                         }
                         .frame(width: 44, height: 44)
 
                         VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                            Text(member.displayName)
+                            Text(member.nickName)
                                 .font(AppTypography.bodyStrong)
                                 .foregroundStyle(AppColor.textPrimary)
                                 .lineLimit(1)
@@ -244,7 +255,7 @@ private struct MemberRoleSheet: View {
                     }
 
                     if isSelf {
-                        Text("这是本机")
+                        Text("这是我的账号")
                             .font(AppTypography.micro)
                             .foregroundStyle(AppColor.textTertiary)
                     }
@@ -257,7 +268,7 @@ private struct MemberRoleSheet: View {
                 if store.isOwner && !isSelf, let member {
                     Button {
                         Task {
-                            await store.removeMember(deviceRefID: member.deviceRefId)
+                            await store.removeMember(accountID: member.accountId)
                             dismiss()
                         }
                     } label: {

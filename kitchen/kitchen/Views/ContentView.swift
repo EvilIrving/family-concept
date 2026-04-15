@@ -5,13 +5,18 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if store.hasKitchen {
+            if store.isBootstrapping {
+                Color.clear
+            } else if store.hasKitchen {
                 MainTabView()
             } else {
                 OnboardingView()
             }
         }
         .appPageBackground()
+        .task {
+            await store.bootstrap()
+        }
         .task(id: store.kitchen?.id) {
             if store.kitchen != nil {
                 await store.fetchAll()

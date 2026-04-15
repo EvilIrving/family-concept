@@ -44,12 +44,12 @@ enum ItemStatus: String, Codable, CaseIterable, Equatable {
     }
 }
 
-// MARK: - Device
+// MARK: - Account
 
-struct Device: Identifiable, Codable, Equatable {
+struct Account: Identifiable, Codable, Equatable {
     let id: String
-    let deviceId: String
-    let displayName: String
+    let userName: String
+    let nickName: String
     let createdAt: String
 }
 
@@ -58,7 +58,7 @@ struct Device: Identifiable, Codable, Equatable {
 struct Kitchen: Identifiable, Codable, Equatable {
     let id: String
     let name: String
-    let ownerDeviceId: String
+    let ownerAccountId: String
     let inviteCode: String
     let inviteCodeRotatedAt: String
     let createdAt: String
@@ -69,38 +69,38 @@ struct Kitchen: Identifiable, Codable, Equatable {
 struct Member: Identifiable, Codable, Equatable {
     let id: String
     let kitchenId: String
-    let deviceRefId: String
+    let accountId: String
     let role: KitchenRole
     let status: MemberStatus
     let joinedAt: String
     let removedAt: String?
-    let displayName: String
+    let nickName: String
 
     enum CodingKeys: String, CodingKey {
-        case id, kitchenId, deviceRefId, role, status, joinedAt, removedAt, displayName
+        case id, kitchenId, accountId, role, status, joinedAt, removedAt, nickName
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
         kitchenId = try c.decode(String.self, forKey: .kitchenId)
-        deviceRefId = try c.decode(String.self, forKey: .deviceRefId)
+        accountId = try c.decode(String.self, forKey: .accountId)
         role = try c.decode(KitchenRole.self, forKey: .role)
         status = try c.decode(MemberStatus.self, forKey: .status)
         joinedAt = try c.decode(String.self, forKey: .joinedAt)
         removedAt = try c.decodeIfPresent(String.self, forKey: .removedAt)
-        displayName = (try? c.decode(String.self, forKey: .displayName)) ?? ""
+        nickName = (try? c.decode(String.self, forKey: .nickName)) ?? ""
     }
 
-    init(id: String, kitchenId: String, deviceRefId: String, role: KitchenRole, status: MemberStatus = .active, joinedAt: String = "", removedAt: String? = nil, displayName: String) {
+    init(id: String, kitchenId: String, accountId: String, role: KitchenRole, status: MemberStatus = .active, joinedAt: String = "", removedAt: String? = nil, nickName: String) {
         self.id = id
         self.kitchenId = kitchenId
-        self.deviceRefId = deviceRefId
+        self.accountId = accountId
         self.role = role
         self.status = status
         self.joinedAt = joinedAt
         self.removedAt = removedAt
-        self.displayName = displayName
+        self.nickName = nickName
     }
 }
 
@@ -113,7 +113,7 @@ struct Dish: Identifiable, Codable, Equatable {
     let category: String
     let imageKey: String?
     let ingredientsJson: String
-    let createdByDeviceId: String
+    let createdByAccountId: String
     let createdAt: String
     let updatedAt: String
     let archivedAt: String?
@@ -132,9 +132,18 @@ struct Order: Identifiable, Codable, Equatable {
     let id: String
     let kitchenId: String
     let status: OrderStatus
-    let createdByDeviceId: String
+    let createdByAccountId: String
     let createdAt: String
     let finishedAt: String?
+
+    init(id: String, kitchenId: String, status: OrderStatus, createdByAccountId: String, createdAt: String, finishedAt: String?) {
+        self.id = id
+        self.kitchenId = kitchenId
+        self.status = status
+        self.createdByAccountId = createdByAccountId
+        self.createdAt = createdAt
+        self.finishedAt = finishedAt
+    }
 }
 
 // MARK: - OrderItem
@@ -143,7 +152,7 @@ struct OrderItem: Identifiable, Codable, Equatable {
     let id: String
     let orderId: String
     let dishId: String
-    let addedByDeviceId: String
+    let addedByAccountId: String
     let quantity: Int
     let status: ItemStatus
     let createdAt: String
@@ -159,13 +168,17 @@ struct CartItem: Identifiable, Equatable {
     var quantity: Int
 }
 
-// MARK: - LoginResponse
+// MARK: - AuthResponse
 
-struct LoginResponse: Codable {
-    let found: Bool
-    let device: Device?
-    let kitchen: Kitchen?
-    let member: Member?
+struct AuthResponse: Codable {
+    let token: String
+    let account: Account
+}
+
+// MARK: - AuthMeResponse
+
+struct AuthMeResponse: Codable {
+    let account: Account
 }
 
 // MARK: - ShoppingListItem

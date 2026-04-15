@@ -3,12 +3,32 @@ import Foundation
 // MARK: - Auth
 
 extension APIClient {
-    func login(displayName: String) async throws -> LoginResponse {
+    func register(userName: String, password: String, nickName: String) async throws -> AuthResponse {
+        try await request(
+            "/api/v1/auth/register",
+            method: "POST",
+            body: ["user_name": userName, "password": password, "nick_name": nickName]
+        )
+    }
+
+    func login(userName: String, password: String) async throws -> AuthResponse {
         try await request(
             "/api/v1/auth/login",
             method: "POST",
-            body: ["display_name": displayName]
+            body: ["user_name": userName, "password": password]
         )
+    }
+
+    func logout(authToken: String) async throws -> OKResult {
+        try await request(
+            "/api/v1/auth/logout",
+            method: "POST",
+            authToken: authToken
+        )
+    }
+
+    func fetchMe(authToken: String) async throws -> AuthMeResponse {
+        try await request("/api/v1/auth/me", authToken: authToken)
     }
 }
 
@@ -16,122 +36,81 @@ extension APIClient {
 
 extension APIClient {
     struct OnboardingResponse: Decodable {
-        let device: Device
+        let account: Account
         let kitchen: Kitchen
         let member: Member
     }
 
     func onboardingComplete(
         mode: String,
-        deviceID: String,
-        displayName: String,
-        kitchenName: String? = nil,
-        inviteCode: String? = nil
+        authToken: String,
+        nickName: String? = nil,
+        inviteCode: String? = nil,
+        kitchenName: String? = nil
     ) async throws -> OnboardingResponse {
-        var body: [String: String] = [
-            "mode": mode,
-            "device_id": deviceID,
-            "display_name": displayName,
-        ]
-        if let kitchenName { body["kitchen_name"] = kitchenName }
+        var body: [String: String] = ["mode": mode]
+        if let nickName { body["nick_name"] = nickName }
         if let inviteCode { body["invite_code"] = inviteCode }
+        if let kitchenName { body["kitchen_name"] = kitchenName }
 
         return try await request(
             "/api/v1/onboarding/complete",
             method: "POST",
-            body: body
+            body: body,
+            authToken: authToken
         )
-    }
-}
-
-// MARK: - Devices
-
-extension APIClient {
-    func registerDevice(deviceID: String, displayName: String) async throws -> Device {
-        try await request(
-            "/api/v1/devices/register",
-            method: "POST",
-            body: ["device_id": deviceID, "display_name": displayName]
-        )
-    }
-
-    func fetchDevice(byDeviceID deviceID: String) async throws -> Device {
-        try await request("/api/v1/devices/by-device/\(deviceID)")
     }
 }
 
 // MARK: - Kitchens
 
 extension APIClient {
-    func fetchKitchen(id: String, deviceId: String) async throws -> Kitchen {
-        try await request("/api/v1/kitchens/\(id)", deviceId: deviceId)
+    func fetchKitchen(id: String, authToken: String) async throws -> Kitchen {
+        try await request("/api/v1/kitchens/\(id)", authToken: authToken)
     }
 
-    func createKitchen(name: String, deviceId: String) async throws -> Kitchen {
-        try await request(
-            "/api/v1/kitchens",
-            method: "POST",
-            body: ["name": name],
-            deviceId: deviceId
-        )
-    }
-
-    func updateKitchen(id: String, name: String, deviceId: String) async throws -> Kitchen {
+    func updateKitchen(id: String, name: String, authToken: String) async throws -> Kitchen {
         try await request(
             "/api/v1/kitchens/\(id)",
             method: "PATCH",
             body: ["name": name],
-            deviceId: deviceId
+            authToken: authToken
         )
     }
 
-    func rotateInviteCode(kitchenID: String, deviceId: String) async throws -> InviteCodeResult {
+    func rotateInviteCode(kitchenID: String, authToken: String) async throws -> InviteCodeResult {
         try await request(
             "/api/v1/kitchens/\(kitchenID)/rotate_invite",
             method: "POST",
-            deviceId: deviceId
-        )
-    }
-
-    func joinKitchen(inviteCode: String, deviceId: String) async throws -> JoinResult {
-        try await request(
-            "/api/v1/kitchens/join",
-            method: "POST",
-            body: ["invite_code": inviteCode],
-            deviceId: deviceId
+            authToken: authToken
         )
     }
 
     struct InviteCodeResult: Decodable {
         let inviteCode: String
     }
-
-    struct JoinResult: Decodable {
-        let kitchen: Kitchen
-        let member: Member
-    }
 }
 
 // MARK: - Members
 
 extension APIClient {
-    func fetchMembers(kitchenID: String, deviceId: String) async throws -> [Member] {
-        try await request("/api/v1/kitchens/\(kitchenID)/members", deviceId: deviceId)
+    func fetchMembers(kitchenID: String, authToken: String) async throws -> [Member] {
+        try await request("/api/v1/kitchens/\(kitchenID)/members", authToken: authToken)
     }
 
-    func removeMember(kitchenID: String, deviceRefID: String, deviceId: String) async throws -> OKResult {
+    func removeMember(kitchenID: String, accountID: String, authToken: String) async throws -> OKResult {
         try await request(
-            "/api/v1/kitchens/\(kitchenID)/members/\(deviceRefID)",
+            "/api/v1/kitchens/\(kitchenID)/members/\(accountID)",
             method: "DELETE",
-            deviceId: deviceId
+            authToken: authToken
         )
     }
 
-    func leaveKitchen(kitchenID: String, deviceId: String) async throws -> OKResult {
+    func leaveKitchen(kitchenID: String, authToken: String) async throws -> OKResult {
         try await request(
             "/api/v1/kitchens/\(kitchenID)/leave",
             method: "POST",
-            deviceId: deviceId
+            authToken: authToken
         )
     }
 }
@@ -157,8 +136,8 @@ private struct UpdateDishBody: Encodable {
 }
 
 extension APIClient {
-    func fetchDishes(kitchenID: String, deviceId: String) async throws -> [Dish] {
-        try await request("/api/v1/kitchens/\(kitchenID)/dishes", deviceId: deviceId)
+    func fetchDishes(kitchenID: String, authToken: String) async throws -> [Dish] {
+        try await request("/api/v1/kitchens/\(kitchenID)/dishes", authToken: authToken)
     }
 
     func createDish(
@@ -166,13 +145,13 @@ extension APIClient {
         name: String,
         category: String,
         ingredients: [String]? = nil,
-        deviceId: String
+        authToken: String
     ) async throws -> Dish {
         try await request(
             "/api/v1/kitchens/\(kitchenID)/dishes",
             method: "POST",
             body: CreateDishBody(name: name, category: category, ingredients: ingredients),
-            deviceId: deviceId
+            authToken: authToken
         )
     }
 
@@ -182,21 +161,21 @@ extension APIClient {
         category: String? = nil,
         ingredients: [String]? = nil,
         imageKey: String? = nil,
-        deviceId: String
+        authToken: String
     ) async throws -> Dish {
         try await request(
             "/api/v1/dishes/\(id)",
             method: "PATCH",
             body: UpdateDishBody(name: name, category: category, ingredients: ingredients, imageKey: imageKey),
-            deviceId: deviceId
+            authToken: authToken
         )
     }
 
-    func archiveDish(id: String, deviceId: String) async throws -> OKResult {
+    func archiveDish(id: String, authToken: String) async throws -> OKResult {
         try await request(
             "/api/v1/dishes/\(id)",
             method: "DELETE",
-            deviceId: deviceId
+            authToken: authToken
         )
     }
 }
@@ -223,34 +202,34 @@ extension APIClient {
         let id: String
         let kitchenId: String
         let status: OrderStatus
-        let createdByDeviceId: String
+        let createdByAccountId: String
         let createdAt: String
         let finishedAt: String?
         let items: [OrderItem]?
     }
 
-    func fetchOpenOrder(kitchenID: String, deviceId: String) async throws -> OpenOrderResponse? {
+    func fetchOpenOrder(kitchenID: String, authToken: String) async throws -> OpenOrderResponse? {
         let result: OpenOrderResponse? = try await request(
             "/api/v1/kitchens/\(kitchenID)/orders/open",
-            deviceId: deviceId
+            authToken: authToken
         )
         return result
     }
 
-    func createOrder(kitchenID: String, deviceId: String) async throws -> Order {
+    func createOrder(kitchenID: String, authToken: String) async throws -> Order {
         try await request(
             "/api/v1/kitchens/\(kitchenID)/orders",
             method: "POST",
-            deviceId: deviceId
+            authToken: authToken
         )
     }
 
-    func addOrderItem(orderID: String, dishID: String, quantity: Int = 1, deviceId: String) async throws -> OrderItem {
+    func addOrderItem(orderID: String, dishID: String, quantity: Int = 1, authToken: String) async throws -> OrderItem {
         try await request(
             "/api/v1/orders/\(orderID)/items",
             method: "POST",
             body: AddOrderItemBody(dishID: dishID, quantity: quantity),
-            deviceId: deviceId
+            authToken: authToken
         )
     }
 
@@ -258,26 +237,24 @@ extension APIClient {
         id: String,
         status: ItemStatus? = nil,
         quantity: Int? = nil,
-        deviceId: String
+        authToken: String
     ) async throws -> OrderItem {
         try await request(
             "/api/v1/order_items/\(id)",
             method: "PATCH",
             body: UpdateOrderItemBody(status: status?.rawValue, quantity: quantity),
-            deviceId: deviceId
+            authToken: authToken
         )
     }
 
-    func finishOrder(id: String, deviceId: String) async throws -> Order {
+    func finishOrder(id: String, authToken: String) async throws -> Order {
         try await request(
             "/api/v1/orders/\(id)/finish",
             method: "POST",
-            deviceId: deviceId
+            authToken: authToken
         )
     }
 }
-
-// MARK: - Shopping List
 
 // MARK: - Shared Decodable
 

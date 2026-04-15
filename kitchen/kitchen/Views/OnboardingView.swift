@@ -1,25 +1,33 @@
 import SwiftUI
 
-private enum OnboardingField: Hashable {
-    case displayName
-    case secondary
-}
+private enum AuthMode { case login, register }
+private enum KitchenMode { case join, create }
 
-private enum OnboardingPhase {
-    case login
-    case join
-    case create
+private enum OnboardingField: Hashable {
+    case userName, password, nickName, kitchen
 }
 
 struct OnboardingView: View {
     @EnvironmentObject private var store: AppStore
-    @State private var displayName = ""
-    @State private var secondaryInput = ""
-    @State private var phase: OnboardingPhase = .login
-    @State private var nameIsInvalid = false
-    @State private var secondaryIsInvalid = false
-    @State private var nameShakeTrigger = 0
-    @State private var secondaryShakeTrigger = 0
+    @State private var authMode: AuthMode = .login
+    @State private var kitchenMode: KitchenMode = .join
+    @State private var showKitchenField = false
+
+    @State private var userName = ""
+    @State private var password = ""
+    @State private var nickName = ""
+    @State private var kitchenInput = ""
+
+    @State private var userNameInvalid = false
+    @State private var passwordInvalid = false
+    @State private var nickNameInvalid = false
+    @State private var kitchenInputInvalid = false
+
+    @State private var userNameShake = 0
+    @State private var passwordShake = 0
+    @State private var nickNameShake = 0
+    @State private var kitchenInputShake = 0
+
     @State private var isSubmitting = false
     @FocusState private var focusedField: OnboardingField?
 
@@ -35,13 +43,6 @@ struct OnboardingView: View {
             bottomBar
         }
         .appPageBackground()
-        .onChange(of: store.loginNotFound) { _, notFound in
-            if notFound {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    phase = .login
-                }
-            }
-        }
     }
 
     private var formCard: some View {
@@ -51,64 +52,10 @@ struct OnboardingView: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColor.textSecondary)
 
-                AppTextField(
-                    title: "你的名字",
-                    text: $displayName,
-                    focusedField: $focusedField,
-                    field: .displayName,
-                    autocapitalization: .sentences,
-                    submitLabel: phase == .login ? .done : .next,
-                    onSubmit: {
-                        if phase == .login {
-                            focusedField = nil
-                            submit()
-                        } else {
-                            focusedField = .secondary
-                        }
-                    },
-                    isInvalid: nameIsInvalid,
-                    validationTrigger: nameShakeTrigger
-                )
-                .onChange(of: displayName) { oldValue, newValue in
-                    guard nameIsInvalid, oldValue != newValue else { return }
-                    withAnimation(.easeInOut(duration: 0.16)) {
-                        nameIsInvalid = false
-                    }
-                    // Reset to login phase when name changes after not-found
-                    if store.loginNotFound {
-                        store.loginNotFound = false
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            phase = .login
-                        }
-                    }
-                }
-
-                if store.loginNotFound {
-                    modeButtons
-                }
-
-                if phase == .join || phase == .create {
-                    AppTextField(
-                        title: phase == .join ? "邀请码" : "私厨名称",
-                        text: $secondaryInput,
-                        focusedField: $focusedField,
-                        field: .secondary,
-                        autocapitalization: phase == .join ? .characters : .words,
-                        submitLabel: .done,
-                        onSubmit: {
-                            focusedField = nil
-                            submit()
-                        },
-                        isInvalid: secondaryIsInvalid,
-                        validationTrigger: secondaryShakeTrigger
-                    )
-                    .onChange(of: secondaryInput) { oldValue, newValue in
-                        guard secondaryIsInvalid, oldValue != newValue else { return }
-                        withAnimation(.easeInOut(duration: 0.16)) {
-                            secondaryIsInvalid = false
-                        }
-                    }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                if store.isAuthenticated {
+                    kitchenSection
+                } else {
+                    authSection
                 }
 
                 if let error = store.error {
@@ -120,25 +67,215 @@ struct OnboardingView: View {
         }
     }
 
-    private var modeButtons: some View {
+    // MARK: - Auth Section (not logged in)
+
+    private var authSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            AppTextField(
+                title: "用户名",
+                text: $userName,
+                focusedField: $focusedField,
+                field: .userName,
+                autocapitalization: .never,
+                submitLabel: .next,
+                onSubmit: { focusedField = .password },
+                isInvalid: userNameInvalid,
+                validationTrigger: userNameShake
+            )
+            .onChange(of: userName) { _, _ in
+                if userNameInvalid { withAnimation(.easeInOut(duration: 0.16)) { userNameInvalid = false } }
+            }
+
+            AppTextField(
+                title: "密码",
+                text: $password,
+                focusedField: $focusedField,
+                field: .password,
+                isSecure: true,
+                autocapitalization: .never,
+                submitLabel: authMode == .register ? .next : (showKitchenField ? .next : .done),
+                onSubmit: {
+                    if authMode == .register {
+                        focusedField = .nickName
+                    } else if showKitchenField {
+                        focusedField = .kitchen
+                    } else {
+                        focusedField = nil
+                        submit()
+                    }
+                },
+                isInvalid: passwordInvalid,
+                validationTrigger: passwordShake
+            )
+            .onChange(of: password) { _, _ in
+                if passwordInvalid { withAnimation(.easeInOut(duration: 0.16)) { passwordInvalid = false } }
+            }
+
+            if authMode == .register {
+                AppTextField(
+                    title: "昵称",
+                    text: $nickName,
+                    focusedField: $focusedField,
+                    field: .nickName,
+                    autocapitalization: .words,
+                    submitLabel: showKitchenField ? .next : .done,
+                    onSubmit: {
+                        if showKitchenField {
+                            focusedField = .kitchen
+                        } else {
+                            focusedField = nil
+                            submit()
+                        }
+                    },
+                    isInvalid: nickNameInvalid,
+                    validationTrigger: nickNameShake
+                )
+                .onChange(of: nickName) { _, _ in
+                    if nickNameInvalid { withAnimation(.easeInOut(duration: 0.16)) { nickNameInvalid = false } }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            kitchenModeToggle
+
+            if showKitchenField {
+                AppTextField(
+                    title: kitchenMode == .join ? "邀请码" : "私厨名称",
+                    text: $kitchenInput,
+                    focusedField: $focusedField,
+                    field: .kitchen,
+                    autocapitalization: kitchenMode == .join ? .characters : .words,
+                    submitLabel: .done,
+                    onSubmit: {
+                        focusedField = nil
+                        submit()
+                    },
+                    isInvalid: kitchenInputInvalid,
+                    validationTrigger: kitchenInputShake
+                )
+                .onChange(of: kitchenInput) { _, _ in
+                    if kitchenInputInvalid { withAnimation(.easeInOut(duration: 0.16)) { kitchenInputInvalid = false } }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            authModeLink
+        }
+    }
+
+    private var kitchenModeToggle: some View {
         HStack(spacing: AppSpacing.md) {
             Button("输入邀请码加入") {
-                switchPhase(to: .join)
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    kitchenMode = .join
+                    showKitchenField = true
+                    kitchenInput = ""
+                    kitchenInputInvalid = false
+                }
+                focusedField = .kitchen
             }
             .font(AppTypography.caption)
-            .foregroundStyle(phase == .join ? AppColor.textPrimary : AppColor.textSecondary)
+            .foregroundStyle(
+                showKitchenField && kitchenMode == .join ? AppColor.textPrimary : AppColor.textSecondary
+            )
 
             Text("或")
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColor.textSecondary)
 
             Button("创建私厨") {
-                switchPhase(to: .create)
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    kitchenMode = .create
+                    showKitchenField = true
+                    kitchenInput = ""
+                    kitchenInputInvalid = false
+                }
+                focusedField = .kitchen
             }
             .font(AppTypography.caption)
-            .foregroundStyle(phase == .create ? AppColor.textPrimary : AppColor.textSecondary)
+            .foregroundStyle(
+                showKitchenField && kitchenMode == .create ? AppColor.textPrimary : AppColor.textSecondary
+            )
         }
     }
+
+    private var authModeLink: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                authMode = authMode == .login ? .register : .login
+                store.error = nil
+                userNameInvalid = false
+                passwordInvalid = false
+                nickNameInvalid = false
+            }
+        } label: {
+            Text(authMode == .login ? "还没有账号？注册" : "已有账号？登录")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColor.textTertiary)
+        }
+    }
+
+    // MARK: - Kitchen Section (logged in, no kitchen)
+
+    private var kitchenSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            HStack(spacing: AppSpacing.md) {
+                Button("输入邀请码加入") {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        kitchenMode = .join
+                        kitchenInput = ""
+                        kitchenInputInvalid = false
+                    }
+                    focusedField = .kitchen
+                }
+                .font(AppTypography.caption)
+                .foregroundStyle(kitchenMode == .join ? AppColor.textPrimary : AppColor.textSecondary)
+
+                Text("或")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+
+                Button("创建私厨") {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        kitchenMode = .create
+                        kitchenInput = ""
+                        kitchenInputInvalid = false
+                    }
+                    focusedField = .kitchen
+                }
+                .font(AppTypography.caption)
+                .foregroundStyle(kitchenMode == .create ? AppColor.textPrimary : AppColor.textSecondary)
+            }
+
+            AppTextField(
+                title: kitchenMode == .join ? "邀请码" : "私厨名称",
+                text: $kitchenInput,
+                focusedField: $focusedField,
+                field: .kitchen,
+                autocapitalization: kitchenMode == .join ? .characters : .words,
+                submitLabel: .done,
+                onSubmit: {
+                    focusedField = nil
+                    submit()
+                },
+                isInvalid: kitchenInputInvalid,
+                validationTrigger: kitchenInputShake
+            )
+            .onChange(of: kitchenInput) { _, _ in
+                if kitchenInputInvalid { withAnimation(.easeInOut(duration: 0.16)) { kitchenInputInvalid = false } }
+            }
+
+            Button {
+                Task { await store.signOut() }
+            } label: {
+                Text("退出登录")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+        }
+    }
+
+    // MARK: - Bottom Bar
 
     private var bottomBar: some View {
         VStack(spacing: AppSpacing.sm) {
@@ -152,85 +289,120 @@ struct OnboardingView: View {
         .background(.regularMaterial)
     }
 
+    // MARK: - Helpers
+
     private var hintText: String {
-        switch phase {
-        case .login:
-            store.loginNotFound
-                ? "没有找到该名字，选择加入或创建"
-                : "输入名字登录"
-        case .join:
-            "输入邀请码加入已有私厨"
-        case .create:
-            "给你的私厨起个名字"
+        if store.isAuthenticated {
+            return kitchenMode == .join ? "输入邀请码加入已有私厨" : "给你的私厨起个名字"
+        }
+        switch authMode {
+        case .login: return "用户名和密码登录"
+        case .register: return "创建新账号"
         }
     }
 
     private var buttonTitle: String {
-        switch phase {
-        case .login: "登录"
-        case .join: "加入"
-        case .create: "创建并进入"
+        if store.isAuthenticated {
+            return kitchenMode == .join ? "加入" : "创建并进入"
         }
+        return authMode == .login ? "登录" : "注册"
     }
 
     private var buttonSymbol: String {
-        switch phase {
-        case .login: "arrow.right"
-        case .join: "arrow.right"
-        case .create: "plus"
+        if store.isAuthenticated {
+            return kitchenMode == .join ? "arrow.right" : "plus"
         }
-    }
-
-    private func switchPhase(to newPhase: OnboardingPhase) {
-        guard phase != newPhase else { return }
-        withAnimation(.easeInOut(duration: 0.2)) {
-            phase = newPhase
-            secondaryIsInvalid = false
-        }
-        secondaryInput = ""
-        focusedField = .secondary
+        return authMode == .login ? "arrow.right" : "arrow.right"
     }
 
     private func submit() {
         focusedField = nil
-        let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let nextNameInvalid = trimmedName.isEmpty
+        store.error = nil
 
-        withAnimation(.easeInOut(duration: 0.34)) {
-            nameIsInvalid = nextNameInvalid
+        if store.isAuthenticated {
+            submitKitchen()
+        } else if authMode == .login {
+            submitLogin()
+        } else {
+            submitRegister()
         }
-        if nextNameInvalid {
-            nameShakeTrigger += 1
+    }
+
+    private func submitLogin() {
+        let trimmedUser = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPass = password.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var valid = true
+        if trimmedUser.isEmpty {
+            withAnimation(.easeInOut(duration: 0.34)) { userNameInvalid = true }
+            userNameShake += 1
+            valid = false
+        }
+        if trimmedPass.isEmpty {
+            withAnimation(.easeInOut(duration: 0.34)) { passwordInvalid = true }
+            passwordShake += 1
+            valid = false
+        }
+        guard valid else { return }
+
+        let code = showKitchenField && kitchenMode == .join ? kitchenInput : ""
+        let name = showKitchenField && kitchenMode == .create ? kitchenInput : ""
+
+        Task {
+            isSubmitting = true
+            defer { isSubmitting = false }
+            await store.login(userName: trimmedUser, password: trimmedPass, inviteCode: code, kitchenName: name)
+        }
+    }
+
+    private func submitRegister() {
+        let trimmedUser = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPass = password.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNick = nickName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var valid = true
+        if trimmedUser.isEmpty {
+            withAnimation(.easeInOut(duration: 0.34)) { userNameInvalid = true }
+            userNameShake += 1
+            valid = false
+        }
+        if trimmedPass.isEmpty {
+            withAnimation(.easeInOut(duration: 0.34)) { passwordInvalid = true }
+            passwordShake += 1
+            valid = false
+        }
+        if trimmedNick.isEmpty {
+            withAnimation(.easeInOut(duration: 0.34)) { nickNameInvalid = true }
+            nickNameShake += 1
+            valid = false
+        }
+        guard valid else { return }
+
+        let code = showKitchenField && kitchenMode == .join ? kitchenInput : ""
+        let name = showKitchenField && kitchenMode == .create ? kitchenInput : ""
+
+        Task {
+            isSubmitting = true
+            defer { isSubmitting = false }
+            await store.register(userName: trimmedUser, password: trimmedPass, nickName: trimmedNick, inviteCode: code, kitchenName: name)
+        }
+    }
+
+    private func submitKitchen() {
+        let trimmed = kitchenInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            withAnimation(.easeInOut(duration: 0.34)) { kitchenInputInvalid = true }
+            kitchenInputShake += 1
             return
         }
 
-        switch phase {
-        case .login:
-            Task {
-                isSubmitting = true
-                defer { isSubmitting = false }
-                await store.login(displayName: trimmedName)
-            }
-        case .join, .create:
-            let trimmedSecondary = secondaryInput.trimmingCharacters(in: .whitespacesAndNewlines)
-            let nextSecondaryInvalid = trimmedSecondary.isEmpty
-
-            withAnimation(.easeInOut(duration: 0.34)) {
-                secondaryIsInvalid = nextSecondaryInvalid
-            }
-            if nextSecondaryInvalid {
-                secondaryShakeTrigger += 1
-                return
-            }
-
-            Task {
-                isSubmitting = true
-                defer { isSubmitting = false }
-                if phase == .join {
-                    await store.joinKitchen(inviteCode: trimmedSecondary, displayName: trimmedName)
-                } else {
-                    await store.createKitchen(named: trimmedSecondary, displayName: trimmedName)
-                }
+        Task {
+            isSubmitting = true
+            defer { isSubmitting = false }
+            if kitchenMode == .join {
+                await store.joinKitchen(inviteCode: trimmed)
+            } else {
+                await store.createKitchen(named: trimmed)
             }
         }
     }

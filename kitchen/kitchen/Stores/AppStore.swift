@@ -3,7 +3,7 @@ import Combine
 
 @MainActor
 final class AppStore: ObservableObject {
-    @Published var currentDevice: Device?
+    @Published var currentAccount: Account?
     @Published var kitchen: Kitchen?
     @Published var members: [Member] = []
     @Published var dishes: [Dish] = []
@@ -12,29 +12,23 @@ final class AppStore: ObservableObject {
     @Published var cartItems: [CartItem] = []
     @Published var shoppingListItems: [ShoppingListItem] = []
     @Published var isLoading: Bool = false
+    @Published var isBootstrapping: Bool = false
     @Published var error: String?
-    @Published var loginNotFound: Bool = false
 
     let apiClient = APIClient()
 
-    private(set) var deviceId: String
-    private(set) var storedDisplayName: String
+    private(set) var authToken: String = ""
+    private(set) var storedNickName: String = ""
 
     init() {
-        if let stored = UserDefaults.standard.string(forKey: "deviceID") {
-            deviceId = stored
-        } else {
-            let newID = UUID().uuidString
-            UserDefaults.standard.set(newID, forKey: "deviceID")
-            deviceId = newID
-        }
-        storedDisplayName = UserDefaults.standard.string(forKey: "displayName") ?? ""
+        authToken = UserDefaults.standard.string(forKey: "authToken") ?? ""
+        storedNickName = UserDefaults.standard.string(forKey: "nickName") ?? ""
     }
 
     // MARK: - Computed
 
     var currentMember: Member? {
-        members.first { $0.deviceRefId == currentDevice?.id }
+        members.first { $0.accountId == currentAccount?.id }
     }
 
     var currentRole: KitchenRole? {
@@ -47,6 +41,7 @@ final class AppStore: ObservableObject {
     var canManageOrders: Bool { isOwner || isAdmin }
 
     var hasKitchen: Bool { kitchen != nil }
+    var isAuthenticated: Bool { !authToken.isEmpty && currentAccount != nil }
 
     var activeDishes: [Dish] {
         dishes.filter { $0.archivedAt == nil }
@@ -64,6 +59,32 @@ final class AppStore: ObservableObject {
         cartItems.first(where: { $0.dishID == dishID })?.quantity ?? 0
     }
 
+    // MARK: - Bootstrap
+
+    func bootstrap() async {
+        guard !authToken.isEmpty else { return }
+        isBootstrapping = true
+        defer { isBootstrapping = false }
+
+        do {
+            let me = try await apiClient.fetchMe(authToken: authToken)
+            currentAccount = me.account
+            storedNickName = me.account.nickName
+            UserDefaults.standard.set(me.account.nickName, forKey: "nickName")
+
+            if let lastKitchenID = UserDefaults.standard.string(forKey: "lastKitchenID") {
+                let k = try await apiClient.fetchKitchen(id: lastKitchenID, authToken: authToken)
+                kitchen = k
+                // fetchAll is triggered by ContentView's task(id: kitchen?.id)
+            }
+        } catch APIError.unauthorized {
+            clearSession()
+        } catch {
+            // auth/me succeeded but kitchen restore failed — keep logged-in state
+            // kitchen remains nil, user stays in onboarding to join or create
+        }
+    }
+
     // MARK: - Data Loading
 
     func fetchAll() async {
@@ -73,13 +94,13 @@ final class AppStore: ObservableObject {
 
         do {
             async let membersReq: [Member] = apiClient.fetchMembers(
-                kitchenID: kitchen.id, deviceId: deviceId
+                kitchenID: kitchen.id, authToken: authToken
             )
             async let dishesReq: [Dish] = apiClient.fetchDishes(
-                kitchenID: kitchen.id, deviceId: deviceId
+                kitchenID: kitchen.id, authToken: authToken
             )
             async let orderReq: APIClient.OpenOrderResponse? = apiClient.fetchOpenOrder(
-                kitchenID: kitchen.id, deviceId: deviceId
+                kitchenID: kitchen.id, authToken: authToken
             )
 
             let (fetchedMembers, fetchedDishes, fetchedOrder) = try await (membersReq, dishesReq, orderReq)
@@ -91,7 +112,7 @@ final class AppStore: ObservableObject {
                     id: order.id,
                     kitchenId: order.kitchenId,
                     status: order.status,
-                    createdByDeviceId: order.createdByDeviceId,
+                    createdByAccountId: order.createdByAccountId,
                     createdAt: order.createdAt,
                     finishedAt: order.finishedAt
                 )
@@ -100,6 +121,8 @@ final class AppStore: ObservableObject {
                 self.currentOrder = nil
                 self.orderItems = []
             }
+        } catch APIError.unauthorized {
+            clearSession()
         } catch {
             self.error = error.localizedDescription
         }
@@ -109,12 +132,12 @@ final class AppStore: ObservableObject {
         guard let kitchen else { return }
         do {
             let result = try await apiClient.fetchOpenOrder(
-                kitchenID: kitchen.id, deviceId: deviceId
+                kitchenID: kitchen.id, authToken: authToken
             )
             if let order = result {
                 self.currentOrder = Order(
                     id: order.id, kitchenId: order.kitchenId,
-                    status: order.status, createdByDeviceId: order.createdByDeviceId,
+                    status: order.status, createdByAccountId: order.createdByAccountId,
                     createdAt: order.createdAt, finishedAt: order.finishedAt
                 )
                 self.orderItems = order.items ?? []
@@ -127,94 +150,56 @@ final class AppStore: ObservableObject {
         }
     }
 
-    // MARK: - Login
+    // MARK: - Auth
 
-    func login(displayName: String) async {
-        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
+    func login(userName: String, password: String, inviteCode: String = "", kitchenName: String = "") async {
         error = nil
-        loginNotFound = false
-
         do {
-            let result = try await apiClient.login(displayName: trimmed)
-            if result.found, let device = result.device, let kitchen = result.kitchen, let member = result.member {
-                // Update local deviceId to match the found device
-                deviceId = device.deviceId
-                UserDefaults.standard.set(device.deviceId, forKey: "deviceID")
-                storedDisplayName = trimmed
-                UserDefaults.standard.set(trimmed, forKey: "displayName")
+            let response = try await apiClient.login(userName: userName, password: password)
+            persistAuth(response.token, account: response.account)
 
-                currentDevice = device
-                self.kitchen = kitchen
-                members = [member]
-            } else {
-                loginNotFound = true
-                storedDisplayName = trimmed
-                UserDefaults.standard.set(trimmed, forKey: "displayName")
+            // Try to restore last kitchen
+            if let lastKitchenID = UserDefaults.standard.string(forKey: "lastKitchenID"),
+               let k = try? await apiClient.fetchKitchen(id: lastKitchenID, authToken: authToken) {
+                kitchen = k
+                return
             }
+
+            // No restorable kitchen — try provided invite code or kitchen name
+            await completeOnboarding(inviteCode: inviteCode, kitchenName: kitchenName)
         } catch {
             self.error = error.localizedDescription
         }
     }
 
-    // MARK: - Onboarding
-
-    func createKitchen(named name: String, displayName: String) async {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !trimmedName.isEmpty else { return }
-
+    func register(userName: String, password: String, nickName: String, inviteCode: String = "", kitchenName: String = "") async {
         error = nil
-        storedDisplayName = trimmedName
-        UserDefaults.standard.set(trimmedName, forKey: "displayName")
-
         do {
-            let result = try await apiClient.onboardingComplete(
-                mode: "create",
-                deviceID: deviceId,
-                displayName: trimmedName,
-                kitchenName: trimmed
+            let response = try await apiClient.register(
+                userName: userName, password: password, nickName: nickName
             )
-            currentDevice = result.device
-            kitchen = result.kitchen
-            let m = result.member
-            members = [Member(
-                id: m.id, kitchenId: m.kitchenId, deviceRefId: m.deviceRefId,
-                role: m.role, status: m.status, joinedAt: m.joinedAt,
-                removedAt: m.removedAt, displayName: trimmedName
-            )]
+            persistAuth(response.token, account: response.account)
+            await completeOnboarding(inviteCode: inviteCode, kitchenName: kitchenName)
         } catch {
             self.error = error.localizedDescription
         }
     }
 
-    func joinKitchen(inviteCode: String, displayName: String) async {
-        let trimmedCode = inviteCode.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedCode.isEmpty, !trimmedName.isEmpty else { return }
+    func joinKitchen(inviteCode: String) async {
         error = nil
-        storedDisplayName = trimmedName
-        UserDefaults.standard.set(trimmedName, forKey: "displayName")
+        await completeOnboarding(inviteCode: inviteCode, kitchenName: "")
+    }
 
-        do {
-            let result = try await apiClient.onboardingComplete(
-                mode: "join",
-                deviceID: deviceId,
-                displayName: trimmedName,
-                inviteCode: trimmedCode
-            )
-            currentDevice = result.device
-            kitchen = result.kitchen
-            let m = result.member
-            members = [Member(
-                id: m.id, kitchenId: m.kitchenId, deviceRefId: m.deviceRefId,
-                role: m.role, status: m.status, joinedAt: m.joinedAt,
-                removedAt: m.removedAt, displayName: trimmedName
-            )]
-        } catch {
-            self.error = error.localizedDescription
+    func createKitchen(named name: String) async {
+        error = nil
+        await completeOnboarding(inviteCode: "", kitchenName: name)
+    }
+
+    func signOut() async {
+        if !authToken.isEmpty {
+            _ = try? await apiClient.logout(authToken: authToken)
         }
+        clearSession()
     }
 
     // MARK: - Kitchen
@@ -223,7 +208,7 @@ final class AppStore: ObservableObject {
         guard let kitchen else { return }
         do {
             let updated = try await apiClient.updateKitchen(
-                id: kitchen.id, name: name, deviceId: deviceId
+                id: kitchen.id, name: name, authToken: authToken
             )
             self.kitchen = updated
         } catch {
@@ -235,11 +220,11 @@ final class AppStore: ObservableObject {
         guard let kitchen else { return }
         do {
             let result = try await apiClient.rotateInviteCode(
-                kitchenID: kitchen.id, deviceId: deviceId
+                kitchenID: kitchen.id, authToken: authToken
             )
             self.kitchen = Kitchen(
                 id: kitchen.id, name: kitchen.name,
-                ownerDeviceId: kitchen.ownerDeviceId,
+                ownerAccountId: kitchen.ownerAccountId,
                 inviteCode: result.inviteCode,
                 inviteCodeRotatedAt: kitchen.inviteCodeRotatedAt,
                 createdAt: kitchen.createdAt
@@ -251,13 +236,13 @@ final class AppStore: ObservableObject {
 
     // MARK: - Members
 
-    func removeMember(deviceRefID: String) async {
+    func removeMember(accountID: String) async {
         guard let kitchen else { return }
         do {
             _ = try await apiClient.removeMember(
-                kitchenID: kitchen.id, deviceRefID: deviceRefID, deviceId: deviceId
+                kitchenID: kitchen.id, accountID: accountID, authToken: authToken
             )
-            members.removeAll { $0.deviceRefId == deviceRefID }
+            members.removeAll { $0.accountId == accountID }
         } catch {
             self.error = error.localizedDescription
         }
@@ -267,14 +252,9 @@ final class AppStore: ObservableObject {
         guard let kitchen else { return }
         do {
             _ = try await apiClient.leaveKitchen(
-                kitchenID: kitchen.id, deviceId: deviceId
+                kitchenID: kitchen.id, authToken: authToken
             )
-            self.kitchen = nil
-            members = []
-            dishes = []
-            orderItems = []
-            cartItems = []
-            currentOrder = nil
+            clearKitchenState()
         } catch {
             self.error = error.localizedDescription
         }
@@ -294,7 +274,7 @@ final class AppStore: ObservableObject {
                 name: trimmedName,
                 category: trimmedCategory,
                 ingredients: ingredients,
-                deviceId: deviceId
+                authToken: authToken
             )
             dishes.insert(dish, at: 0)
         } catch {
@@ -304,7 +284,7 @@ final class AppStore: ObservableObject {
 
     func archiveDish(id: String) async {
         do {
-            _ = try await apiClient.archiveDish(id: id, deviceId: deviceId)
+            _ = try await apiClient.archiveDish(id: id, authToken: authToken)
             dishes.removeAll { $0.id == id }
         } catch {
             self.error = error.localizedDescription
@@ -356,29 +336,25 @@ final class AppStore: ObservableObject {
         guard !cartItems.isEmpty else { return }
 
         do {
-            // Ensure an open order exists
             if currentOrder == nil {
                 let order = try await apiClient.createOrder(
-                    kitchenID: kitchen!.id, deviceId: deviceId
+                    kitchenID: kitchen!.id, authToken: authToken
                 )
                 currentOrder = order
             }
 
             let orderID = currentOrder!.id
 
-            // Submit each cart item
             for item in cartItems {
                 _ = try await apiClient.addOrderItem(
                     orderID: orderID,
                     dishID: item.dishID,
                     quantity: item.quantity,
-                    deviceId: deviceId
+                    authToken: authToken
                 )
             }
 
             cartItems.removeAll()
-
-            // Refresh order items from server
             await refreshOrderItems()
         } catch {
             self.error = error.localizedDescription
@@ -400,7 +376,7 @@ final class AppStore: ObservableObject {
 
         do {
             let updated = try await apiClient.updateOrderItem(
-                id: itemID, status: next, deviceId: deviceId
+                id: itemID, status: next, authToken: authToken
             )
             orderItems[index] = updated
         } catch {
@@ -416,10 +392,9 @@ final class AppStore: ObservableObject {
     func finishOrder() async {
         guard let order = currentOrder else { return }
         do {
-            let finished = try await apiClient.finishOrder(id: order.id, deviceId: deviceId)
+            _ = try await apiClient.finishOrder(id: order.id, authToken: authToken)
             currentOrder = nil
             orderItems = []
-            _ = finished
         } catch {
             self.error = error.localizedDescription
         }
@@ -441,5 +416,57 @@ final class AppStore: ObservableObject {
         shoppingListItems = ingredientDishes
             .map { ShoppingListItem(ingredient: $0.key, dishCount: $0.value.count) }
             .sorted { $0.ingredient < $1.ingredient }
+    }
+
+    // MARK: - Private Helpers
+
+    private func completeOnboarding(inviteCode: String, kitchenName: String) async {
+        let trimmedCode = inviteCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedName = kitchenName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedCode.isEmpty || !trimmedName.isEmpty else { return }
+        let mode = trimmedCode.isEmpty ? "create" : "join"
+
+        do {
+            let result = try await apiClient.onboardingComplete(
+                mode: mode,
+                authToken: authToken,
+                inviteCode: trimmedCode.isEmpty ? nil : trimmedCode,
+                kitchenName: trimmedName.isEmpty ? nil : trimmedName
+            )
+            kitchen = result.kitchen
+            members = [result.member]
+            UserDefaults.standard.set(result.kitchen.id, forKey: "lastKitchenID")
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    private func persistAuth(_ token: String, account: Account) {
+        authToken = token
+        currentAccount = account
+        storedNickName = account.nickName
+        UserDefaults.standard.set(token, forKey: "authToken")
+        UserDefaults.standard.set(account.id, forKey: "accountID")
+        UserDefaults.standard.set(account.nickName, forKey: "nickName")
+    }
+
+    private func clearKitchenState() {
+        kitchen = nil
+        members = []
+        dishes = []
+        orderItems = []
+        cartItems = []
+        currentOrder = nil
+        UserDefaults.standard.removeObject(forKey: "lastKitchenID")
+    }
+
+    func clearSession() {
+        authToken = ""
+        currentAccount = nil
+        clearKitchenState()
+        UserDefaults.standard.removeObject(forKey: "authToken")
+        UserDefaults.standard.removeObject(forKey: "accountID")
+        UserDefaults.standard.removeObject(forKey: "nickName")
     }
 }
