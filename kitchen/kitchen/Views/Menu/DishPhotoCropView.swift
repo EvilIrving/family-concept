@@ -17,8 +17,9 @@ struct DishPhotoCropView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let vpWidth = geo.size.width
-            let vpHeight = vpWidth / DishImageSpec.viewportAspectRatio
+            let layout = viewportLayout(in: geo)
+            let vpWidth = layout.width
+            let vpHeight = layout.height
             let vpY = (geo.size.height - vpHeight) / 2
 
             ZStack {
@@ -39,6 +40,7 @@ struct DishPhotoCropView: View {
                 Rectangle()
                     .stroke(Color.white.opacity(0.4), lineWidth: 1)
                     .frame(width: vpWidth, height: vpHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius))
                     .allowsHitTesting(false)
 
                 viewportGuides(width: vpWidth, height: vpHeight)
@@ -174,6 +176,18 @@ struct DishPhotoCropView: View {
         return CGSize(width: imageSize.width * fillScale, height: imageSize.height * fillScale)
     }
 
+    private func viewportLayout(in geo: GeometryProxy) -> CGSize {
+        let maxWidth = max(160, geo.size.width - DishImageSpec.viewportHorizontalInset * 2)
+        let topReserved = max(geo.safeAreaInsets.top, 16) + 84
+        let bottomReserved = max(geo.safeAreaInsets.bottom, 16) + 108
+        let maxHeight = max(160, geo.size.height - topReserved - bottomReserved)
+        let fittedWidth = min(maxWidth, maxHeight * DishImageSpec.viewportAspectRatio)
+        return CGSize(
+            width: fittedWidth,
+            height: fittedWidth / DishImageSpec.viewportAspectRatio
+        )
+    }
+
     /// 与 `Image` + `scaledToFill` 一致：先按比例铺满画布，再按视口与偏移裁切，避免 `draw(in:)` 拉伸整张图导致变形。
     private func crop(geo: GeometryProxy, vpY: CGFloat, vpWidth: CGFloat, vpHeight: CGFloat) {
         let normalized = sourceImage.normalizedForCrop()
@@ -277,7 +291,11 @@ struct DishPhotoCropView: View {
             let suggestedScale = max(minimumScale, fitScale)
 
             let imageCenter = CGPoint(x: imageSize.width / 2, y: imageSize.height / 2)
-            let subjectCenter = CGPoint(x: bounds.midX, y: bounds.midY)
+            // Vision mask points use a bottom-left origin; SwiftUI image offsets use a top-left visual space.
+            let subjectCenter = CGPoint(
+                x: bounds.midX,
+                y: imageSize.height - bounds.midY
+            )
             let centeredOffset = CGSize(
                 width: (imageCenter.x - subjectCenter.x) * baseScale * suggestedScale,
                 height: (imageCenter.y - subjectCenter.y) * baseScale * suggestedScale

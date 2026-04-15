@@ -1,15 +1,20 @@
-# Xcode — 构建与用户本地状态
+# Xcode — 构建产物
 build/
 DerivedData/
 .deriveddata/
+**/DerivedData/
 *.hmap
 *.ipa
 *.dSYM
 *.dSYM.zip
+*.xcresult
+*.xcarchive
 
-# Xcode — 个人设置（勿提交）
+# Xcode — 用户/本机私有（勿提交）
 xcuserdata/
+**/xcuserdata/
 *.xcuserstate
+xcschememanagement.plist
 *.xccheckout
 *.moved-aside
 *.xcscmblueprint
@@ -18,13 +23,15 @@ xcuserdata/
 *.mode1v3
 *.mode2v3
 *.perspectivev3
+*.xcbkptlist
+Breakpoints_v2.xcbkptlist
 
 # Swift Package Manager
 .build/
 .swiftpm/xcode/xcuserdata
 .swiftpm/xcode/package.xcworkspace/xcuserdata
 
-# CocoaPods / Carthage（若后续使用）
+# CocoaPods / Carthage
 Pods/
 Carthage/Build/
 
@@ -39,6 +46,9 @@ playground.xcworkspace
 *.swo
 *~
 .DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
 *.iml
 *.ipr
 *.iws
@@ -47,12 +57,24 @@ playground.xcworkspace
 .env
 .env.local
 .env.*.local
+*.local.xcconfig
 
-# Node（Cloudflare Worker 等）
+# Node / Cloudflare Worker
 node_modules/
+.wrangler/
+*.tsbuildinfo
 
 # 日志与临时文件
 *.log
 *.tmp
 *.temp
-.wrangler/
+.cache/
+
+# 测试覆盖率（若生成）
+coverage/
+*.gcda
+*.gcno
+
+# 本地签名与证书（按需保留白名单时从本段移除对应行）
+*.p12
+*.mobileprovision

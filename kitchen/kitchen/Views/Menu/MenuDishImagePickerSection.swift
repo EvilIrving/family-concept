@@ -80,13 +80,14 @@ struct MenuDishImagePickerSection: View {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
+                .scaleEffect(0.7)
                 .padding(AppSpacing.sm)
-            .frame(maxWidth: .infinity, minHeight: 180, alignment: .center)
-            .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
-            .overlay {
-                RoundedRectangle(cornerRadius: AppRadius.sm)
-                    .stroke(AppColor.lineSoft, lineWidth: 1)
-            }
+                .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                .overlay {
+                    RoundedRectangle(cornerRadius: AppRadius.sm)
+                        .stroke(AppColor.lineSoft, lineWidth: 1)
+                }
 
             Button {
                 coordinator.clearImage()
@@ -94,7 +95,7 @@ struct MenuDishImagePickerSection: View {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 20))
                     .foregroundStyle(AppColor.textSecondary)
-                    .padding(AppSpacing.xs)
+                    .padding(6)
             }
             .buttonStyle(.plain)
         }
