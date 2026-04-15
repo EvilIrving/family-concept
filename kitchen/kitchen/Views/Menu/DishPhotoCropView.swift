@@ -2,6 +2,8 @@ import SwiftUI
 import Vision
 
 struct DishPhotoCropView: View {
+    private let minimumScale: CGFloat = 0.5
+
     let sourceImage: UIImage
     let onConfirm: (UIImage) -> Void
     let onCancel: () -> Void
@@ -129,10 +131,12 @@ struct DishPhotoCropView: View {
                 SimultaneousGesture(
                     MagnificationGesture()
                         .onChanged { value in
-                            scale = max(1.0, lastScale * value)
+                            scale = max(minimumScale, lastScale * value)
+                            offset = clamped(offset, vpWidth: vpWidth, vpHeight: vpHeight)
                         }
                         .onEnded { _ in
                             lastScale = scale
+                            lastOffset = offset
                         },
                     DragGesture()
                         .onChanged { value in
@@ -221,12 +225,12 @@ struct DishPhotoCropView: View {
 
     @MainActor
     private func setFraming(scale: CGFloat, offset: CGSize, vpWidth: CGFloat, vpHeight: CGFloat) {
+        self.scale = max(minimumScale, scale)
+        self.lastScale = self.scale
         let clampedOffset = clamped(offset, vpWidth: vpWidth, vpHeight: vpHeight)
-        self.scale = scale
-        self.lastScale = scale
         self.offset = clampedOffset
         self.lastOffset = clampedOffset
-        self.suggestedScale = scale
+        self.suggestedScale = self.scale
     }
 
     private func fallbackFraming(for image: UIImage, vpWidth: CGFloat, vpHeight: CGFloat) -> (scale: CGFloat, offset: CGSize) {
@@ -240,7 +244,7 @@ struct DishPhotoCropView: View {
         let displayHeight = imageSize.height * fillScale
         let widthScale = (vpWidth * 0.88) / min(displayWidth, vpWidth * 0.88)
         let heightScale = (vpHeight * 0.9) / min(displayHeight, vpHeight * 0.9)
-        let suggested = max(1.0, min(widthScale, heightScale))
+        let suggested = max(minimumScale, min(widthScale, heightScale))
         return (suggested, .zero)
     }
 
@@ -270,7 +274,7 @@ struct DishPhotoCropView: View {
             let subjectHeight = bounds.height * baseScale
 
             let fitScale = max(subjectWidth / targetWidth, subjectHeight / targetHeight)
-            let suggestedScale = max(1.0, fitScale)
+            let suggestedScale = max(minimumScale, fitScale)
 
             let imageCenter = CGPoint(x: imageSize.width / 2, y: imageSize.height / 2)
             let subjectCenter = CGPoint(x: bounds.midX, y: bounds.midY)
