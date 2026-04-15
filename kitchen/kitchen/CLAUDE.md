@@ -21,17 +21,21 @@ kitchen/
 
 ## 身份与启动流程
 
-1. App 首次启动 → 本地生成 UUID 作为 `device_id`，存入 `UserDefaults`（仅此一处允许）
-2. `AppStore` 读取 `device_id`，向后端请求或创建设备记录
-3. 若当前设备没有任何 `active` 的 `members` 记录 → 展示入驻页（`OnboardingView`）
-4. 入驻成功后进入主 Tab 界面
+1. App 启动 → `AppStore.init()` 从 `UserDefaults` 读取 `authToken`（无 token 视为未登录）
+2. `ContentView` 通过 `.task` 调用 `AppStore.bootstrap()`
+3. 有 token → 调 `GET /api/v1/auth/me` 验证；成功且有 `lastKitchenID` → 恢复 kitchen；401 → 清空本地 session
+4. 无 token 或恢复失败 → 展示入驻页（`OnboardingView`）
+5. 入驻/登录成功后进入主 Tab 界面
+
+UserDefaults 持久化项：`authToken`、`accountID`、`nickName`、`lastKitchenID`。不再存储 `deviceID`。
 
 ## 入驻页逻辑
 
-- 入驻页只有单一页面结构，不 push 子页面
-- 默认模式为 `join`（输入邀请码）；点击「创建我的私厨」切换为 `create`（输入厨房名）
-- 两种模式共用同一主输入框，不新增页面结构
-- 统一调用 `POST /onboarding/complete`
+- 单页多模式状态机，不 push 子页面
+- 默认 `login` 模式（用户名 + 密码 + 可选邀请码/私厨名）；小字按钮切换到 `register`（增加昵称字段）
+- 已登录但无 kitchen 时：直接展示加入/创建选择区，不再显示登录表单
+- 加入/创建模式切换共用同一输入框，不新增页面结构
+- 统一调用 `POST /api/v1/onboarding/complete`，请求头携带 `Authorization: Bearer <token>`
 
 ## 模块分工原则
 

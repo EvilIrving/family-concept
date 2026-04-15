@@ -31,12 +31,12 @@ enum ItemStatus: String, Codable {
 
 ## 核心领域模型
 
-### Device
+### Account
 ```swift
-struct Device: Identifiable, Codable {
+struct Account: Identifiable, Codable {
     let id: String
-    let deviceId: String
-    let displayName: String
+    let userName: String
+    let nickName: String
     let createdAt: String
 }
 ```
@@ -46,7 +46,7 @@ struct Device: Identifiable, Codable {
 struct Kitchen: Identifiable, Codable {
     let id: String
     let name: String
-    let ownerDeviceId: String
+    let ownerAccountId: String
     let inviteCode: String
     let inviteCodeRotatedAt: String
     let createdAt: String
@@ -58,11 +58,12 @@ struct Kitchen: Identifiable, Codable {
 struct Member: Identifiable, Codable {
     let id: String
     let kitchenId: String
-    let deviceRefId: String
+    let accountId: String
     let role: KitchenRole
     let status: MemberStatus
     let joinedAt: String
     let removedAt: String?
+    let nickName: String
 }
 ```
 
@@ -75,7 +76,7 @@ struct Dish: Identifiable, Codable {
     let category: String
     let imageKey: String?        // R2 key: {kitchen_id}/{dish_id}.jpg
     let ingredientsJson: String  // JSON string array: ["青椒","姜"]
-    let createdByDeviceId: String
+    let createdByAccountId: String
     let createdAt: String
     let updatedAt: String
     let archivedAt: String?      // nil = 未归档
@@ -88,7 +89,7 @@ struct Order: Identifiable, Codable {
     let id: String
     let kitchenId: String
     let status: OrderStatus
-    let createdByDeviceId: String
+    let createdByAccountId: String
     let createdAt: String
     let finishedAt: String?
 }
@@ -100,7 +101,7 @@ struct OrderItem: Identifiable, Codable {
     let id: String
     let orderId: String
     let dishId: String
-    let addedByDeviceId: String
+    let addedByAccountId: String
     let quantity: Int
     let status: ItemStatus
     let createdAt: String
@@ -116,11 +117,24 @@ struct ShoppingListItem {
 }
 ```
 
+## Auth 响应模型
+
+```swift
+struct AuthResponse: Codable {
+    let token: String
+    let account: Account
+}
+
+struct AuthMeResponse: Codable {
+    let account: Account
+}
+```
+
 ## ER 关系
 
 ```
-devices ──< members >── kitchens ──< dishes
-                                 └──< orders ──< order_items >── dishes
+accounts ──< members >── kitchens ──< dishes
+                                  └──< orders ──< order_items >── dishes
 ```
 
 ## 状态流转

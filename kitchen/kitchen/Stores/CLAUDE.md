@@ -8,12 +8,13 @@
 
 ### AppStore (`AppStore.swift`)
 全局单例，在 `kitchenApp.swift` 创建并注入。负责：
-- `device_id` 的读取与初始化（UserDefaults）
-- 当前登录设备信息（`currentDevice`）
-- 当前所在 Kitchen 信息（`currentKitchen`）
+- `authToken` 的读取与持久化（UserDefaults，仅此一处允许）
+- 当前登录账号信息（`currentAccount: Account?`）
+- 当前所在 Kitchen 信息（`kitchen: Kitchen?`）
 - 当前成员角色（`currentRole: KitchenRole?`）
-- 入驻状态判断（是否有 active member 记录）
-- 顶层导航状态（是否展示入驻页）
+- 启动恢复流程（`bootstrap()`：验证 token → 恢复 lastKitchenID）
+- 顶层导航状态（`isBootstrapping`、`hasKitchen`、`isAuthenticated`）
+- 认证操作：`login()`、`register()`、`signOut()`、`clearSession()`
 
 ## Store 设计规范
 
