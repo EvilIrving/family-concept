@@ -10,6 +10,8 @@ final class AppStore: ObservableObject {
     @Published var dishes: [Dish] = []
     @Published var currentOrder: Order?
     @Published var orderItems: [OrderItem] = []
+    @Published var orderHistory: [OrderHistoryEntry] = []
+    @Published var selectedOrderDetail: OrderDetail?
     @Published var cartItems: [CartItem] = []
     @Published var shoppingListItems: [ShoppingListItem] = []
     @Published var isLoading: Bool = false
@@ -461,14 +463,45 @@ final class AppStore: ObservableObject {
         return item.status.title
     }
 
-    func finishOrder() async {
-        guard let order = currentOrder else { return }
+    @discardableResult
+    func finishOrder() async -> Bool {
+        guard let order = currentOrder else { return false }
         do {
             _ = try await apiClient.finishOrder(id: order.id, authToken: authToken)
             currentOrder = nil
             orderItems = []
+            shoppingListItems = []
+            orderHistory = []
+            selectedOrderDetail = nil
+            return true
         } catch {
             self.error = error.localizedDescription
+            return false
+        }
+    }
+
+    func fetchOrderHistory() async {
+        guard let kitchen else { return }
+        do {
+            let fetchedHistory = try await apiClient.fetchOrderHistory(
+                kitchenID: kitchen.id,
+                authToken: authToken
+            )
+            orderHistory = fetchedHistory.filter { $0.status == .finished && $0.finishedAt != nil }
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    @discardableResult
+    func fetchOrderDetail(orderID: String) async -> OrderDetail? {
+        do {
+            let detail = try await apiClient.fetchOrderDetail(orderID: orderID, authToken: authToken)
+            selectedOrderDetail = detail
+            return detail
+        } catch {
+            self.error = error.localizedDescription
+            return nil
         }
     }
 
@@ -536,6 +569,8 @@ final class AppStore: ObservableObject {
         members = []
         dishes = []
         orderItems = []
+        orderHistory = []
+        selectedOrderDetail = nil
         cartItems = []
         currentOrder = nil
         UserDefaults.standard.removeObject(forKey: "lastKitchenID")

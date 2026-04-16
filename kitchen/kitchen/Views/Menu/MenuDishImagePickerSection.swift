@@ -55,7 +55,6 @@ struct MenuDishImagePickerSection: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.primary)
                     .frame(maxWidth: .infinity, minHeight: AppDimension.minTouchTarget)
-                    .background(AppSemanticColor.interactiveSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
             }
             .buttonStyle(.plain)
 
@@ -64,10 +63,12 @@ struct MenuDishImagePickerSection: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.primary)
                     .frame(maxWidth: .infinity, minHeight: AppDimension.minTouchTarget)
-                    .background(AppSemanticColor.interactiveSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
             }
             .buttonStyle(.plain)
         }
+        .padding(.horizontal, AppSpacing.xxs)
+        .padding(.vertical, AppSpacing.xxs)
+        .background(AppSemanticColor.interactiveSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
     }
 
     private func progressState(_ title: String) -> some View {
@@ -84,17 +85,18 @@ struct MenuDishImagePickerSection: View {
 
     private func imagePreview(_ image: UIImage) -> some View {
         ZStack(alignment: .topTrailing) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .scaleEffect(0.7)
-                .padding(AppSpacing.sm)
-                .frame(maxWidth: .infinity, minHeight: AppDimension.imagePreviewMinHeight, alignment: .center)
-                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+            RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
+                .fill(AppSemanticColor.surfaceSecondary)
+                .frame(maxWidth: .infinity, minHeight: AppDimension.imagePreviewMinHeight)
                 .overlay {
-                    RoundedRectangle(cornerRadius: AppRadius.sm)
-                        .stroke(AppSemanticColor.border, lineWidth: AppBorderWidth.hairline)
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .scaleEffect(0.7)
+                        .padding(AppSpacing.sm)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 }
+                .clipped()
 
             Button {
                 coordinator.clearImage()

@@ -18,12 +18,20 @@ struct MenuView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            AppCard {
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
                 searchBar
                 categoryChips(categories: filterCategories, selection: $selectedCategory)
             }
+            .padding(AppSpacing.md)
+            .background(AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                    .stroke(AppSemanticColor.border, lineWidth: AppBorderWidth.hairline)
+            }
+            .appShadow(AppShadow.card)
             .padding(.horizontal, AppSpacing.md)
-            .padding(.top, AppSpacing.xs)
+            .padding(.top, AppSpacing.xxs)
+            .padding(.bottom, AppSpacing.lg)
 
             menuContent
             if store.cartCount > 0 {
@@ -486,6 +494,7 @@ private struct MenuEmptyStateView: View {
 
             Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, minHeight: 320)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
@@ -506,19 +515,27 @@ private struct MenuDishGridView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            LazyVGrid(columns: gridColumns, spacing: AppSpacing.md) {
-                ForEach(dishes) { dish in
-                    MenuDishCard(
-                        title: dish.name,
-                        category: dish.category,
-                        quantity: quantityForDish(dish.id),
-                        imageURL: dish.publicImageURL(baseURL: DishImageSpec.r2PublicBaseURL),
-                        onDecrease: { onDecrease(dish) },
-                        onIncrease: { onIncrease(dish) }
-                    )
+            VStack(spacing: 0) {
+                LazyVGrid(columns: gridColumns, spacing: AppSpacing.md) {
+                    ForEach(dishes) { dish in
+                        MenuDishCard(
+                            title: dish.name,
+                            category: dish.category,
+                            quantity: quantityForDish(dish.id),
+                            imageURL: dish.publicImageURL(baseURL: DishImageSpec.r2PublicBaseURL),
+                            onDecrease: { onDecrease(dish) },
+                            onIncrease: { onIncrease(dish) }
+                        )
+                    }
                 }
+                .padding(AppSpacing.md)
             }
-            .padding(.horizontal, AppSpacing.md)
+//            .background(AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+//            .overlay {
+//                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+//                    .stroke(AppSemanticColor.border, lineWidth: AppBorderWidth.hairline)
+//            }
+//            .padding(.horizontal, AppSpacing.md)
             .padding(.top, AppSpacing.sm)
             .padding(.bottom, AppSpacing.md)
         }

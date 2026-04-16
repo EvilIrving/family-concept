@@ -9,12 +9,20 @@ struct AppCard<Content: View>: View {
             content
         }
         .padding(padding)
-        .background(AppComponentColor.Card.background, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+        .background {
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                .fill(AppComponentColor.Card.background)
+                .shadow(
+                    color: AppShadow.card.color,
+                    radius: AppShadow.card.radius,
+                    x: AppShadow.card.x,
+                    y: AppShadow.card.y
+                )
+        }
         .overlay {
             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .stroke(AppComponentColor.Card.border, lineWidth: 1)
         }
-        .appShadow(AppShadow.card)
     }
 }
 

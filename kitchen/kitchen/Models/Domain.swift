@@ -151,6 +151,27 @@ struct Order: Identifiable, Codable, Equatable {
     }
 }
 
+struct OrderHistoryEntry: Identifiable, Codable, Equatable {
+    let id: String
+    let kitchenId: String
+    let status: OrderStatus
+    let createdByAccountId: String
+    let createdAt: String
+    let finishedAt: String?
+    let itemCount: Int
+    let totalQuantity: Int
+}
+
+struct OrderDetail: Identifiable, Codable, Equatable {
+    let id: String
+    let kitchenId: String
+    let status: OrderStatus
+    let createdByAccountId: String
+    let createdAt: String
+    let finishedAt: String?
+    let items: [OrderItem]
+}
+
 // MARK: - OrderItem
 
 struct OrderItem: Identifiable, Codable, Equatable {

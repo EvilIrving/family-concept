@@ -313,6 +313,20 @@ extension APIClient {
         return result
     }
 
+    func fetchOrderHistory(kitchenID: String, authToken: String) async throws -> [OrderHistoryEntry] {
+        try await request(
+            "/api/v1/kitchens/\(kitchenID)/orders/history",
+            authToken: authToken
+        )
+    }
+
+    func fetchOrderDetail(orderID: String, authToken: String) async throws -> OrderDetail {
+        try await request(
+            "/api/v1/orders/\(orderID)",
+            authToken: authToken
+        )
+    }
+
     func createOrder(kitchenID: String, authToken: String) async throws -> Order {
         try await request(
             "/api/v1/kitchens/\(kitchenID)/orders",

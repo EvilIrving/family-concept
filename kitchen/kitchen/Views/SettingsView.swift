@@ -69,21 +69,11 @@ struct SettingsView: View {
                 themeSelectionRow
             }
 
-            AppCard {
-                Button {
+//            AppCard {
+                AppButton(title: "退出登录", style: .destructive) {
                     Task { await store.signOut() }
-                } label: {
-                    HStack {
-                        Spacer()
-                        Text("退出登录")
-                            .font(AppTypography.bodyStrong)
-                            .foregroundStyle(AppSemanticColor.danger)
-                        Spacer()
-                    }
-                    .frame(minHeight: 44)
                 }
-                .buttonStyle(.plain)
-            }
+//            }
         }
         .appToast($toast)
         .sheet(item: memberSheetBinding, onDismiss: { modalRouter.didDismissCurrent() }) { token in

@@ -98,6 +98,7 @@ kitchen/
 
 - 新增 Model / Store 必须在 `kitchenTests/` 配套单元测试
 - View 不强制单测，但必须能正常编译和 Preview
+- 如需真机构建或安装，默认目标设备为 `“xujinghui”的 iPhone`，`destination id=00008150-0019546A2100401C`
 - **禁止运行 `xcodebuild`**，包括本地验证、提交前检查和 Agent 自动执行
 - 不引入新第三方依赖，除非明确获得批准
 

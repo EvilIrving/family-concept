@@ -5,71 +5,104 @@ import LinkPresentation
 struct OrdersView: View {
     @EnvironmentObject private var store: AppStore
     @StateObject private var modalRouter = ModalRouter<OrdersModalRoute>()
+    @State private var toast: AppToastData?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            AppCard {
-                VStack(alignment: .leading, spacing: AppSpacing.md) {
-                    HStack(spacing: AppSpacing.xs) {
-                        statusPill(title: "待制作", value: waitingCount, tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
-                        statusPill(title: "制作中", value: cookingCount, tint: AppSemanticColor.warning, background: AppSemanticColor.warningBackground)
-                        statusPill(title: "已完成", value: doneCount, tint: AppSemanticColor.primary, background: AppSemanticColor.interactiveSecondary)
-                    }
-                }
-            }
-            .padding(.horizontal, AppSpacing.md)
-            .padding(.top, AppSpacing.xs)
-
-            if store.groupedOrderItems.isEmpty {
-                VStack(spacing: AppSpacing.sm) {
-                    Spacer(minLength: 0)
-
-                    Text("还没有出餐内容")
-                        .font(AppTypography.sectionTitle)
-                        .foregroundStyle(AppSemanticColor.textPrimary)
-                        .multilineTextAlignment(.center)
-
-                    Text("菜单页提交后，这里会直接显示当前订单。")
-                        .font(AppTypography.body)
-                        .foregroundStyle(AppSemanticColor.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, AppSpacing.xl)
-
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView(showsIndicators: false) {
-                    AppCard {
-                        ForEach(store.groupedOrderItems) { item in
-                            OrderItemRow(item: item, canManage: store.canManageOrders) {
-                                Task {
-                                    await store.cycleStatuses(for: item.itemIDs)
-                                }
-                            }
-                            if item.id != store.groupedOrderItems.last?.id {
-                                Divider()
-                                    .overlay(AppSemanticColor.border)
-                            }
+        ZStack(alignment: .bottomTrailing) {
+            VStack(alignment: .leading, spacing: 0) {
+                AppCard {
+                    VStack(alignment: .leading, spacing: AppSpacing.md) {
+                        HStack(spacing: AppSpacing.xs) {
+                            statusPill(title: "待制作", value: waitingCount, tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
+                            statusPill(title: "制作中", value: cookingCount, tint: AppSemanticColor.warning, background: AppSemanticColor.warningBackground)
+                            statusPill(title: "已完成", value: doneCount, tint: AppSemanticColor.primary, background: AppSemanticColor.interactiveSecondary)
                         }
                     }
                 }
                 .padding(.horizontal, AppSpacing.md)
-                .padding(.top, AppSpacing.sm)
-                .padding(.bottom, AppSpacing.md)
-            }
+                .padding(.top, AppSpacing.xs)
 
-            if store.orderItems.contains(where: { $0.status != .cancelled }) {
-                ordersShoppingListBar
+                if store.groupedOrderItems.isEmpty {
+                    VStack(spacing: AppSpacing.sm) {
+                        Spacer(minLength: 0)
+
+                        Text("还没有出餐内容")
+                            .font(AppTypography.sectionTitle)
+                            .foregroundStyle(AppSemanticColor.textPrimary)
+                            .multilineTextAlignment(.center)
+
+                        Text("菜单页提交后，这里会直接显示当前订单。")
+                            .font(AppTypography.body)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, AppSpacing.xl)
+
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: AppSpacing.lg) {
+                            AppCard {
+                                ForEach(store.groupedOrderItems) { item in
+                                    OrderItemRow(item: item, canManage: store.canManageOrders) {
+                                        Task {
+                                            await store.cycleStatuses(for: item.itemIDs)
+                                        }
+                                    }
+                                    if item.id != store.groupedOrderItems.last?.id {
+                                        Divider()
+                                            .overlay(AppSemanticColor.border)
+                                    }
+                                }
+                            }
+
+                            if shouldShowFinishButton {
+                                AppButton(title: "这顿好了", style: .primary) {
+                                    Task {
+                                        let didFinish = await store.finishOrder()
+                                        if didFinish {
+                                            toast = AppToastData(message: "这顿收好了")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.top, AppSpacing.lg)
+                    .padding(.bottom, AppSpacing.md)
+                }
+
+                if store.orderItems.contains(where: { $0.status != .cancelled }) {
+                    ordersShoppingListBar
+                }
             }
+            .appPageBackground()
+
+            FloatButton(systemImage: "clock.arrow.circlepath") {
+                Task {
+                    await store.fetchOrderHistory()
+                    modalRouter.present(.history)
+                }
+            }
+            .padding(.trailing, AppSpacing.md)
+            .padding(.bottom, store.orderItems.contains(where: { $0.status != .cancelled }) ? AppSpacing.xl + AppDimension.toolbarButtonHeight : AppSpacing.xl)
+            .accessibilityLabel("查看历史订单")
         }
-        .appPageBackground()
         .sheet(isPresented: shoppingListBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
             ShoppingListSheet()
                 .environmentObject(store)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
         }
+        .sheet(isPresented: historyBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
+            OrderHistorySheet()
+            .environmentObject(store)
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.hidden)
+        }
+        .appToast($toast)
     }
 
     private var waitingCount: Int {
@@ -82,6 +115,10 @@ struct OrdersView: View {
 
     private var doneCount: Int {
         store.quantity(for: .done)
+    }
+
+    private var shouldShowFinishButton: Bool {
+        store.currentOrder != nil && store.orderItems.contains(where: { $0.status != .cancelled })
     }
 
     private var ordersShoppingListBar: some View {
@@ -157,10 +194,38 @@ struct OrdersView: View {
     }
 }
 
-private enum OrdersModalRoute: String, Identifiable {
+private enum OrdersModalRoute: Identifiable {
     case shoppingList
+    case history
 
-    var id: String { rawValue }
+    var id: String {
+        switch self {
+        case .shoppingList:
+            return "shoppingList"
+        case .history:
+            return "history"
+        }
+    }
+}
+
+private extension OrdersView {
+    var historyBinding: Binding<Bool> {
+        Binding(
+            get: {
+                if case .history = modalRouter.current {
+                    return true
+                }
+                return false
+            },
+            set: { isPresented in
+                if isPresented {
+                    modalRouter.present(.history)
+                } else if case .history = modalRouter.current {
+                    modalRouter.dismiss()
+                }
+            }
+        )
+    }
 }
 
 private struct ShoppingListSheet: View {
@@ -178,7 +243,7 @@ private struct ShoppingListSheet: View {
             onConfirm: exportShoppingList
         ) {
             ScrollView(showsIndicators: false) {
-                AppCard {
+                VStack(spacing: 0) {
                     ForEach(store.shoppingListItems) { item in
                         HStack(spacing: AppSpacing.sm) {
                             Text(item.ingredient)
@@ -187,13 +252,16 @@ private struct ShoppingListSheet: View {
                             Spacer()
                             AppPill(title: "\(item.dishCount) 道菜", tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
                         }
+                        .padding(.vertical, AppSpacing.sm)
                         if item.ingredient != store.shoppingListItems.last?.ingredient {
                             Divider()
                                 .overlay(AppSemanticColor.border)
                         }
                     }
                 }
-                .padding(.top, AppSpacing.xs)
+                .padding(.horizontal, AppSpacing.sm)
+                .padding(.top, AppSpacing.xxs)
+                .padding(.bottom, AppSpacing.xxs)
             }
         }
         .presentationBackground(.clear)

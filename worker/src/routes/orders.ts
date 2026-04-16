@@ -2,7 +2,7 @@ import type { Route } from '../types';
 import { json, badRequest, forbidden } from '../router';
 import { withAuth } from '../middleware/auth';
 import { withRole } from '../middleware/role';
-import { findOpenByKitchen, findById as findOrder } from '../db/orders';
+import { findOpenByKitchen, findById as findOrder, listFinishedByKitchen } from '../db/orders';
 import { findItemById, updateItem, listByOrder, aggregateShoppingList } from '../db/order-items';
 import { createOrder, addItemToOrder, closeOrder } from '../services/order-service';
 import { findByKitchenAndAccount } from '../db/members';
@@ -38,6 +38,18 @@ export const orderRoutes: Route[] = [
     ),
   },
 
+  // GET /kitchens/:id/orders/history
+  {
+    method: 'GET',
+    pattern: /^\/api\/v1\/kitchens\/(?<id>[^/]+)\/orders\/history$/,
+    handler: withAuth(
+      withRole(['owner', 'admin', 'member'])(async (_req, env, ctx) => {
+        const orders = await listFinishedByKitchen(env.DB, ctx.kitchen!.id);
+        return json(orders);
+      })
+    ),
+  },
+
   // POST /orders/:order_id/items — 追加菜品
   {
     method: 'POST',
@@ -60,6 +72,22 @@ export const orderRoutes: Route[] = [
       } catch (e: unknown) {
         return badRequest(e instanceof Error ? e.message : '添加失败');
       }
+    }),
+  },
+
+  // GET /orders/:order_id — 订单详情
+  {
+    method: 'GET',
+    pattern: /^\/api\/v1\/orders\/(?<order_id>[^/]+)$/,
+    handler: withAuth(async (_req, env, ctx, params) => {
+      const order = await findOrder(env.DB, params.order_id);
+      if (!order) return json({ message: '订单不存在' }, { status: 404 });
+
+      const member = await findByKitchenAndAccount(env.DB, order.kitchen_id, ctx.account.id);
+      if (!member) return forbidden('你不是该 kitchen 的成员');
+
+      const items = await listByOrder(env.DB, order.id);
+      return json({ ...order, items });
     }),
   },
 
