@@ -19,14 +19,14 @@ struct AppButton: View {
             HStack(spacing: AppSpacing.xs) {
                 if let systemImage {
                     Image(systemName: systemImage)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: AppIconSize.sm, weight: .semibold))
                 }
                 Text(title)
             }
             .font(AppTypography.button)
             .foregroundStyle(foregroundColor)
             .frame(maxWidth: fullWidth ? .infinity : nil)
-            .frame(minHeight: 50)
+            .frame(minHeight: AppDimension.buttonHeight)
             .padding(.horizontal, AppSpacing.md)
         }
         .buttonStyle(AppButtonStyle(style: style))
@@ -35,13 +35,13 @@ struct AppButton: View {
     private var foregroundColor: Color {
         switch style {
         case .primary:
-            return AppColor.textOnBrand
+            return AppComponentColor.Button.primaryText
         case .secondary:
-            return AppColor.green800
+            return AppComponentColor.Button.secondaryText
         case .ghost:
-            return AppColor.textPrimary
+            return AppComponentColor.Button.ghostText
         case .destructive:
-            return AppColor.danger
+            return AppComponentColor.Button.destructiveText
         }
     }
 }
@@ -51,32 +51,32 @@ private struct AppButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(backgroundColor.opacity(configuration.isPressed ? 0.92 : 1), in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+            .background(resolvedBackgroundColor(isPressed: configuration.isPressed), in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .stroke(borderColor, lineWidth: style == .ghost ? 1 : 0)
+                    .stroke(borderColor, lineWidth: style == .ghost ? AppBorderWidth.hairline : 0)
             }
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
-            .animation(.easeOut(duration: 0.16), value: configuration.isPressed)
+            .animation(AppMotion.press, value: configuration.isPressed)
     }
 
-    private var backgroundColor: Color {
+    private func resolvedBackgroundColor(isPressed: Bool) -> Color {
         switch style {
         case .primary:
-            return AppColor.green800
+            return isPressed ? AppComponentColor.Button.primaryBackgroundPressed : AppComponentColor.Button.primaryBackground
         case .secondary:
-            return AppColor.green100
+            return isPressed ? AppComponentColor.Button.secondaryBackgroundPressed : AppComponentColor.Button.secondaryBackground
         case .ghost:
-            return AppColor.surfacePrimary
+            return isPressed ? AppComponentColor.Button.ghostBackgroundPressed : AppComponentColor.Button.ghostBackground
         case .destructive:
-            return AppColor.dangerSoft
+            return isPressed ? AppComponentColor.Button.destructiveBackgroundPressed : AppComponentColor.Button.destructiveBackground
         }
     }
 
     private var borderColor: Color {
         switch style {
         case .ghost:
-            return AppColor.lineSoft
+            return AppComponentColor.Button.ghostBorder
         default:
             return .clear
         }

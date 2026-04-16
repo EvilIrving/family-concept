@@ -20,7 +20,8 @@ struct AppValidationFeedbackModifier: ViewModifier {
             .modifier(AppShakeEffect(animatableData: CGFloat(trigger)))
             .overlay {
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .stroke(isInvalid ? AppColor.danger : AppColor.lineSoft, lineWidth: 1)
+                    .inset(by: 0.5)
+                    .stroke(isInvalid ? AppSemanticColor.danger : AppSemanticColor.border, lineWidth: 1)
                     .allowsHitTesting(false)
             }
             .animation(.easeInOut(duration: 0.34), value: trigger)

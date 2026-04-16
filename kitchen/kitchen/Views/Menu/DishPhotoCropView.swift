@@ -29,7 +29,7 @@ struct DishPhotoCropView: View {
             let viewportCenter = CGPoint(x: geo.size.width / 2, y: vpY + vpHeight / 2)
 
             ZStack {
-                Color.black.ignoresSafeArea()
+                AppComponentColor.Cropper.backdrop.ignoresSafeArea()
 
                 cropCanvas(vpWidth: vpWidth, vpHeight: vpHeight, viewportCenter: viewportCenter, containerSize: geo.size)
 
@@ -56,7 +56,7 @@ struct DishPhotoCropView: View {
     @ViewBuilder
     private func darkOverlay(geo: GeometryProxy, viewportCenter: CGPoint, vpWidth: CGFloat, vpHeight: CGFloat) -> some View {
         Rectangle()
-            .fill(Color.black.opacity(0.55))
+            .fill(AppComponentColor.Cropper.overlay)
             .ignoresSafeArea()
             .overlay(
                 RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius)
@@ -76,12 +76,12 @@ struct DishPhotoCropView: View {
         ZStack {
             // Outer border
             RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius)
-                .strokeBorder(Color.white.opacity(0.85), lineWidth: 2.5)
+                .strokeBorder(AppComponentColor.Cropper.viewportBorder, lineWidth: AppBorderWidth.strong + 0.5)
                 .frame(width: vpWidth, height: vpHeight)
 
             // Inner shadow layer
             RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius)
-                .strokeBorder(Color.black.opacity(0.45), lineWidth: 18)
+                .strokeBorder(AppComponentColor.Cropper.viewportShadow, lineWidth: 18)
                 .blur(radius: 12)
                 .frame(width: vpWidth, height: vpHeight)
                 .clipShape(RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius))
@@ -99,14 +99,14 @@ struct DishPhotoCropView: View {
             Button(action: onCancel) {
                 ZStack {
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.55), lineWidth: 1.5)
-                        .frame(width: 56, height: 56)
+                        .strokeBorder(AppComponentColor.Cropper.controlBorder, lineWidth: AppBorderWidth.regular)
+                        .frame(width: AppDimension.cropDismissButtonSide, height: AppDimension.cropDismissButtonSide)
                     Image(systemName: "xmark")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(.white)
+                        .font(.system(size: AppIconSize.cropDismiss, weight: .medium))
+                        .foregroundStyle(AppComponentColor.Cropper.controlForeground)
                 }
             }
-            .frame(width: 56, height: 56)
+            .frame(width: AppDimension.cropDismissButtonSide, height: AppDimension.cropDismissButtonSide)
 
             Spacer()
 
@@ -115,14 +115,14 @@ struct DishPhotoCropView: View {
             }) {
                 ZStack {
                     Circle()
-                        .fill(Color.white)
-                        .frame(width: 64, height: 64)
+                        .fill(AppComponentColor.Cropper.confirmBackground)
+                        .frame(width: AppDimension.cropConfirmButtonSide, height: AppDimension.cropConfirmButtonSide)
                     Image(systemName: "checkmark")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(.black)
+                        .font(.system(size: AppIconSize.cropConfirm, weight: .semibold))
+                        .foregroundStyle(AppComponentColor.Cropper.confirmForeground)
                 }
             }
-            .frame(width: 64, height: 64)
+            .frame(width: AppDimension.cropConfirmButtonSide, height: AppDimension.cropConfirmButtonSide)
         }
         .padding(.horizontal, buttonInset)
         .frame(width: geo.size.width)

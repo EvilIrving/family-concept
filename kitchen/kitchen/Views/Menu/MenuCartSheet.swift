@@ -24,7 +24,7 @@ struct MenuCartSheet: View {
                     if store.cartItems.isEmpty {
                         Text("购物车是空的")
                             .font(AppTypography.body)
-                            .foregroundStyle(AppColor.textSecondary)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
                             .frame(maxWidth: .infinity)
                             .padding(.top, AppSpacing.xl)
                     } else {
@@ -33,7 +33,7 @@ struct MenuCartSheet: View {
                                 HStack(spacing: AppSpacing.sm) {
                                     Text(item.dishName)
                                         .font(AppTypography.bodyStrong)
-                                        .foregroundStyle(AppColor.textPrimary)
+                                        .foregroundStyle(AppSemanticColor.textPrimary)
                                     Spacer()
                                     HStack(spacing: AppSpacing.xs) {
                                         AppIconActionButton(systemImage: "minus", tone: .neutral) {
@@ -41,7 +41,7 @@ struct MenuCartSheet: View {
                                         }
                                         Text("\(item.quantity)")
                                             .font(AppTypography.bodyStrong)
-                                            .foregroundStyle(AppColor.textPrimary)
+                                            .foregroundStyle(AppSemanticColor.textPrimary)
                                             .frame(minWidth: 24, alignment: .center)
                                         AppIconActionButton(systemImage: "plus", tone: .brand) {
                                             store.updateCartQuantity(itemID: item.id, delta: 1)
@@ -52,7 +52,7 @@ struct MenuCartSheet: View {
                                     }
                                 }
                                 if item.id != store.cartItems.last?.id {
-                                    Divider().overlay(AppColor.lineSoft)
+                                    Divider().overlay(AppSemanticColor.border)
                                 }
                             }
                         }

@@ -37,4 +37,14 @@ final class DishImageCoordinator: ObservableObject {
             break
         }
     }
+
+    /// 是否有可用图片（包括已准备就绪、上传中或上次上传失败但仍有文件可用）
+    var hasImage: Bool {
+        switch imageState {
+        case .ready, .uploadFailed, .uploading:
+            return true
+        default:
+            return false
+        }
+    }
 }

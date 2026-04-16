@@ -17,59 +17,94 @@ struct MenuAddDishSheet: View {
             dismissTitle: "关闭",
             confirmTitle: "保存",
             onDismiss: onDismiss,
-            onConfirm: onSave
+            onConfirm: onSave,
+            isConfirmDisabled: isSaveDisabled
         ) {
             ScrollView {
                 VStack(spacing: AppSpacing.sm) {
                     MenuDishImagePickerSection(
                         coordinator: imageCoordinator,
                         selectedPhotoItem: $selectedPhotoItem,
-                        onCameraRequest: onCameraRequest
+                        onCameraRequest: onCameraRequest,
+                        isInvalid: draft.invalidImage,
+                        validationTrigger: draft.validationTrigger,
+                        errorMessage: draft.imageError
                     )
-
-                    sheetTextField("菜名", text: $draft.name, field: .name)
 
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text("常用分类")
                             .font(AppTypography.micro)
-                            .foregroundStyle(AppColor.textSecondary)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
 
                         quickCategoryChips
 
-                        if draft.selectedQuickCategory == "其他" {
+                        if draft.selectedQuickCategory == "自定义" {
                             sheetTextField("自定义分类", text: $draft.customCategory, field: .customCategory)
                         }
+
+                        if let categoryError = draft.categoryError {
+                            Text(categoryError)
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppSemanticColor.danger)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+
+                    sheetTextField("菜名", text: $draft.name, field: .name)
+
+                    if let nameError = draft.nameError {
+                        Text(nameError)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppSemanticColor.danger)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
                     IngredientTagInput(
                         tags: $draft.ingredientTags,
                         input: $draft.ingredientInput,
-                        focusedField: focusedField
+                        focusedField: focusedField,
+                        isInvalid: draft.invalidIngredients,
+                        validationTrigger: draft.validationTrigger,
+                        errorMessage: draft.ingredientError
                     )
-
-                    if let validationMessage = draft.validationMessage {
-                        Text(validationMessage)
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColor.danger)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .scrollDismissesKeyboard(.never)
         }
-        .presentationBackground(AppColor.surfacePrimary)
+        .presentationBackground(AppSemanticColor.surface)
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.hidden)
         .onAppear {
-            draft.validationMessage = nil
+            draft.resetValidation()
             focusedField.wrappedValue = nil
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(180))
                 focusedField.wrappedValue = .name
             }
         }
+        .task(id: draft.validationTrigger) {
+            guard draft.validationTrigger > 0 else { return }
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                draft.resetValidation()
+            }
+        }
     }
+
+    private var isSaveDisabled: Bool {
+        draft.hasTriedSubmit && !formIsComplete
+    }
+
+    private var formIsComplete: Bool {
+        draft.trimmedName.isEmpty == false &&
+        draft.hasCategory &&
+        draft.hasIngredients &&
+        imageCoordinator.hasImage
+    }
+
+    // imageCoordinator.hasImage 提供了通用的图片可用性判断
 
     private var quickCategoryChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -80,11 +115,11 @@ struct MenuAddDishSheet: View {
                     } label: {
                         Text(category)
                             .font(AppTypography.micro)
-                            .foregroundStyle(draft.selectedQuickCategory == category ? AppColor.textOnBrand : AppColor.green800)
+                            .foregroundStyle(draft.selectedQuickCategory == category ? AppSemanticColor.onPrimary : AppSemanticColor.primary)
                             .padding(.horizontal, AppSpacing.sm)
-                            .frame(height: 32)
+                            .frame(height: AppDimension.compactPillHeight)
                             .background(
-                                draft.selectedQuickCategory == category ? AppColor.green800 : AppColor.green100,
+                                draft.selectedQuickCategory == category ? AppSemanticColor.primary : AppSemanticColor.interactiveSecondary,
                                 in: Capsule()
                             )
                     }
@@ -106,8 +141,8 @@ struct MenuAddDishSheet: View {
             autocorrectionDisabled: true,
             submitLabel: .done,
             onSubmit: nil,
-            isInvalid: false,
-            validationTrigger: 0
+            isInvalid: field == .name ? draft.invalidName : draft.invalidCategory,
+            validationTrigger: draft.validationTrigger
         )
     }
 }

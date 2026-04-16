@@ -19,11 +19,11 @@ struct SettingsView: View {
                             HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
                                 Text(kitchen.name)
                                     .font(AppTypography.sectionTitle)
-                                    .foregroundStyle(AppColor.textPrimary)
+                                    .foregroundStyle(AppSemanticColor.textPrimary)
                                 Spacer()
                                 Text("共 \(store.members.count) 人")
                                     .font(AppTypography.caption)
-                                    .foregroundStyle(AppColor.textSecondary)
+                                    .foregroundStyle(AppSemanticColor.textSecondary)
                             }
 
                             kitchenIdentityCluster
@@ -36,19 +36,19 @@ struct SettingsView: View {
                                     VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                                         Text("邀请码")
                                             .font(AppTypography.micro)
-                                            .foregroundStyle(AppColor.textSecondary)
+                                            .foregroundStyle(AppSemanticColor.textSecondary)
                                         Text(kitchen.inviteCode)
                                             .font(AppTypography.bodyStrong)
-                                            .foregroundStyle(AppColor.green800)
+                                            .foregroundStyle(AppSemanticColor.primary)
                                     }
                                     Spacer()
                                     Image(systemName: "doc.on.doc")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundStyle(AppColor.green800)
+                                        .font(.system(size: AppIconSize.sm - 1, weight: .semibold))
+                                        .foregroundStyle(AppSemanticColor.primary)
                                 }
                                 .padding(.horizontal, AppSpacing.md)
                                 .padding(.vertical, AppSpacing.sm)
-                                .background(AppColor.green100, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+                                .background(AppSemanticColor.interactiveSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel("复制邀请码")
@@ -76,7 +76,7 @@ struct SettingsView: View {
                         Spacer()
                         Text("退出登录")
                             .font(AppTypography.bodyStrong)
-                            .foregroundStyle(AppColor.danger)
+                            .foregroundStyle(AppSemanticColor.danger)
                         Spacer()
                     }
                     .frame(minHeight: 44)
@@ -117,19 +117,19 @@ struct SettingsView: View {
             if store.members.count > 6 {
                 Text("共 \(store.members.count) 人，左滑可查看其余成员")
                     .font(AppTypography.micro)
-                    .foregroundStyle(AppColor.textTertiary)
+                    .foregroundStyle(AppSemanticColor.textTertiary)
             }
         }
     }
 
     private func memberAvatarButton(_ member: Member, colorIndex: Int) -> some View {
         let colors: [Color] = [
-            AppColor.green200,
-            AppColor.surfaceSecondary,
-            AppColor.green100,
-            AppColor.green300,
-            AppColor.surfaceTertiary,
-            AppColor.successSoft
+            AppSemanticColor.interactiveSecondaryPressed,
+            AppSemanticColor.surfaceSecondary,
+            AppSemanticColor.interactiveSecondary,
+            AppSemanticColor.toastAccent,
+            AppSemanticColor.surfaceTertiary,
+            AppSemanticColor.successBackground
         ]
 
         let isCurrentAccount = member.accountId == store.currentAccount?.id
@@ -143,20 +143,20 @@ struct SettingsView: View {
                     .fill(colors[colorIndex % colors.count])
                     .overlay(
                         Circle()
-                            .stroke(AppColor.surfacePrimary, lineWidth: 2)
+                            .stroke(AppSemanticColor.surface, lineWidth: 2)
                     )
                     .overlay(
                         Circle()
-                            .stroke(isCurrentAccount ? AppColor.green700 : AppColor.lineSoft, lineWidth: isCurrentAccount ? 2 : 1)
+                            .stroke(isCurrentAccount ? AppSemanticColor.brandAccent : AppSemanticColor.border, lineWidth: isCurrentAccount ? 2 : 1)
                     )
 
                 Text(initials)
                     .font(AppTypography.bodyStrong)
-                    .foregroundStyle(isCurrentAccount ? AppColor.green800 : AppColor.textPrimary)
+                    .foregroundStyle(isCurrentAccount ? AppSemanticColor.primary : AppSemanticColor.textPrimary)
             }
             .frame(width: 44, height: 44)
             .contentShape(Circle())
-            .shadow(color: AppColor.green900.opacity(0.06), radius: 1, y: 1)
+            .shadow(color: AppSemanticColor.shadowSubtle, radius: 1, y: 1)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(member.nickName)，\(member.role.title)")
@@ -164,21 +164,21 @@ struct SettingsView: View {
 
     private var rowDivider: some View {
         Divider()
-            .overlay(AppColor.lineSoft)
+            .overlay(AppSemanticColor.border)
     }
 
     private func placeholderRow(title: String, value: String) -> some View {
         HStack(spacing: AppSpacing.sm) {
             Text(title)
                 .font(AppTypography.bodyStrong)
-                .foregroundStyle(AppColor.textPrimary)
+                .foregroundStyle(AppSemanticColor.textPrimary)
             Spacer()
             Text(value)
                 .font(AppTypography.body)
-                .foregroundStyle(AppColor.textSecondary)
+                .foregroundStyle(AppSemanticColor.textSecondary)
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(AppColor.textTertiary)
+                .font(.system(size: AppIconSize.xs, weight: .semibold))
+                .foregroundStyle(AppSemanticColor.textTertiary)
         }
         .frame(minHeight: 44)
     }
@@ -187,10 +187,10 @@ struct SettingsView: View {
         HStack {
             Text(title)
                 .font(AppTypography.bodyStrong)
-                .foregroundStyle(AppColor.textPrimary)
+                .foregroundStyle(AppSemanticColor.textPrimary)
             Spacer()
             Toggle("", isOn: isOn)
-                .tint(AppColor.green700)
+                .tint(AppSemanticColor.brandAccent)
                 .labelsHidden()
         }
         .frame(minHeight: 44)
@@ -251,29 +251,29 @@ private struct MemberRoleSheet: View {
                     HStack(alignment: .center, spacing: AppSpacing.sm) {
                         ZStack {
                             Circle()
-                                .fill(AppColor.green200)
+                                .fill(AppSemanticColor.interactiveSecondaryPressed)
                                 .overlay(
                                     Circle()
-                                        .stroke(AppColor.surfacePrimary, lineWidth: 2)
+                                        .stroke(AppSemanticColor.surface, lineWidth: 2)
                                 )
                                 .overlay(
                                     Circle()
-                                        .stroke(isSelf ? AppColor.green700 : AppColor.lineSoft, lineWidth: isSelf ? 2 : 1)
+                                        .stroke(isSelf ? AppSemanticColor.brandAccent : AppSemanticColor.border, lineWidth: isSelf ? 2 : 1)
                                 )
                             Text(String(member.nickName.prefix(1)))
                                 .font(AppTypography.bodyStrong)
-                                .foregroundStyle(isSelf ? AppColor.green800 : AppColor.textPrimary)
+                                .foregroundStyle(isSelf ? AppSemanticColor.primary : AppSemanticColor.textPrimary)
                         }
                         .frame(width: 44, height: 44)
 
                         VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                             Text(member.nickName)
                                 .font(AppTypography.bodyStrong)
-                                .foregroundStyle(AppColor.textPrimary)
+                                .foregroundStyle(AppSemanticColor.textPrimary)
                                 .lineLimit(1)
                             Text("权限：\(member.role.title)")
                                 .font(AppTypography.micro)
-                                .foregroundStyle(AppColor.textSecondary)
+                                .foregroundStyle(AppSemanticColor.textSecondary)
                         }
                         Spacer(minLength: 0)
                     }
@@ -281,12 +281,12 @@ private struct MemberRoleSheet: View {
                     if isSelf {
                         Text("这是我的账号")
                             .font(AppTypography.micro)
-                            .foregroundStyle(AppColor.textTertiary)
+                            .foregroundStyle(AppSemanticColor.textTertiary)
                     }
                 } else {
                     Text("成员已不在列表中")
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColor.textSecondary)
+                        .foregroundStyle(AppSemanticColor.textSecondary)
                 }
 
                 if store.isOwner && !isSelf, let member {
@@ -298,16 +298,16 @@ private struct MemberRoleSheet: View {
                     } label: {
                         HStack(spacing: AppSpacing.xs) {
                             Image(systemName: "person.badge.minus")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(size: AppIconSize.sm, weight: .semibold))
                             Text("移除成员")
                         }
                         .font(AppTypography.button)
-                        .foregroundStyle(AppColor.danger)
+                        .foregroundStyle(AppSemanticColor.danger)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, AppSpacing.sm)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(AppColor.dangerSoft)
+                    .tint(AppSemanticColor.dangerBackground)
                     .padding(.top, AppSpacing.xs)
                 }
             }

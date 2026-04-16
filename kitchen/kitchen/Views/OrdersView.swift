@@ -10,20 +10,10 @@ struct OrdersView: View {
         VStack(alignment: .leading, spacing: 0) {
             AppCard {
                 VStack(alignment: .leading, spacing: AppSpacing.md) {
-                    HStack(alignment: .firstTextBaseline, spacing: AppSpacing.sm) {
-                        Text("当前出餐")
-                            .font(AppTypography.sectionTitle)
-                            .foregroundStyle(AppColor.textPrimary)
-                        Text("\(store.totalOrderQuantity) 份")
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColor.textSecondary)
-                        Spacer(minLength: 0)
-                    }
-
                     HStack(spacing: AppSpacing.xs) {
-                        statusPill(title: "待制作", value: waitingCount, tint: AppColor.info, background: AppColor.infoSoft)
-                        statusPill(title: "制作中", value: cookingCount, tint: AppColor.warning, background: AppColor.warningSoft)
-                        statusPill(title: "已完成", value: doneCount, tint: AppColor.green800, background: AppColor.green100)
+                        statusPill(title: "待制作", value: waitingCount, tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
+                        statusPill(title: "制作中", value: cookingCount, tint: AppSemanticColor.warning, background: AppSemanticColor.warningBackground)
+                        statusPill(title: "已完成", value: doneCount, tint: AppSemanticColor.primary, background: AppSemanticColor.interactiveSecondary)
                     }
                 }
             }
@@ -36,12 +26,12 @@ struct OrdersView: View {
 
                     Text("还没有出餐内容")
                         .font(AppTypography.sectionTitle)
-                        .foregroundStyle(AppColor.textPrimary)
+                        .foregroundStyle(AppSemanticColor.textPrimary)
                         .multilineTextAlignment(.center)
 
                     Text("菜单页提交后，这里会直接显示当前订单。")
                         .font(AppTypography.body)
-                        .foregroundStyle(AppColor.textSecondary)
+                        .foregroundStyle(AppSemanticColor.textSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, AppSpacing.xl)
 
@@ -59,7 +49,7 @@ struct OrdersView: View {
                             }
                             if item.id != store.groupedOrderItems.last?.id {
                                 Divider()
-                                    .overlay(AppColor.lineSoft)
+                                    .overlay(AppSemanticColor.border)
                             }
                         }
                     }
@@ -97,7 +87,7 @@ struct OrdersView: View {
     private var ordersShoppingListBar: some View {
         VStack(spacing: 0) {
             Rectangle()
-                .fill(AppColor.lineSoft)
+                .fill(AppSemanticColor.border)
                 .frame(height: 1)
 
             Button {
@@ -106,23 +96,23 @@ struct OrdersView: View {
             } label: {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "list.bullet.rectangle.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(AppColor.green800)
+                        .font(.system(size: AppIconSize.md, weight: .semibold))
+                        .foregroundStyle(AppSemanticColor.primary)
 
                     Text(shoppingListBarTitle)
                         .font(AppTypography.bodyStrong)
-                        .foregroundStyle(AppColor.textPrimary)
+                        .foregroundStyle(AppSemanticColor.textPrimary)
                         .lineLimit(1)
 
                     Spacer(minLength: 0)
 
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(AppColor.textTertiary)
+                        .font(.system(size: AppIconSize.xs, weight: .semibold))
+                        .foregroundStyle(AppSemanticColor.textTertiary)
                 }
                 .padding(.horizontal, AppSpacing.md)
-                .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                .background(AppColor.surfacePrimary)
+                .frame(maxWidth: .infinity, minHeight: AppDimension.toolbarButtonHeight, alignment: .leading)
+                .background(AppSemanticColor.surface)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -193,13 +183,13 @@ private struct ShoppingListSheet: View {
                         HStack(spacing: AppSpacing.sm) {
                             Text(item.ingredient)
                                 .font(AppTypography.bodyStrong)
-                                .foregroundStyle(AppColor.textPrimary)
+                                .foregroundStyle(AppSemanticColor.textPrimary)
                             Spacer()
-                            AppPill(title: "\(item.dishCount) 道菜", tint: AppColor.info, background: AppColor.infoSoft)
+                            AppPill(title: "\(item.dishCount) 道菜", tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
                         }
                         if item.ingredient != store.shoppingListItems.last?.ingredient {
                             Divider()
-                                .overlay(AppColor.lineSoft)
+                                .overlay(AppSemanticColor.border)
                         }
                     }
                 }
@@ -242,11 +232,11 @@ private struct ShoppingListExportCard: View {
         VStack(alignment: .leading, spacing: AppSpacing.lg) {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text("采购清单")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(AppColor.textPrimary)
+                    .font(AppTypography.pageTitle)
+                    .foregroundStyle(AppSemanticColor.textPrimary)
                 Text(exportDateText)
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.textSecondary)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
             }
 
             VStack(spacing: 0) {
@@ -254,47 +244,47 @@ private struct ShoppingListExportCard: View {
                     HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
                         Text(item.ingredient)
                             .font(AppTypography.bodyStrong)
-                            .foregroundStyle(AppColor.textPrimary)
+                            .foregroundStyle(AppSemanticColor.textPrimary)
                         Text("* \(item.dishCount)")
                             .font(AppTypography.caption)
-                            .foregroundStyle(AppColor.textSecondary)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, AppSpacing.md)
 
                     if item.ingredient != items.last?.ingredient {
                         Divider()
-                            .overlay(AppColor.lineSoft)
+                            .overlay(AppSemanticColor.border)
                     }
                 }
             }
             .padding(.horizontal, AppSpacing.lg)
-            .background(AppColor.surfacePrimary, in: RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
+            .background(AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
 
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text("菜品 list")
                     .font(AppTypography.micro)
-                    .foregroundStyle(AppColor.textTertiary)
+                    .foregroundStyle(AppSemanticColor.textTertiary)
 
                 Text(allDishNamesText)
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.textSecondary)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, AppSpacing.lg)
             .padding(.vertical, AppSpacing.md)
-            .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+            .background(AppSemanticColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
 
             Text("Kitchen")
                 .font(AppTypography.micro)
-                .foregroundStyle(AppColor.textTertiary)
+                .foregroundStyle(AppSemanticColor.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(AppSpacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
-                colors: [AppColor.green100, AppColor.backgroundElevated],
+                colors: [AppSemanticColor.interactiveSecondary, AppSemanticColor.backgroundElevated],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -375,19 +365,19 @@ private struct OrderItemRow: View {
             HStack(spacing: AppSpacing.sm) {
                 Circle()
                     .fill(statusColor)
-                    .frame(width: 10, height: 10)
+                    .frame(width: AppDimension.statusDot, height: AppDimension.statusDot)
 
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
                         Text(item.dishName)
                             .font(AppTypography.bodyStrong)
-                            .foregroundStyle(AppColor.textPrimary)
+                            .foregroundStyle(AppSemanticColor.textPrimary)
                             .lineLimit(1)
                             .truncationMode(.tail)
 
                         Text("\(item.quantity) 份")
                             .font(AppTypography.caption)
-                            .foregroundStyle(AppColor.textSecondary)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
                             .fixedSize()
                     }
                 }
@@ -405,19 +395,19 @@ private struct OrderItemRow: View {
 
     private var statusColor: Color {
         switch item.status {
-        case .waiting: AppColor.info
-        case .cooking: AppColor.warning
-        case .done: AppColor.green800
-        case .cancelled: AppColor.danger
+        case .waiting: AppSemanticColor.infoForeground
+        case .cooking: AppSemanticColor.warning
+        case .done: AppSemanticColor.primary
+        case .cancelled: AppSemanticColor.danger
         }
     }
 
     private var statusBackground: Color {
         switch item.status {
-        case .waiting: AppColor.infoSoft
-        case .cooking: AppColor.warningSoft
-        case .done: AppColor.green100
-        case .cancelled: AppColor.dangerSoft
+        case .waiting: AppSemanticColor.infoBackground
+        case .cooking: AppSemanticColor.warningBackground
+        case .done: AppSemanticColor.interactiveSecondary
+        case .cancelled: AppSemanticColor.dangerBackground
         }
     }
 }

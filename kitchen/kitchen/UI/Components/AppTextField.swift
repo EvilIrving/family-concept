@@ -30,7 +30,7 @@ struct AppTextField<Field: Hashable>: View {
 
     private var prompt: Text {
         Text(title)
-            .foregroundStyle(AppColor.textTertiary)
+            .foregroundStyle(AppComponentColor.Input.placeholder)
     }
 
     private var fieldContent: some View {
@@ -45,8 +45,8 @@ struct AppTextField<Field: Hashable>: View {
         }
         .focused(focusedField, equals: field)
         .font(AppTypography.body)
-        .foregroundStyle(AppColor.textPrimary)
-        .tint(AppColor.green800)
+        .foregroundStyle(AppComponentColor.Input.text)
+        .tint(AppComponentColor.Input.cursor)
         .submitLabel(submitLabel)
         .onSubmit {
             onSubmit?()
@@ -58,7 +58,7 @@ struct AppTextField<Field: Hashable>: View {
         case .card:
             ZStack(alignment: .center) {
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .fill(AppColor.surfaceSecondary)
+                    .fill(AppComponentColor.Input.background)
                     .frame(height: height)
                     .frame(maxWidth: .infinity)
                     .allowsHitTesting(false)

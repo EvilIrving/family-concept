@@ -17,35 +17,35 @@ struct FloatButton: View {
                 switch kind {
                 case .icon:
                     Image(systemName: systemImage)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(AppColor.textOnBrand)
-                        .frame(width: 56, height: 56)
-                        .background(AppColor.green800, in: Circle())
+                        .font(.system(size: AppIconSize.md, weight: .bold))
+                        .foregroundStyle(AppComponentColor.FloatingButton.foreground)
+                        .frame(width: AppDimension.floatingButtonHeight, height: AppDimension.floatingButtonHeight)
+                        .background(AppComponentColor.FloatingButton.background, in: Circle())
                 case let .extended(title):
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: systemImage)
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.system(size: AppIconSize.md, weight: .bold))
                         Text(title)
                             .font(AppTypography.bodyStrong)
                     }
-                    .foregroundStyle(AppColor.textOnBrand)
+                    .foregroundStyle(AppComponentColor.FloatingButton.foreground)
                     .padding(.horizontal, AppSpacing.lg)
-                    .frame(height: 56)
-                    .background(AppColor.green800, in: Capsule())
+                    .frame(height: AppDimension.floatingButtonHeight)
+                    .background(AppComponentColor.FloatingButton.background, in: Capsule())
                 }
             }
             .overlay(alignment: .topTrailing) {
                 if let badgeCount, badgeCount > 0 {
                     Text("\(badgeCount)")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .frame(minWidth: 20, minHeight: 20)
-                        .background(AppColor.danger, in: Capsule())
-                        .offset(x: 6, y: -6)
+                        .font(.system(size: AppIconSize.xxs + 1, weight: .bold))
+                        .foregroundStyle(AppComponentColor.FloatingButton.badgeForeground)
+                        .padding(.horizontal, AppInset.badgeHorizontal)
+                        .frame(minWidth: AppDimension.badgeMinSide, minHeight: AppDimension.badgeMinSide)
+                        .background(AppComponentColor.FloatingButton.badgeBackground, in: Capsule())
+                        .offset(x: AppInset.badgeHorizontal, y: -AppInset.badgeHorizontal)
                 }
             }
-            .shadow(color: AppShadow.sheetColor, radius: 10, x: 0, y: 6)
+            .appShadow(AppShadow.floating)
         }
         .buttonStyle(.plain)
     }

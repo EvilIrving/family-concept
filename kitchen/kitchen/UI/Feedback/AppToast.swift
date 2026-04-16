@@ -16,11 +16,11 @@ struct AppToastHost: ViewModifier {
                 if let toast {
                     HStack(spacing: AppSpacing.sm) {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(AppColor.green300)
+                            .foregroundStyle(AppSemanticColor.toastAccent)
 
                         Text(toast.message)
                             .font(AppTypography.body)
-                            .foregroundStyle(AppColor.textOnBrand)
+                            .foregroundStyle(AppSemanticColor.onPrimary)
                             .frame(maxWidth: .infinity, alignment: .leading)
 
                         if let actionTitle = toast.actionTitle, let action = toast.action {
@@ -29,12 +29,12 @@ struct AppToastHost: ViewModifier {
                                 dismiss()
                             }
                             .font(AppTypography.bodyStrong)
-                            .foregroundStyle(AppColor.green300)
+                            .foregroundStyle(AppSemanticColor.toastAccent)
                         }
                     }
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.sm)
-                    .background(AppColor.green900, in: Capsule())
+                    .background(AppSemanticColor.toastBackground, in: Capsule())
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.bottom, AppSpacing.lg)
                     .transition(.move(edge: .bottom).combined(with: .opacity))

@@ -14,7 +14,7 @@ struct MenuView: View {
     @State private var toast: AppToastData?
     @FocusState private var focusedField: MenuField?
 
-    private let quickCategories = ["家常菜", "快手菜", "汤羹", "主食", "饮品", "甜点", "其他"]
+    private let quickCategories = ["自定义", "家常菜", "快手菜", "汤羹", "主食", "饮品", "甜点"]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -125,26 +125,54 @@ struct MenuView: View {
         }
     }
 
+    private var dishHasImage: Bool {
+        imageCoordinator.hasImage
+    }
+
     private func saveDish() {
+        addDishDraft.hasTriedSubmit = true
+        addDishDraft.resetValidation()
+        let pendingIngredient = addDishDraft.ingredientInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !pendingIngredient.isEmpty {
+            addDishDraft.ingredientTags.append(pendingIngredient)
+            addDishDraft.ingredientInput = ""
+        }
+
         let addedName = addDishDraft.trimmedName
         let finalCategory = addDishDraft.resolvedCategory
         store.error = nil
-        addDishDraft.validationMessage = nil
 
+        guard dishHasImage else {
+            addDishDraft.invalidImage = true
+            addDishDraft.imageError = "请添加菜品图片"
+            addDishDraft.validationTrigger += 1
+            return
+        }
         guard !addedName.isEmpty else {
-            addDishDraft.validationMessage = "请输入菜名"
+            addDishDraft.invalidName = true
+            addDishDraft.nameError = "请输入菜名"
+            addDishDraft.validationTrigger += 1
             focusedField = .name
             return
         }
         guard !finalCategory.isEmpty else {
-            addDishDraft.validationMessage = "请先选一个分类"
-            focusedField = addDishDraft.selectedQuickCategory == "其他" ? .customCategory : .name
+            addDishDraft.invalidCategory = true
+            addDishDraft.categoryError = "请输入分类"
+            addDishDraft.validationTrigger += 1
+            focusedField = addDishDraft.selectedQuickCategory == "自定义" ? .customCategory : .name
+            return
+        }
+        guard !addDishDraft.ingredientTags.isEmpty else {
+            addDishDraft.invalidIngredients = true
+            addDishDraft.ingredientError = "请添加食材"
+            addDishDraft.validationTrigger += 1
+            focusedField = .ingredient
             return
         }
 
         Task {
             guard store.kitchen != nil else {
-                addDishDraft.validationMessage = "当前还没有进入 kitchen"
+                addDishDraft.imageError = "当前还没有进入 kitchen"
                 return
             }
 
@@ -164,12 +192,12 @@ struct MenuView: View {
                 ingredients: addDishDraft.ingredientTags,
                 imageFileURL: imageFileURL
             ) else {
-                addDishDraft.validationMessage = store.error ?? "保存失败"
+                addDishDraft.imageError = store.error ?? "保存失败"
                 if let imageFileURL {
                     restoreUploadState(
                         previousState: previousImageState,
                         fileURL: imageFileURL,
-                        message: addDishDraft.validationMessage ?? "保存失败"
+                        message: addDishDraft.imageError ?? "保存失败"
                     )
                 }
                 return
@@ -236,7 +264,7 @@ struct MenuView: View {
     private var menuCartBar: some View {
         VStack(spacing: 0) {
             Rectangle()
-                .fill(AppColor.lineSoft)
+                .fill(AppSemanticColor.border)
                 .frame(height: 1)
 
             Button {
@@ -244,23 +272,23 @@ struct MenuView: View {
             } label: {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "cart.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(AppColor.green800)
+                        .font(.system(size: AppIconSize.md, weight: .semibold))
+                        .foregroundStyle(AppSemanticColor.primary)
 
                     Text(cartBarTitle)
                         .font(AppTypography.bodyStrong)
-                        .foregroundStyle(AppColor.textPrimary)
+                        .foregroundStyle(AppSemanticColor.textPrimary)
                         .lineLimit(1)
 
                     Spacer(minLength: 0)
 
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(AppColor.textTertiary)
+                        .font(.system(size: AppIconSize.xs, weight: .semibold))
+                        .foregroundStyle(AppSemanticColor.textTertiary)
                 }
                 .padding(.horizontal, AppSpacing.md)
-                .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                .background(AppColor.surfacePrimary)
+                .frame(maxWidth: .infinity, minHeight: AppDimension.toolbarButtonHeight, alignment: .leading)
+                .background(AppSemanticColor.surface)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -275,7 +303,7 @@ struct MenuView: View {
         HStack(alignment: .center, spacing: AppSpacing.sm) {
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundStyle(AppColor.textTertiary)
+                    .foregroundStyle(AppSemanticColor.textTertiary)
 
                 AppTextField(
                     title: "搜菜名",
@@ -298,18 +326,18 @@ struct MenuView: View {
                         focusedField = .search
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(AppColor.textTertiary)
+                            .foregroundStyle(AppSemanticColor.textTertiary)
                     }
                     .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, AppSpacing.md)
-            .frame(height: 50)
+            .frame(height: AppDimension.barControlHeight)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+            .background(AppSemanticColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .stroke(AppColor.lineSoft, lineWidth: 1)
+                    .stroke(AppSemanticColor.border, lineWidth: AppBorderWidth.hairline)
                     .allowsHitTesting(false)
             }
 
@@ -317,15 +345,15 @@ struct MenuView: View {
                 Button {
                     modalRouter.present(.addDish)
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppGap.tight) {
                         Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.system(size: AppIconSize.lg, weight: .semibold))
                         Text("新增")
                             .font(AppTypography.bodyStrong)
                     }
-                    .foregroundStyle(AppColor.green800)
+                    .foregroundStyle(AppSemanticColor.primary)
                     .padding(.horizontal, AppSpacing.xs)
-                    .frame(height: 50)
+                    .frame(height: AppDimension.barControlHeight)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("新增菜品")
@@ -342,11 +370,11 @@ struct MenuView: View {
                     } label: {
                         Text(category)
                             .font(AppTypography.micro)
-                            .foregroundStyle(selection.wrappedValue == category ? AppColor.textOnBrand : AppColor.green800)
+                            .foregroundStyle(selection.wrappedValue == category ? AppSemanticColor.onPrimary : AppSemanticColor.primary)
                             .padding(.horizontal, AppSpacing.sm)
-                            .frame(height: 32)
+                            .frame(height: AppDimension.compactPillHeight)
                             .background(
-                                selection.wrappedValue == category ? AppColor.green800 : AppColor.green100,
+                                selection.wrappedValue == category ? AppSemanticColor.primary : AppSemanticColor.interactiveSecondary,
                                 in: Capsule()
                             )
                     }
@@ -447,12 +475,12 @@ private struct MenuEmptyStateView: View {
 
             Text(title)
                 .font(AppTypography.sectionTitle)
-                .foregroundStyle(AppColor.textPrimary)
+                .foregroundStyle(AppSemanticColor.textPrimary)
                 .multilineTextAlignment(.center)
 
             Text(hint)
                 .font(AppTypography.body)
-                .foregroundStyle(AppColor.textSecondary)
+                .foregroundStyle(AppSemanticColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, AppSpacing.xl)
 

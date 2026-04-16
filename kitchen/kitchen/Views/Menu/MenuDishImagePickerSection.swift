@@ -5,13 +5,12 @@ struct MenuDishImagePickerSection: View {
     @ObservedObject var coordinator: DishImageCoordinator
     @Binding var selectedPhotoItem: PhotosPickerItem?
     let onCameraRequest: () -> Void
+    var isInvalid: Bool = false
+    var validationTrigger: Int = 0
+    var errorMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
-            Text("菜品图片")
-                .font(AppTypography.micro)
-                .foregroundStyle(AppColor.textSecondary)
-
             switch coordinator.imageState {
             case .empty:
                 pickerButtons
@@ -28,17 +27,25 @@ struct MenuDishImagePickerSection: View {
                     imagePreview(previewImage)
                     Text(message)
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColor.danger)
+                        .foregroundStyle(AppSemanticColor.danger)
                 }
             case .failed(let message):
                 VStack(spacing: AppSpacing.xs) {
                     Text(message)
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColor.danger)
+                        .foregroundStyle(AppSemanticColor.danger)
                     pickerButtons
                 }
             }
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppSemanticColor.danger)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
+        .appValidationFeedback(isInvalid: isInvalid, trigger: validationTrigger)
     }
 
     private var pickerButtons: some View {
@@ -46,18 +53,18 @@ struct MenuDishImagePickerSection: View {
             PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                 Label("相册", systemImage: "photo.on.rectangle")
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.green800)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .background(AppColor.green100, in: RoundedRectangle(cornerRadius: AppRadius.sm))
+                    .foregroundStyle(AppSemanticColor.primary)
+                    .frame(maxWidth: .infinity, minHeight: AppDimension.minTouchTarget)
+                    .background(AppSemanticColor.interactiveSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
             }
             .buttonStyle(.plain)
 
             Button(action: onCameraRequest) {
                 Label("拍照", systemImage: "camera")
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.green800)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .background(AppColor.green100, in: RoundedRectangle(cornerRadius: AppRadius.sm))
+                    .foregroundStyle(AppSemanticColor.primary)
+                    .frame(maxWidth: .infinity, minHeight: AppDimension.minTouchTarget)
+                    .background(AppSemanticColor.interactiveSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
             }
             .buttonStyle(.plain)
         }
@@ -66,13 +73,13 @@ struct MenuDishImagePickerSection: View {
     private func progressState(_ title: String) -> some View {
         HStack {
             ProgressView()
-                .tint(AppColor.green800)
+                .tint(AppSemanticColor.primary)
             Text(title)
                 .font(AppTypography.caption)
-                .foregroundStyle(AppColor.textSecondary)
+                .foregroundStyle(AppSemanticColor.textSecondary)
         }
-        .frame(maxWidth: .infinity, minHeight: 80)
-        .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
+        .frame(maxWidth: .infinity, minHeight: AppDimension.progressBlockMinHeight)
+        .background(AppSemanticColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
     }
 
     private func imagePreview(_ image: UIImage) -> some View {
@@ -82,20 +89,20 @@ struct MenuDishImagePickerSection: View {
                 .scaledToFit()
                 .scaleEffect(0.7)
                 .padding(AppSpacing.sm)
-                .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
+                .frame(maxWidth: .infinity, minHeight: AppDimension.imagePreviewMinHeight, alignment: .center)
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                 .overlay {
                     RoundedRectangle(cornerRadius: AppRadius.sm)
-                        .stroke(AppColor.lineSoft, lineWidth: 1)
+                        .stroke(AppSemanticColor.border, lineWidth: AppBorderWidth.hairline)
                 }
 
             Button {
                 coordinator.clearImage()
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 20))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .padding(6)
+                    .font(.system(size: AppIconSize.xl))
+                    .foregroundStyle(AppSemanticColor.textSecondary)
+                    .padding(AppInset.badgeHorizontal)
             }
             .buttonStyle(.plain)
         }

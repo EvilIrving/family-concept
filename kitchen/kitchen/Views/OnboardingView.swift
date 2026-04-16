@@ -50,7 +50,7 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: AppSpacing.md) {
                 Text(hintText)
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.textSecondary)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
 
                 if store.isAuthenticated {
                     kitchenSection
@@ -61,7 +61,7 @@ struct OnboardingView: View {
                 if let error = store.error {
                     Text(error)
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColor.danger)
+                        .foregroundStyle(AppSemanticColor.danger)
                 }
             }
         }
@@ -165,6 +165,7 @@ struct OnboardingView: View {
 
     private var kitchenModeToggle: some View {
         HStack(spacing: AppSpacing.md) {
+            Spacer()
             Button("输入邀请码加入") {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     kitchenMode = .join
@@ -176,12 +177,12 @@ struct OnboardingView: View {
             }
             .font(AppTypography.caption)
             .foregroundStyle(
-                showKitchenField && kitchenMode == .join ? AppColor.textPrimary : AppColor.textSecondary
+                showKitchenField && kitchenMode == .join ? AppSemanticColor.textPrimary : AppSemanticColor.textSecondary
             )
 
             Text("或")
                 .font(AppTypography.caption)
-                .foregroundStyle(AppColor.textSecondary)
+                .foregroundStyle(AppSemanticColor.textSecondary)
 
             Button("创建私厨") {
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -194,24 +195,27 @@ struct OnboardingView: View {
             }
             .font(AppTypography.caption)
             .foregroundStyle(
-                showKitchenField && kitchenMode == .create ? AppColor.textPrimary : AppColor.textSecondary
+                showKitchenField && kitchenMode == .create ? AppSemanticColor.textPrimary : AppSemanticColor.textSecondary
             )
         }
     }
 
     private var authModeLink: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                authMode = authMode == .login ? .register : .login
-                store.error = nil
-                userNameInvalid = false
-                passwordInvalid = false
-                nickNameInvalid = false
+        HStack {
+            Spacer()
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    authMode = authMode == .login ? .register : .login
+                    store.error = nil
+                    userNameInvalid = false
+                    passwordInvalid = false
+                    nickNameInvalid = false
+                }
+            } label: {
+                Text(authMode == .login ? "还没有账号？注册" : "已有账号？登录")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppSemanticColor.textTertiary)
             }
-        } label: {
-            Text(authMode == .login ? "还没有账号？注册" : "已有账号？登录")
-                .font(AppTypography.caption)
-                .foregroundStyle(AppColor.textTertiary)
         }
     }
 
@@ -229,11 +233,11 @@ struct OnboardingView: View {
                     focusedField = .kitchen
                 }
                 .font(AppTypography.caption)
-                .foregroundStyle(kitchenMode == .join ? AppColor.textPrimary : AppColor.textSecondary)
+                .foregroundStyle(kitchenMode == .join ? AppSemanticColor.textPrimary : AppSemanticColor.textSecondary)
 
                 Text("或")
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.textSecondary)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
 
                 Button("创建私厨") {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -244,7 +248,7 @@ struct OnboardingView: View {
                     focusedField = .kitchen
                 }
                 .font(AppTypography.caption)
-                .foregroundStyle(kitchenMode == .create ? AppColor.textPrimary : AppColor.textSecondary)
+                .foregroundStyle(kitchenMode == .create ? AppSemanticColor.textPrimary : AppSemanticColor.textSecondary)
             }
 
             AppTextField(
@@ -270,7 +274,7 @@ struct OnboardingView: View {
             } label: {
                 Text("退出登录")
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.textTertiary)
+                    .foregroundStyle(AppSemanticColor.textTertiary)
             }
         }
     }
@@ -279,7 +283,7 @@ struct OnboardingView: View {
 
     private var bottomBar: some View {
         VStack(spacing: AppSpacing.sm) {
-            AppButton(title: buttonTitle, systemImage: buttonSymbol) {
+            AppButton(title: buttonTitle) {
                 submit()
             }
         }
@@ -296,7 +300,7 @@ struct OnboardingView: View {
             return kitchenMode == .join ? "输入邀请码加入已有私厨" : "给你的私厨起个名字"
         }
         switch authMode {
-        case .login: return "用户名和密码登录"
+        case .login: return ""
         case .register: return "创建新账号"
         }
     }
@@ -306,13 +310,6 @@ struct OnboardingView: View {
             return kitchenMode == .join ? "加入" : "创建并进入"
         }
         return authMode == .login ? "登录" : "注册"
-    }
-
-    private var buttonSymbol: String {
-        if store.isAuthenticated {
-            return kitchenMode == .join ? "arrow.right" : "plus"
-        }
-        return authMode == .login ? "arrow.right" : "arrow.right"
     }
 
     private func submit() {

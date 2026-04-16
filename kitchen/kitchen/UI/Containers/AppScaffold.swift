@@ -26,12 +26,13 @@ struct AppSheetContainer<Content: View>: View {
     var confirmTitle: String? = nil
     let onDismiss: () -> Void
     var onConfirm: (() -> Void)? = nil
+    var isConfirmDisabled: Bool = false
     @ViewBuilder var content: Content
 
     var body: some View {
         VStack(spacing: 0) {
             Capsule()
-                .fill(AppColor.green200)
+                .fill(AppSemanticColor.interactiveSecondaryPressed)
                 .frame(width: 42, height: 5)
                 .padding(.top, AppSpacing.sm)
                 .padding(.bottom, AppSpacing.md)
@@ -39,18 +40,18 @@ struct AppSheetContainer<Content: View>: View {
             HStack(alignment: .top) {
                 Button(dismissTitle, action: onDismiss)
                     .font(AppTypography.bodyStrong)
-                    .foregroundStyle(AppColor.textSecondary)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
 
                 Spacer()
 
                 VStack(spacing: AppSpacing.xxs) {
                     Text(title)
                         .font(AppTypography.cardTitle)
-                        .foregroundStyle(AppColor.textPrimary)
+                        .foregroundStyle(AppSemanticColor.textPrimary)
                     if let subtitle {
                         Text(subtitle)
                             .font(AppTypography.caption)
-                            .foregroundStyle(AppColor.textSecondary)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
                     }
                 }
 
@@ -59,7 +60,8 @@ struct AppSheetContainer<Content: View>: View {
                 if let confirmTitle, let onConfirm {
                     Button(confirmTitle, action: onConfirm)
                         .font(AppTypography.bodyStrong)
-                        .foregroundStyle(AppColor.green800)
+                        .foregroundStyle(isConfirmDisabled ? AppSemanticColor.textTertiary : AppSemanticColor.primary)
+                        .disabled(isConfirmDisabled)
                 } else {
                     Button(dismissTitle, action: onDismiss)
                         .font(AppTypography.bodyStrong)
@@ -74,7 +76,7 @@ struct AppSheetContainer<Content: View>: View {
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.bottom, AppSpacing.lg)
         }
-        .background(AppColor.surfacePrimary)
+        .background(AppSemanticColor.surface)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.xxl, style: .continuous))
     }
 }

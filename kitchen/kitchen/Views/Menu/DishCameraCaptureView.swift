@@ -12,17 +12,18 @@ struct DishCameraCaptureView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
             let controller = UIViewController()
-            controller.view.backgroundColor = .black
+            controller.view.backgroundColor = UIColor(AppSemanticColor.cameraBackdrop)
 
             let label = UILabel()
             label.translatesAutoresizingMaskIntoConstraints = false
             label.text = "当前设备不可用相机"
-            label.textColor = .white
+            label.textColor = UIColor(AppSemanticColor.cropControlForeground)
             label.font = .preferredFont(forTextStyle: .headline)
 
             let button = UIButton(type: .system)
             button.translatesAutoresizingMaskIntoConstraints = false
             button.setTitle("关闭", for: .normal)
+            button.setTitleColor(UIColor(AppSemanticColor.cropControlForeground), for: .normal)
             button.titleLabel?.font = .preferredFont(forTextStyle: .body)
             button.addAction(UIAction { _ in
                 context.coordinator.handleCancel()

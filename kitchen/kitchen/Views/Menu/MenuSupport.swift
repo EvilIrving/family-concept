@@ -13,7 +13,16 @@ struct AddDishDraft {
     var customCategory = ""
     var ingredientTags: [String] = []
     var ingredientInput = ""
-    var validationMessage: String?
+    var hasTriedSubmit = false
+    var validationTrigger = 0
+    var invalidName = false
+    var invalidCategory = false
+    var invalidIngredients = false
+    var invalidImage = false
+    var nameError: String?
+    var categoryError: String?
+    var ingredientError: String?
+    var imageError: String?
 
     var trimmedName: String {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -21,7 +30,29 @@ struct AddDishDraft {
 
     var resolvedCategory: String {
         let custom = customCategory.trimmingCharacters(in: .whitespacesAndNewlines)
-        return selectedQuickCategory == "其他" ? custom : selectedQuickCategory
+        return selectedQuickCategory == "自定义" ? custom : selectedQuickCategory
+    }
+
+    var hasIngredients: Bool {
+        !ingredientTags.isEmpty || !ingredientInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var hasCategory: Bool {
+        if selectedQuickCategory == "自定义" {
+            return !resolvedCategory.isEmpty
+        }
+        return !selectedQuickCategory.isEmpty
+    }
+
+    mutating func resetValidation() {
+        invalidName = false
+        invalidCategory = false
+        invalidIngredients = false
+        invalidImage = false
+        nameError = nil
+        categoryError = nil
+        ingredientError = nil
+        imageError = nil
     }
 }
 

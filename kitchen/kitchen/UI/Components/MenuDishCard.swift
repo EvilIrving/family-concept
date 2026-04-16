@@ -17,7 +17,7 @@ struct MenuDishCard: View {
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     Text(title)
                         .font(AppTypography.cardTitle)
-                        .foregroundStyle(AppColor.textPrimary)
+                        .foregroundStyle(AppSemanticColor.textPrimary)
                         .lineLimit(2)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -34,10 +34,10 @@ struct MenuDishCard: View {
 
                                 Text("\(quantity)")
                                     .font(AppTypography.bodyStrong)
-                                    .foregroundStyle(AppColor.textPrimary)
-                                    .frame(minWidth: 24)
-                                    .frame(height: 32)
-                                    .padding(.horizontal, 2)
+                                    .foregroundStyle(AppSemanticColor.textPrimary)
+                                    .frame(minWidth: AppDimension.quantityBadgeMinWidth)
+                                    .frame(height: AppDimension.iconButtonSide)
+                                    .padding(.horizontal, AppGap.tight / 2)
                             }
 
                             AppIconActionButton(
@@ -63,12 +63,12 @@ struct MenuDishCard: View {
         )
         .fill(
             LinearGradient(
-                colors: [AppColor.green200, AppColor.green100],
+                colors: [AppSemanticColor.interactiveSecondaryPressed, AppSemanticColor.interactiveSecondary],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
         )
-        .frame(height: 112)
+        .frame(height: AppDimension.dishArtworkHeight)
         .overlay(alignment: .topTrailing) {
             AppPill(title: category)
                 .padding(AppSpacing.sm)
@@ -118,5 +118,5 @@ struct MenuDishCard: View {
         onIncrease: {}
     )
     .padding()
-    .background(AppColor.backgroundBase)
+    .background(AppSemanticColor.background)
 }

@@ -9,12 +9,12 @@ struct AppCard<Content: View>: View {
             content
         }
         .padding(padding)
-        .background(AppColor.surfacePrimary, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+        .background(AppComponentColor.Card.background, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                .stroke(AppColor.lineSoft, lineWidth: 1)
+                .stroke(AppComponentColor.Card.border, lineWidth: 1)
         }
-        .shadow(color: AppShadow.cardColor, radius: 18, x: 0, y: 6)
+        .appShadow(AppShadow.card)
     }
 }
 
@@ -34,15 +34,15 @@ struct AppSectionHeader: View {
             if let eyebrow {
                 Text(eyebrow)
                     .font(AppTypography.micro)
-                    .foregroundStyle(AppColor.green700)
+                    .foregroundStyle(AppComponentColor.Card.eyebrow)
             }
             Text(title)
                 .font(AppTypography.sectionTitle)
-                .foregroundStyle(AppColor.textPrimary)
+                .foregroundStyle(AppSemanticColor.textPrimary)
             if let detail {
                 Text(detail)
                     .font(AppTypography.body)
-                    .foregroundStyle(AppColor.textSecondary)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
             }
         }
     }
@@ -50,8 +50,8 @@ struct AppSectionHeader: View {
 
 struct AppPill: View {
     let title: String
-    var tint: Color = AppColor.green800
-    var background: Color = AppColor.green100
+    var tint: Color = AppSemanticColor.primary
+    var background: Color = AppComponentColor.Button.secondaryBackground
 
     var body: some View {
         Text(title)

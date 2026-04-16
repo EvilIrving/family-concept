@@ -13,15 +13,17 @@ struct AppIconActionButton: View {
     var action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            action()
+        } label: {
             Image(systemName: systemImage)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: AppIconSize.xs, weight: .semibold))
                 .foregroundStyle(foregroundColor)
-                .frame(width: 32, height: 32)
-                .background(backgroundColor, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .frame(width: AppDimension.iconButtonSide, height: AppDimension.iconButtonSide)
+                .background(backgroundColor, in: RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(borderColor, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
+                        .stroke(borderColor, lineWidth: AppBorderWidth.hairline)
                 }
         }
         .buttonStyle(.plain)
@@ -30,39 +32,39 @@ struct AppIconActionButton: View {
 
     private var foregroundColor: Color {
         if isDisabled {
-            return AppColor.textTertiary
+            return AppComponentColor.IconActionButton.disabledForeground
         }
         switch tone {
         case .neutral:
-            return AppColor.textPrimary
+            return AppComponentColor.IconActionButton.neutralForeground
         case .brand:
-            return AppColor.textOnBrand
+            return AppComponentColor.IconActionButton.brandForeground
         case .danger:
-            return AppColor.danger
+            return AppComponentColor.IconActionButton.dangerForeground
         }
     }
 
     private var backgroundColor: Color {
         if isDisabled {
-            return AppColor.surfaceTertiary
+            return AppComponentColor.IconActionButton.disabledBackground
         }
         switch tone {
         case .neutral:
-            return AppColor.surfaceSecondary
+            return AppComponentColor.IconActionButton.neutralBackground
         case .brand:
-            return AppColor.green800
+            return AppComponentColor.IconActionButton.brandBackground
         case .danger:
-            return AppColor.dangerSoft
+            return AppComponentColor.IconActionButton.dangerBackground
         }
     }
 
     private var borderColor: Color {
         if isDisabled {
-            return AppColor.lineSoft
+            return AppComponentColor.IconActionButton.disabledBorder
         }
         switch tone {
         case .neutral:
-            return AppColor.lineSoft
+            return AppComponentColor.IconActionButton.neutralBorder
         case .brand, .danger:
             return .clear
         }
