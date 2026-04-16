@@ -1,0 +1,11 @@
+{
+  "baseUrl": "https://api.kitchen.onecat.dev",
+  "userName": "your_user_name",
+  "password": "your_password",
+  "kitchenId": "your_kitchen_id",
+  "manifestPath": "./recipes.json",
+  "imagesDir": "./images",
+  "defaultCategory": "家常",
+  "continueOnError": true,
+  "dryRun": true
+}
