@@ -1,4 +1,6 @@
 import SwiftUI
+import UIKit
+import LinkPresentation
 
 struct OrdersView: View {
     @EnvironmentObject private var store: AppStore
@@ -178,14 +180,16 @@ private enum OrdersModalRoute: String, Identifiable {
 private struct ShoppingListSheet: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
+    @State private var exportPayload: SharePayload?
+    @State private var toast: AppToastData?
 
     var body: some View {
         AppSheetContainer(
             title: "采购清单",
             dismissTitle: "关闭",
-            confirmTitle: "完成",
+            confirmTitle: "导出",
             onDismiss: { dismiss() },
-            onConfirm: { dismiss() }
+            onConfirm: exportShoppingList
         ) {
             ScrollView(showsIndicators: false) {
                 AppCard {
@@ -207,6 +211,161 @@ private struct ShoppingListSheet: View {
             }
         }
         .presentationBackground(.clear)
+        .sheet(item: $exportPayload) { payload in
+            ActivityShareSheet(items: payload.items)
+        }
+        .appToast($toast)
+    }
+
+    private func exportShoppingList() {
+        guard let image = renderShoppingListImage() else {
+            toast = AppToastData(message: "导出失败")
+            return
+        }
+        exportPayload = SharePayload(items: [ShoppingListShareItemSource(image: image)])
+    }
+
+    private func renderShoppingListImage() -> UIImage? {
+        let content = ShoppingListExportCard(items: store.shoppingListItems)
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = UIScreen.main.scale
+        renderer.proposedSize = ProposedViewSize(width: 360, height: nil)
+        return renderer.uiImage
+    }
+}
+
+private struct SharePayload: Identifiable {
+    let id = UUID()
+    let items: [Any]
+}
+
+private struct ShoppingListExportCard: View {
+    let items: [ShoppingListItem]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.lg) {
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Text("采购清单")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(AppColor.textPrimary)
+                Text(exportDateText)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+
+            VStack(spacing: 0) {
+                ForEach(items) { item in
+                    HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
+                        Text(item.ingredient)
+                            .font(AppTypography.bodyStrong)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text("* \(item.dishCount)")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, AppSpacing.md)
+
+                    if item.ingredient != items.last?.ingredient {
+                        Divider()
+                            .overlay(AppColor.lineSoft)
+                    }
+                }
+            }
+            .padding(.horizontal, AppSpacing.lg)
+            .background(AppColor.surfacePrimary, in: RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
+
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Text("菜品 list")
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppColor.textTertiary)
+
+                Text(allDishNamesText)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.vertical, AppSpacing.md)
+            .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+
+            Text("Kitchen")
+                .font(AppTypography.micro)
+                .foregroundStyle(AppColor.textTertiary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(AppSpacing.xl)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [AppColor.green100, AppColor.backgroundElevated],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+    }
+
+    private var exportDateText: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "M月d日 HH:mm"
+        return "导出时间 \(formatter.string(from: Date()))"
+    }
+
+    private var allDishNamesText: String {
+        let names = items
+            .flatMap(\.dishNames)
+        let uniqueNames = Array(Set(names)).sorted()
+        return uniqueNames.isEmpty ? "暂无菜品" : uniqueNames.joined(separator: "、")
+    }
+}
+
+private struct ActivityShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+private final class ShoppingListShareItemSource: NSObject, UIActivityItemSource {
+    private let image: UIImage
+    private let title: String
+    private let subtitle: String
+
+    init(image: UIImage) {
+        self.image = image
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "M月d日 HH:mm"
+        let timestamp = formatter.string(from: Date())
+
+        self.title = "采购清单"
+        self.subtitle = "导出时间 \(timestamp)"
+        super.init()
+    }
+
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        image
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+        image
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
+        title
+    }
+
+    func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
+        let metadata = LPLinkMetadata()
+        metadata.title = title
+        metadata.originalURL = URL(fileURLWithPath: subtitle)
+        metadata.imageProvider = NSItemProvider(object: image)
+        return metadata
     }
 }
 

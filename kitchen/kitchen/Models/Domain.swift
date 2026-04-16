@@ -191,5 +191,6 @@ struct AuthMeResponse: Codable {
 struct ShoppingListItem: Identifiable, Equatable {
     let ingredient: String
     let dishCount: Int
+    let dishNames: [String]
     var id: String { ingredient }
 }

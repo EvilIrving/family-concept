@@ -4,6 +4,8 @@
 <dict>
 	<key>APIBaseURL</key>
 	<string>https://api.kitchen.onecat.dev</string>
+	<key>CFBundleDisplayName</key>
+	<string>Cooklist</string>
 	<key>R2PublicBaseURL</key>
 	<string>https://pub-8d33170109064c1fb885324588ce359a.r2.dev</string>
 	<key>NSCameraUsageDescription</key>

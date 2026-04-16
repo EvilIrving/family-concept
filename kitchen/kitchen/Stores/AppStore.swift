@@ -431,14 +431,22 @@ final class AppStore: ObservableObject {
         }
         let activeItems = orderItems.filter { $0.status != .cancelled }
         var ingredientDishes: [String: Set<String>] = [:]
+        var ingredientDishNames: [String: Set<String>] = [:]
         for item in activeItems {
             guard let dish = dishes.first(where: { $0.id == item.dishId }) else { continue }
             for ingredient in dish.ingredients {
                 ingredientDishes[ingredient, default: []].insert(dish.id)
+                ingredientDishNames[ingredient, default: []].insert(dish.name)
             }
         }
         shoppingListItems = ingredientDishes
-            .map { ShoppingListItem(ingredient: $0.key, dishCount: $0.value.count) }
+            .map { ingredient, dishIDs in
+                ShoppingListItem(
+                    ingredient: ingredient,
+                    dishCount: dishIDs.count,
+                    dishNames: ingredientDishNames[ingredient, default: []].sorted()
+                )
+            }
             .sorted { $0.ingredient < $1.ingredient }
     }
 
