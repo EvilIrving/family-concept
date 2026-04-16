@@ -2,49 +2,65 @@
 
 ## 概述
 
-全局状态存储层，使用 `ObservableObject` + `@Published`（或 `@Observable`）。Store 是唯一允许发起网络请求和管理副作用的地方。遵循父目录所有约束。
+全局状态存储层使用 `ObservableObject` + `@Published`。Store 负责副作用、网络、持久化和资源聚合。遵循父目录所有约束。
 
-## 现有 Store
+## 当前 Store
 
 ### AppStore (`AppStore.swift`)
-全局单例，在 `kitchenApp.swift` 创建并注入。负责：
-- `authToken` 的读取与持久化（UserDefaults，仅此一处允许）
-- 当前登录账号信息（`currentAccount: Account?`）
-- 当前所在 Kitchen 信息（`kitchen: Kitchen?`）
-- 当前成员角色（`currentRole: KitchenRole?`）
-- 启动恢复流程（`bootstrap()`：验证 token → 恢复 lastKitchenID）
-- 顶层导航状态（`isBootstrapping`、`hasKitchen`、`isAuthenticated`）
-- 认证操作：`login()`、`register()`、`signOut()`、`clearSession()`
 
-## Store 设计规范
+当前目录只有一个顶层 Store，由 `kitchenApp.swift` 创建并注入全局。它同时承担认证、私厨上下文、菜品、订单、购物车和采购清单状态。
 
-### 命名
-- Store 类名以 `Store` 结尾（`AppStore`、`OrderStore`、`DishStore`）
-- 方法名动词开头：`fetchDishes()`、`addItem(_:)`、`finishOrder()`
+### 已管理状态
+
+- 账号与鉴权：`currentAccount`、`authToken`、`storedNickName`
+- 私厨上下文：`kitchen`、`members`、`currentRole`
+- 菜品：`dishes`、`activeDishes`、`dishCategories`
+- 订单：`currentOrder`、`orderItems`
+- 购物车：`cartItems`、`cartCount`
+- 采购清单：`shoppingListItems`
+- 页面级状态：`isLoading`、`isBootstrapping`、`error`
+
+### 已提供动作
+
+- 启动恢复：`bootstrap()`、`fetchAll()`、`refreshOrderItems()`
+- 认证：`login()`、`register()`、`signOut()`、`clearSession()`
+- 入驻：`joinKitchen()`、`createKitchen()`
+- 私厨管理：`updateKitchenName()`、`rotateInviteCode()`、`leaveKitchen()`
+- 成员管理：`removeMember(accountID:)`
+- 菜品管理：`addDish()`、`uploadDishImage()`、`archiveDish(id:)`
+- 购物车：`addToCart()`、`updateCartQuantity()`、`removeFromCart()`、`clearCart()`、`submitCart()`
+- 订单流转：`cycleStatus(for:)`、`cycleStatuses(for:)`、`finishOrder()`、`fetchShoppingList()`
+
+## 设计规范
 
 ### 状态暴露
-- 对外状态用 `@Published private(set) var` 或只读计算属性
-- 不直接暴露可变集合让外部修改，提供明确的操作方法
+
+- 对外暴露 `@Published` 状态和只读计算属性
+- 业务动作统一收口到 Store 方法，View 不直接改共享状态
+- UserDefaults 读写集中在 Store 内部
 
 ### 异步与错误
-- 所有网络操作用 `async/await`，标注 `@MainActor` 确保 UI 更新在主线程
-- 错误状态通过 `@Published var error: String?` 暴露，View 通过 banner/toast 展示
-- 不在 Store 内弹 alert 或操控 UI
+
+- 网络请求统一使用 `async/await`
+- `AppStore` 标注 `@MainActor`，保证 UI 状态更新留在主线程
+- 页面错误通过 `error` 暴露给 View 渲染
+- 认证失效优先走 `clearSession()`
 
 ### 职责边界
-- 每个 Store 只管理一个资源域（dishes / orders / members）
-- Store 之间如需共享状态，通过 `AppStore` 传递，不直接持有彼此引用
-- 不在 Store 中写 SwiftUI View 代码
 
-## 种子数据
+- View 负责局部输入、sheet/router、焦点和过渡状态
+- Store 负责业务动作、接口调用、跨页面共享状态
+- 服务层细节下沉到 `Services/APIClient.swift` 及相关服务对象
+- 当前项目规模允许 `AppStore` 聚合多个资源域；新资源域复杂度继续增长时再拆分独立 Store
 
-当前阶段（Phase 1-2）使用内存种子数据，无真实网络请求：
-- 种子数据在 Store 初始化时填充
-- 种子数据定义在 Store 内部或单独的 `Seeds.swift` 文件
-- 联调后端后逐步替换为真实 API 调用，种子数据文件删除
+## 当前实现特征
 
-## 实时同步
+- `fetchAll()` 并行拉取成员、菜品和开放订单
+- `bootstrap()` 成功恢复账号后只恢复 kitchen 上下文，完整数据由 `ContentView.task(id:)` 二次触发
+- 购物车仍是本地瞬时状态，提交成功后清空
+- 采购清单由当前开放订单和菜品配料实时聚合，不单独持久化
 
-- `OrderStore` 负责维护 WebSocket 连接（`WS /kitchens/:id/live`）
-- 收到事件后直接更新 `@Published` 状态，触发 View 刷新
-- 连接管理（建立、断开、重连）封装在 Store 内部，不暴露给 View
+## 文档维护
+
+- 如果本文件规则已经和代码、文档或实际流程不一致，修代码或修文档后顺手修正本文件。
+- 保持 `AGENTS.md` 和 `CLAUDE.md` 内容一致。任何一方更新，另一方必须同步更新。

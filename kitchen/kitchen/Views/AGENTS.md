@@ -2,52 +2,59 @@
 
 ## 概述
 
-所有业务页面（Tab 根页、子页面、sheet 页）均在此目录。View 只负责布局和状态绑定，不写业务逻辑。遵循父目录所有约束。
+所有业务页面、业务 sheet 和页面级支持类型都放在此目录。View 负责页面编排、局部交互和状态绑定。遵循父目录所有约束。
 
-## 页面清单（v1）
+## 当前页面清单
 
-| 页面 | 文件 | 触达路径 |
-|------|------|---------|
-| 入驻页 | `OnboardingView.swift` | App 启动，无 active member |
-| 主 Tab 容器 | `MainTabView.swift` | 入驻成功后 |
-| 菜单页（点菜方视角） | `MenuView.swift` | Tab 1 |
-| 订单页（厨房视角） | `OrderView.swift` | Tab 2 |
-| 成员页 | `MembersView.swift` | Tab 3 |
-| 厨房设置页 | `KitchenSettingsView.swift` | Tab 3 → 设置入口 |
-| 菜品详情 sheet | `DishDetailSheet.swift` | 菜单页点击菜品 |
-| 新增菜品 sheet | `AddDishSheet.swift` | 菜单页（owner/admin）|
-| 采购清单 sheet | `ShoppingListSheet.swift` | 订单页 |
+- `ContentView.swift`：启动阶段路由，按 `isBootstrapping` / `hasKitchen` 分流
+- `MainTabView.swift`：自定义三栏 Tab 容器，承载 `MenuView`、`OrdersView`、`SettingsView`
+- `OnboardingView.swift`：登录、注册、加入私厨、创建私厨
+- `OrdersView.swift`：开放订单、状态 pill、采购清单 sheet
+- `SettingsView.swift`：私厨信息、成员操作 sheet、邀请码复制、退出登录
+- `Menu/`：
+  - `MenuView.swift`：菜单搜索、分类筛选、加菜入口、购物车入口
+  - `MenuAddDishSheet.swift`：新增菜品弹层
+  - `MenuCartSheet.swift`：购物车弹层
+  - `DishCameraCaptureView.swift`：拍照采集
+  - `DishPhotoCropView.swift`：图片裁切
+  - `MenuDishImagePickerSection.swift`、`IngredientTagInput.swift`、`MenuSupport.swift`：菜单域支持视图与类型
 
-## 导航约束
+## 导航与弹层约束
 
-- Tab 根页导航深度不超过 2 层（根 → 子页面，子页面不再 push）
-- 所有表单使用 `.sheet`，不 push 新页面
-- sheet 必须有明确关闭路径（关闭按钮或下滑手势）
-- 不使用 `NavigationLink` 进入表单类页面
+- 顶层结构由 `ContentView` 和 `MainTabView` 控制，不依赖系统 `TabView`
+- 表单和辅助流程优先用 `.sheet` 或 `.fullScreenCover`
+- 菜单图片流程通过 `ModalRouter` 在“加菜 / 相机 / 裁图”之间切换
+- 每个弹层都要有明确的退出路径和 dismiss 同步
 
 ## 页面组织规范
 
-- 每个页面一个文件，文件名以 `View` 或 `Sheet` 结尾
-- 页面 body 超过 50 行必须拆分为私有子 struct
-- 有明显区块（header / list / empty state / footer）时各抽为独立私有 struct
-- View 内不直接实例化 Store，通过 `@EnvironmentObject` 获取
+- 一个主页面一个文件；复杂页面允许同文件私有子 View 或支持类型
+- 局部状态留在 View，例如搜索词、sheet 展示、焦点、表单校验、toast
+- 共享业务状态通过 `@EnvironmentObject private var store: AppStore`
+- 页面级过渡路由优先放 `@StateObject private var modalRouter`
 
 ## 状态来源
 
-- 全局状态（当前 kitchen、当前角色）来自 `AppStore`
-- 菜品列表来自 `DishStore`
-- 订单和 item 来自 `OrderStore`
-- 成员列表来自 `MemberStore`
-- 本地表单状态（输入框文字、sheet 是否展示）用 `@State`
+- 启动状态、账号、私厨、成员、菜品、订单来自 `AppStore`
+- 表单输入、搜索关键字、焦点、弹层展示来自 `@State` / `@FocusState`
+- 轻量反馈可以直接用局部 `AppToastData?`
+- 图片草稿流程可以由页面持有专用 coordinator，例如 `DishImageCoordinator`
 
-## 权限在 View 层的表达
+## 权限表达
 
-- owner/admin 可见的操作（新增菜品、改 item 状态、结束订单）通过 `currentRole` 条件渲染
-- 不允许仅隐藏按钮而不校验后端权限
-- View 只做展示隐藏，实际权限由 Store 调用 API 时后端校验
+- `store.canManageDishes` 控制加菜和菜品管理入口
+- `store.canManageOrders` 控制订单状态流转入口
+- View 负责入口可见性与交互禁用
+- 真实权限以 Store 调 API 后的服务端结果为准
 
-## 空状态与加载
+## 当前实现特征
 
-- 列表为空时展示统一空态组件（`AppEmptyState`），不显示空白页面
-- 加载中展示 skeleton，不阻塞页面
-- 错误通过 banner 展示在页面顶部，不替换整个页面内容
+- `OnboardingView` 是单页状态机，未登录与已登录无 kitchen 两种形态共用一个页面
+- `MenuView` 内部做搜索防抖、分类筛选、本地 toast 和图片流程编排
+- `OrdersView` 用底部 bar 打开采购清单
+- `SettingsView` 用成员头像横向列表触发成员信息 sheet
+
+## 文档维护
+
+- 如果本文件规则已经和代码、文档或实际流程不一致，修代码或修文档后顺手修正本文件。
+- 保持 `AGENTS.md` 和 `CLAUDE.md` 内容一致。任何一方更新，另一方必须同步更新。

@@ -10,7 +10,9 @@ Design 目录是全局视觉语言的唯一来源。UI 代码通过 token 使用
 
 | 文件 | 职责 |
 |---|---|
-| `AppColor.swift` | 调色板（Palette）+ 语义色（Semantic）+ 组件态 |
+| `AppPalette.swift` | 基础调色板，映射 `Assets.xcassets` 色值 |
+| `AppSemanticColor.swift` | 语义色，供页面和组件直接消费 |
+| `AppComponentColor.swift` | 组件态颜色，从语义色继续收束 |
 | `AppTypography.swift` | 字体层级 token |
 | `AppLayoutToken.swift` | 间距、内边距、圆角、尺寸、图标尺寸 |
 | `AppStyleToken.swift` | 阴影、透明度、动效、材质 |
@@ -23,17 +25,17 @@ Design 目录是全局视觉语言的唯一来源。UI 代码通过 token 使用
 ### 分层结构
 
 ```
-Palette → Semantic → UI 使用
+Palette → Semantic → Component → UI 使用
 ```
 
-三层严格单向依赖，禁止越层引用。
+四层严格单向依赖，禁止越层引用。
 
 #### 1. Palette（基础色）
 
 定义纯颜色值，不带语义，**禁止在 UI 中直接使用**。
 
 ```swift
-// AppColor.swift — Palette 区域
+// AppPalette.swift
 static let green900 = Color("green900")
 static let green800 = Color("green800")
 static let green500 = Color("green500")
@@ -47,61 +49,60 @@ static let green100 = Color("green100")
 描述用途，**UI 代码唯一允许使用的颜色层**。
 
 ```swift
-// AppColor.swift — 当前语义色
+// AppSemanticColor.swift
 
 // 背景层
-AppColor.backgroundBase        // 页面底层背景
-AppColor.backgroundElevated    // 浮层、sheet 背景
+AppSemanticColor.background         // 页面底层背景
+AppSemanticColor.backgroundElevated // 浮层、sheet 背景
 
 // 表面层
-AppColor.surfacePrimary        // 卡片、输入框背景
-AppColor.surfaceSecondary      // 列表行、次级容器
-AppColor.surfaceTertiary       // 禁用态填充
+AppSemanticColor.surface          // 卡片、输入框背景
+AppSemanticColor.surfaceSecondary // 列表行、次级容器
+AppSemanticColor.surfaceTertiary  // 禁用态填充
 
 // 分割线
-AppColor.lineSoft              // 弱分割（section 分隔）
-AppColor.lineStrong            // 强分割（跨区域）
+AppSemanticColor.border   // 弱分割和常规描边
+AppSemanticColor.divider  // 强分割（跨区域）
 
 // 文字
-AppColor.textPrimary           // 正文、主标题
-AppColor.textSecondary         // 辅助说明
-AppColor.textTertiary          // 占位符、标签
-AppColor.textOnBrand           // 品牌色背景上的文字
+AppSemanticColor.textPrimary   // 正文、主标题
+AppSemanticColor.textSecondary // 辅助说明
+AppSemanticColor.textTertiary  // 占位符、标签
+AppSemanticColor.onPrimary     // 品牌色背景上的文字
 
 // 交互
-AppColor.interactivePrimary         // 主操作按钮背景（normal）
-AppColor.interactivePrimaryPressed  // 主操作按钮背景（pressed）
-AppColor.interactiveSecondary       // 次级操作、chip 背景
-AppColor.interactiveDisabled        // 禁用态背景
+AppSemanticColor.primary                     // 主操作按钮背景（normal）
+AppSemanticColor.primaryPressed              // 主操作按钮背景（pressed）
+AppSemanticColor.primaryDisabled             // 禁用态背景
+AppSemanticColor.interactiveSecondary        // 次级操作、chip 背景
+AppSemanticColor.interactiveSecondaryPressed // 次级操作按下态
 
 // 状态
-AppColor.success      // 成功（绿色，深）
-AppColor.successSoft  // 成功背景（浅绿）
-AppColor.warning      // 警告（黄色）
-AppColor.warningSoft  // 警告背景
-AppColor.danger       // 错误 / 破坏性操作
-AppColor.dangerSoft   // 错误背景
-AppColor.info         // 提示
-AppColor.infoSoft     // 提示背景
+AppSemanticColor.success           // 成功（绿色，深）
+AppSemanticColor.successBackground // 成功背景（浅绿）
+AppSemanticColor.warning           // 警告（黄色）
+AppSemanticColor.warningBackground // 警告背景
+AppSemanticColor.danger            // 错误 / 破坏性操作
+AppSemanticColor.dangerBackground  // 错误背景
+AppSemanticColor.infoForeground    // 提示前景
+AppSemanticColor.infoBackground    // 提示背景
 
 // 特殊
-AppColor.focusRing        // 焦点环
-AppColor.scrim            // 遮罩
-AppColor.toastBackground  // Toast 背景
+AppSemanticColor.brandAccent     // 品牌强调
+AppSemanticColor.scrim           // 遮罩
+AppSemanticColor.toastBackground // Toast 背景
 ```
 
 #### 3. Component Tokens（组件态）
 
-通过语义色推导，写在各组件自身文件内，不单独汇总。
+通过语义色推导，统一写在 `AppComponentColor.swift`，组件按需消费对应命名空间。
 
 ```swift
-// 示例：ButtonView 内部
-private var background: Color {
-    isDisabled ? AppColor.interactiveDisabled : AppColor.interactivePrimary
-}
-private var foreground: Color {
-    isDisabled ? AppColor.textTertiary : AppColor.textOnBrand
-}
+// 示例：AppComponentColor.Button
+static let primaryBackground = AppSemanticColor.primary
+static let primaryBackgroundPressed = AppSemanticColor.primaryPressed
+static let primaryBackgroundDisabled = AppSemanticColor.primaryDisabled
+static let primaryText = AppSemanticColor.onPrimary
 ```
 
 ---
@@ -113,7 +114,7 @@ private var foreground: Color {
 
 ```swift
 // ✅ 正确
-.foregroundStyle(AppColor.textPrimary)
+.foregroundStyle(AppSemanticColor.textPrimary)
 
 // ❌ 禁止
 @Environment(\.colorScheme) var colorScheme
@@ -126,10 +127,10 @@ let color = colorScheme == .dark ? Color.white : Color.black
 
 | 规则 | 说明 |
 |---|---|
-| UI 禁用 Palette | 不写 `AppColor.green800`、`Color("green500")` 等 |
+| UI 禁用 Palette | 不写 `AppPalette.green800`、`Color("green500")` 等 |
 | UI 禁用 hex/RGB | 不写 `.foregroundStyle(Color(hex: "#1a7a3c"))` |
 | 不允许内联计算颜色 | 组件内部不自行 `.opacity()` 推导新语义，走现有 token |
-| 状态必须有 token | pressed / disabled 不用 `.opacity(0.5)` 代替，使用 `interactivePrimaryPressed` 等 |
+| 状态必须有 token | pressed / disabled 不用 `.opacity(0.5)` 代替，使用 `primaryPressed`、`primaryDisabled` 等 |
 | 颜色不是唯一信息通道 | 状态差异需同时配图标或文字（无障碍要求） |
 
 ---
@@ -256,31 +257,31 @@ struct DishCard: View {
 
     var body: some View {
         HStack(spacing: AppGap.compact) {
-            AsyncImage(url: dish.imageURL)
+            AsyncImage(url: dish.publicImageURL(baseURL: DishImageSpec.r2PublicBaseURL))
                 .frame(width: 56, height: 56)
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
 
             VStack(alignment: .leading, spacing: AppGap.tight) {
                 Text(dish.name)
                     .font(AppTypography.cardTitle)
-                    .foregroundStyle(AppColor.textPrimary)
+                    .foregroundStyle(AppSemanticColor.textPrimary)
 
-                Text(dish.description)
+                Text(dish.category)
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.textSecondary)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
                     .lineLimit(2)
             }
 
             Spacer()
 
-            Text("¥\(dish.price)")
+            Text("\(dish.ingredients.count) 种食材")
                 .font(AppTypography.bodyStrong)
                 .foregroundStyle(
-                    isDisabled ? AppColor.textTertiary : AppColor.interactivePrimary
+                    isDisabled ? AppSemanticColor.textTertiary : AppSemanticColor.primary
                 )
         }
         .padding(AppInset.card)
-        .background(AppColor.surfacePrimary)
+        .background(AppSemanticColor.surface)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
         .appShadow(AppShadow.card)
         .opacity(isDisabled ? AppOpacity.disabled : 1)
@@ -293,10 +294,10 @@ struct DishCard: View {
 Button(action: onTap) {
     Text("加入购物车")
         .font(AppTypography.button)
-        .foregroundStyle(AppColor.textOnBrand)
+        .foregroundStyle(AppSemanticColor.onPrimary)
         .frame(maxWidth: .infinity)
         .frame(height: AppDimension.buttonHeight)
-        .background(isPressed ? AppColor.interactivePrimaryPressed : AppColor.interactivePrimary)
+        .background(isPressed ? AppSemanticColor.primaryPressed : AppSemanticColor.primary)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.pill))
 }
 .animation(AppMotion.press, value: isPressed)
@@ -307,14 +308,14 @@ Button(action: onTap) {
 if let error = store.error {
     HStack(spacing: AppGap.compact) {
         Image(systemName: "exclamationmark.circle.fill")
-            .foregroundStyle(AppColor.danger)
-        Text(error.localizedDescription)
+            .foregroundStyle(AppSemanticColor.danger)
+        Text(error)
             .font(AppTypography.caption)
-            .foregroundStyle(AppColor.danger)
+            .foregroundStyle(AppSemanticColor.danger)
     }
     .padding(.horizontal, AppInset.pageHorizontal)
     .padding(.vertical, AppSpacing.xs)
-    .background(AppColor.dangerSoft)
+    .background(AppSemanticColor.dangerBackground)
     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
 }
 ```
@@ -323,9 +324,10 @@ if let error = store.error {
 
 ## 新增 Token 规则
 
-1. **Palette**：在 `Assets.xcassets` 添加 Color Set，同时提供 Any / Dark 两套值，在 `AppColor.swift` Palette 区域声明静态属性
-2. **Semantic**：在 `AppColor.swift` Semantic 区域声明，必须映射到现有 Palette，并在本文件语义色列表中补充说明
-3. **禁止**为一次性用途造新语义名；不确定时先复用最接近的现有 token
+1. **Palette**：在 `Assets.xcassets` 添加 Color Set，同时提供 Any / Dark 两套值，在 `AppPalette.swift` 声明静态属性
+2. **Semantic**：在 `AppSemanticColor.swift` 声明，必须映射到现有 Palette，并在本文件语义色列表中补充说明
+3. **Component**：跨组件复用的状态色写进 `AppComponentColor.swift` 对应命名空间
+4. **禁止**为一次性用途造新语义名；不确定时先复用最接近的现有 token
 
 ---
 
@@ -333,7 +335,7 @@ if let error = store.error {
 
 ```swift
 // ❌ 直接使用 Palette
-.foregroundStyle(AppColor.green800)
+.foregroundStyle(AppPalette.green800)
 
 // ❌ 直接写颜色值
 .background(Color(red: 0.1, green: 0.5, blue: 0.3))
@@ -343,7 +345,7 @@ if let error = store.error {
 .foregroundStyle(colorScheme == .dark ? .white : .black)
 
 // ❌ 自行推导状态色
-.background(AppColor.interactivePrimary.opacity(0.5))
+.background(AppSemanticColor.primary.opacity(0.5))
 
 // ❌ 直接写数值
 .padding(14)

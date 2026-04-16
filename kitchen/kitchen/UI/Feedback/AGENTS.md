@@ -2,68 +2,66 @@
 
 ## 概述
 
-全局反馈层组件：Toast、Banner、Skeleton/Shimmer。所有组件无业务依赖，通过环境对象或参数触发。遵循父目录所有约束。
+全局或局部交互反馈组件放在此目录。当前实现包含 toast、表单校验反馈和触觉反馈。遵循父目录所有约束。
 
-## Toast（AppToastHost）
+## 当前文件
 
-### 用途
-- 操作成功确认（菜品已添加、订单已结束）
-- 破坏性操作的 undo 提示（删除菜品后「撤销」）
-- 轻量错误提示（网络失败等）
+- `AppToast.swift`：通过 `ViewModifier` 在页面底部叠加 toast
+- `AppShakeFeedback.swift`：输入校验的描边和 shake 动效
+- `HapticManager.swift`：统一管理轻量触觉反馈事件
 
-### 设计规范
-- 悬浮在底部安全区上方，不阻塞当前操作
-- 背景：深绿色（`green800`）或高对比中性色
-- 圆角：`radius20` 或更大
-- 支持：图标 + 文案 + 单个动作按钮（如「撤销」）
-- 出现/消失：淡入 + 轻位移（向上 8pt），不做弹跳
-- 自动消失：3 秒（带操作按钮时 5 秒）
-- 同时只展示一条，新 toast 替换旧 toast
+## Toast
 
-### 触发方式
-- 通过 `@EnvironmentObject` 的 `ToastStore` 触发
-- View 内调用 `toastStore.show("已添加到订单")`
-- 禁止在 View 内直接管理 toast 显隐状态
+### 当前实现
 
-## Banner（AppBanner）
-
-### 用途
-- 页面级错误提示（网络错误、权限不足）
-- 持续性提醒（当前订单已结束，无法追加菜品）
-
-### 设计规范
-- 内联展示在页面顶部内容区（不覆盖导航栏）
-- 根据语义使用对应色：错误用 `dangerSoft + danger`，提醒用 `warningSoft + warning`，信息用 `infoSoft + info`
-- 可手动关闭（右侧关闭按钮）
-- 不自动消失
-
-### 触发方式
-- Store 的 `@Published var bannerMessage: BannerMessage?` 驱动
-- View 通过条件渲染展示/隐藏
-
-## Skeleton / Shimmer
-
-### 用途
-- 数据加载中的占位展示
-- 替代阻塞式 spinner，保持页面结构稳定
-
-### 设计规范
-- 形状与实际内容一致（卡片型、行型、圆形头像型）
-- 颜色：`surfaceSecondary` 到 `surfaceTertiary` 之间的渐变动画
-- 动效：横向扫光（shimmer），服从 Reduce Motion 设置（关闭时静态占位色）
-- 不显示实际文字或图片
+- 数据模型：`AppToastData`
+- 挂载方式：`view.appToast($toast)`
+- 位置：底部 overlay
+- 样式：深绿色 capsule，左侧成功图标，可选单个 action
+- 动画：底部位移 + 渐隐渐现
+- 生命周期：基于 `.task(id:)` 自动消失，当前默认约 2.2 秒
 
 ### 使用规则
-- 列表页首次加载时展示 skeleton
-- 刷新时不展示 skeleton（保持现有内容，顶部展示细进度条或无提示）
-- 不在 skeleton 消失时做突兀切换，使用 `.transition(.opacity)`
 
-## 空态（AppEmptyState）
+- 适合轻量成功提示和单步可撤销动作
+- toast 状态可以是页面局部 `@State`
+- 新 toast 直接替换旧 toast
 
-### 用途
-- 列表为空时展示，不显示空白页面
+## 校验反馈
 
-### 设计规范
-- 包含：插图/图标 + 标题 + 副文案 + 可选操作按钮
-- 垂直居中在列表区域
-- 颜色使用 `textSecondary` / `textTertiary`，不抢夺视觉焦点
+### 当前实现
+
+- `AppShakeEffect` 使用 `GeometryEffect` 做横向抖动
+- `AppValidationFeedbackModifier` 叠加描边和 shake
+- 默认描边色在正常态为 `border`，非法态为 `danger`
+
+### 使用规则
+
+- 输入框校验失败时通过 `validationTrigger` 驱动重复动画
+- 反馈层只负责视觉提示，具体校验逻辑放在 View 或表单状态机
+
+## 触觉反馈
+
+### 当前实现
+
+- `HapticManager.shared` 统一封装成功、错误、状态推进、新菜加入等反馈事件
+- 当前由 `AppStore` 在订单状态流转、刷新失败和新菜加入时触发
+- 触觉开关通过本地偏好控制，页面只表达交互意图
+
+### 使用规则
+
+- 触觉反馈适合确认关键动作完成或提示状态变化
+- 业务层只触发语义事件，具体 `UIFeedbackGenerator` 细节留在 `HapticManager`
+- 页面局部轻提示继续优先用 toast，就地校验继续优先用描边和 shake
+
+## 设计原则
+
+- 反馈组件保持轻量，不侵入业务逻辑
+- 页面级错误优先由 View 直接渲染文案或卡片区域提示
+- 可恢复的轻量结果优先用 toast
+- 表单错误优先就地展示，避免跳出式打断
+
+## 文档维护
+
+- 如果本文件规则已经和代码、文档或实际流程不一致，修代码或修文档后顺手修正本文件。
+- 保持 `AGENTS.md` 和 `CLAUDE.md` 内容一致。任何一方更新，另一方必须同步更新。

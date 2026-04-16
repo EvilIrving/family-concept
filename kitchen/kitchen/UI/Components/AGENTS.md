@@ -2,95 +2,70 @@
 
 ## 概述
 
-无业务依赖的可复用 UI 组件。所有组件通过参数配置，不直接访问 Store 或全局状态。遵循父目录所有约束。
+无业务依赖的可复用 UI 组件放在此目录。组件通过参数渲染，不直接访问 Store。遵循父目录所有约束。
 
-## 主题系统（AppTheme）
+## 当前组件
 
-所有组件必须通过 AppTheme 消费 token，不允许硬编码视觉值。
+- `AppButton.swift`：主按钮、次按钮、ghost、危险按钮
+- `AppCard.swift`：统一卡片容器
+- `AppIconActionButton.swift`：小尺寸加减与图标动作按钮
+- `AppTextField.swift`：原生输入行为 + 自定义外观与扩展命中区
+- `FloatButton.swift`：悬浮按钮
+- `MenuDishCard.swift`：菜单网格卡片
 
-### 颜色 Token（AppColor）
+## 主题系统
 
-**Brand（绿色体系）**
-- `green900`: `#1F4D3A` — 主按钮按下态
-- `green800`: `#2D6A4F` — 主按钮填充、success 语义色
-- `green700`: `#3F8A67` — 强调元素
-- `green500`: `#78B798` — 中性绿
-- `green300`: `#BFE3CF` — 选中描边、弱高亮
-- `green200`: `#DCEFE3` — 页面局部高光容器
-- `green100`: `#EEF7F1` — 次按钮底色、选中弱底
+组件统一消费 `Design/` 下拆分后的 token：
 
-**Neutral**
-- `backgroundBase`: `#F4F8F5` — 页面背景
-- `backgroundElevated`: `#FAFCFA` — 略高层背景
-- `surfacePrimary`: `#FFFFFF` — 卡片、sheet 背景
-- `surfaceSecondary`: `#F7FAF7`
-- `surfaceTertiary`: `#F1F5F1`
-- `lineSoft`: `#E3EBE4` — 弱分割线
-- `lineStrong`: `#D2DDD4` — 强分割线
+- 语义颜色：`AppSemanticColor`
+- 组件态颜色：`AppComponentColor`
+- 间距：`AppSpacing`
+- 圆角：`AppRadius`
+- 阴影：`AppShadow`
+- 字体：`AppTypography`
 
-**Text**
-- `textPrimary`: `#1E2A22`
-- `textSecondary`: `#5F6F64`
-- `textTertiary`: `#8A968E`
-- `textOnBrand`: `#FFFFFF`
+需要直接映射资源色时只在 `AppPalette` 和 `AppSemanticColor` 层处理；组件侧优先消费 `AppComponentColor`。允许使用 token 组合具体样式；禁止绕开 token 直接定义新的全局视觉语言。
 
-**Semantic**
-- `success` / `successSoft`: `#2D6A4F` / `#E7F4EC`
-- `warning` / `warningSoft`: `#C98A2E` / `#FAF0DE`
-- `danger` / `dangerSoft`: `#D85C4A` / `#FCE9E6`
-- `info` / `infoSoft`: `#5F8F7A` / `#EAF4EF`
-
-### 间距（AppSpacing）
-- `space4 = 4`, `space8 = 8`, `space12 = 12`, `space16 = 16`
-- `space20 = 20`, `space24 = 24`, `space32 = 32`
-- 行内小间距用 `8`，卡片内部用 `16`，弹层内容区用 `20`，模块间用 `24` 或 `32`
-
-### 圆角（AppRadius）
-- `radius12 = 12`, `radius16 = 16`, `radius20 = 20`
-- `radius24 = 24`, `radius28 = 28`, `radiusPill = 999`
-- 输入框：`16`，卡片：`20`，大弹层/sheet：`24-28`，胶囊按钮：`Pill`
-
-### 阴影（AppShadow）
-- `shadowCard`: y=6, blur=18, color=`rgba(31,77,58,0.08)`
-- `shadowSheet`: y=12, blur=28, color=`rgba(31,77,58,0.12)`
-- 禁止黑色重阴影、超大模糊、多层高对比投影
-
-### 字体（AppTypography）
-- `pageTitle`: 28 / semibold
-- `sectionTitle`: 20 / semibold
-- `cardTitle`: 17 / semibold
-- `body`: 15 / regular
-- `bodyStrong`: 15 / semibold
-- `caption`: 13 / regular
-- `micro`: 12 / medium
-- `buttonLabel`: 16 / semibold
-
-## 组件目录
+## 当前实现约束
 
 ### AppButton
-- 主按钮：实体绿底（`green800`）+ 白字，圆角 `16` 或 Pill
-- 按下态：降低亮度 + 轻微缩放（`.scaleEffect(0.97)`），不做弹跳
-- 次按钮：浅绿底（`green100`）或白底加浅描边
-- 危险按钮：浅红底（`dangerSoft`）+ 红字（`danger`），不用大面积高饱和红
-- 触控高度 >= 44pt
+
+- 最小高度 50pt
+- 使用 `AppButtonStyle` 处理按下态透明度和轻微缩放
+- `primary`、`secondary`、`ghost`、`destructive` 四种样式统一走同一实现
 
 ### AppCard
-- 背景：`surfacePrimary`（白色）
-- 圆角：`radius20`
-- 阴影：`shadowCard`
-- 内边距：`space16`
-- 内部分区用垂直间距和标题权重，不用粗线框
 
-### AppListSection
-- 不强依赖系统 `List` 默认外观
-- 使用 `ScrollView + LazyVStack` 结构，卡片化 section
-- 行高 >= 44pt
-- 行尾控件（箭头、开关、数量）对齐统一
+- 作为页面卡片、sheet 内容卡片和信息容器的统一底座
+- 默认负责背景、圆角、阴影、内边距一致性
+
+### AppTextField
+
+- 底层使用系统 `TextField` / `SecureField`
+- 支持 `.card` 与 `.inline` 两种 chrome
+- `.card` 模式提供额外 focus 命中区，视觉框和点击区分离
+- 校验态通过 `appValidationFeedback` 叠加
+
+### MenuDishCard
+
+- 支持图片 URL 或占位图
+- 分类标签直接叠在头图区域
+- 数量控制使用 `AppIconActionButton`
+
+## 通用规则
+
+- 组件只接收参数和回调，不直接读写业务状态
+- 组件优先保留原生交互行为，样式通过包装层完成
+- 新组件优先复用现有 token 和现有小组件
+- 组件对外 API 追求小而稳定，避免把业务对象整包塞进组件
 
 ## 禁止事项
 
-- 禁止在组件内硬编码颜色、间距、圆角、阴影数值
-- 禁止在组件内访问 Store 或全局环境
-- 禁止使用系统默认 `Form`、`List`、`DatePicker` 外观直接上线
-- 禁止米杏色/暖棕色作为全局主色
-- 禁止重拟物、强玻璃拟态、复杂自定义转场
+- 禁止在组件内直接访问 `AppStore`
+- 禁止硬编码跨组件复用的颜色、间距、圆角、字体
+- 禁止用系统默认 `Form` / `List` 外观直接承担产品界面主体
+
+## 文档维护
+
+- 如果本文件规则已经和代码、文档或实际流程不一致，修代码或修文档后顺手修正本文件。
+- 保持 `AGENTS.md` 和 `CLAUDE.md` 内容一致。任何一方更新，另一方必须同步更新。
