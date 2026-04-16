@@ -16,6 +16,7 @@ final class AppStore: ObservableObject {
     @Published var shoppingListItems: [ShoppingListItem] = []
     @Published var isLoading: Bool = false
     @Published var isBootstrapping: Bool = false
+    @Published var isSubmittingCart: Bool = false
     @Published var error: String?
     @Published var colorScheme: ColorScheme?
 
@@ -400,7 +401,10 @@ final class AppStore: ObservableObject {
     }
 
     func submitCart() async {
-        guard !cartItems.isEmpty else { return }
+        guard !cartItems.isEmpty, !isSubmittingCart else { return }
+        error = nil
+        isSubmittingCart = true
+        defer { isSubmittingCart = false }
 
         do {
             if currentOrder == nil {

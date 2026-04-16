@@ -27,6 +27,7 @@ struct AppSheetContainer<Content: View>: View {
     let onDismiss: () -> Void
     var onConfirm: (() -> Void)? = nil
     var isConfirmDisabled: Bool = false
+    var isConfirmLoading: Bool = false
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -58,10 +59,18 @@ struct AppSheetContainer<Content: View>: View {
                 Spacer()
 
                 if let confirmTitle, let onConfirm {
-                    Button(confirmTitle, action: onConfirm)
+                    Button(action: onConfirm) {
+                        Group {
+                            if isConfirmLoading {
+                                AppLoadingIndicator(tone: .primary, controlSize: .small)
+                            } else {
+                                Text(confirmTitle)
+                            }
+                        }
                         .font(AppTypography.bodyStrong)
                         .foregroundStyle(isConfirmDisabled ? AppSemanticColor.textTertiary : AppSemanticColor.primary)
-                        .disabled(isConfirmDisabled)
+                    }
+                    .disabled(isConfirmDisabled || isConfirmLoading)
                 } else {
                     Button(dismissTitle, action: onDismiss)
                         .font(AppTypography.bodyStrong)

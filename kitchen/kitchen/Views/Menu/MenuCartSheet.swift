@@ -14,10 +14,13 @@ struct MenuCartSheet: View {
             onConfirm: {
                 Task {
                     await store.submitCart()
+                    guard store.error == nil else { return }
                     toast = AppToastData(message: "已下单")
                     dismiss()
                 }
-            }
+            },
+            isConfirmDisabled: store.cartItems.isEmpty,
+            isConfirmLoading: store.isSubmittingCart
         ) {
             ScrollView {
                 VStack(spacing: AppSpacing.sm) {

@@ -82,8 +82,10 @@ struct MenuDishCard: View {
                             .resizable()
                             .scaledToFit()
                             .padding(AppSpacing.xs)
+                    case .empty:
+                        AppLoadingBlock(label: "加载中", tone: .secondary)
                     default:
-                        placeholderIcon
+                        imageFailurePlaceholder
                     }
                 }
             } else {
@@ -102,10 +104,26 @@ struct MenuDishCard: View {
     }
 
     private var placeholderIcon: some View {
-        Image("MenuDishPlaceholder")
-            .resizable()
-            .scaledToFit()
-            .padding(AppSpacing.xs)
+        VStack(spacing: AppSpacing.xs) {
+            Image(systemName: "photo")
+                .font(.system(size: 30, weight: .medium))
+                .foregroundStyle(AppSemanticColor.textSecondary)
+
+            Text("暂无图片")
+                .font(AppTypography.micro)
+                .foregroundStyle(AppSemanticColor.textSecondary)
+        }
+        .padding(AppSpacing.sm)
+    }
+
+    private var imageFailurePlaceholder: some View {
+        VStack(spacing: AppSpacing.xs) {
+            placeholderIcon
+            Text("图片加载失败")
+                .font(AppTypography.micro)
+                .foregroundStyle(AppSemanticColor.textSecondary)
+        }
+        .padding(AppSpacing.sm)
     }
 }
 
