@@ -3,7 +3,7 @@ import { json, badRequest, forbidden } from '../router';
 import { withAuth } from '../middleware/auth';
 import { withRole } from '../middleware/role';
 import { findOpenByKitchen, findById as findOrder, listFinishedByKitchen } from '../db/orders';
-import { findItemById, updateItem, listByOrder, aggregateShoppingList } from '../db/order-items';
+import { findItemById, updateItem, listActiveByOrder, aggregateShoppingList } from '../db/order-items';
 import { createOrder, addItemToOrder, closeOrder } from '../services/order-service';
 import { findByKitchenAndAccount } from '../db/members';
 
@@ -16,7 +16,7 @@ export const orderRoutes: Route[] = [
       withRole(['owner', 'admin', 'member'])(async (_req, env, ctx) => {
         const order = await findOpenByKitchen(env.DB, ctx.kitchen!.id);
         if (!order) return json(null);
-        const items = await listByOrder(env.DB, order.id);
+        const items = await listActiveByOrder(env.DB, order.id);
         return json({ ...order, items });
       })
     ),
@@ -86,7 +86,7 @@ export const orderRoutes: Route[] = [
       const member = await findByKitchenAndAccount(env.DB, order.kitchen_id, ctx.account.id);
       if (!member) return forbidden('你不是该 kitchen 的成员');
 
-      const items = await listByOrder(env.DB, order.id);
+      const items = await listActiveByOrder(env.DB, order.id);
       return json({ ...order, items });
     }),
   },

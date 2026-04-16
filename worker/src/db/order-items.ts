@@ -47,6 +47,25 @@ export async function listByOrder(db: D1Database, orderId: string): Promise<Orde
   return result.results;
 }
 
+export async function listActiveByOrder(db: D1Database, orderId: string): Promise<OrderItemRow[]> {
+  const result = await db
+    .prepare(
+      "SELECT * FROM order_items WHERE order_id = ? AND status != 'cancelled' ORDER BY created_at ASC"
+    )
+    .bind(orderId)
+    .all<OrderItemRow>();
+  return result.results;
+}
+
+export async function markActiveItemsDoneByOrder(db: D1Database, orderId: string): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE order_items SET status = 'done', updated_at = datetime('now') WHERE order_id = ? AND status != 'cancelled'"
+    )
+    .bind(orderId)
+    .run();
+}
+
 export interface ShoppingListItem {
   dish_id: string;
   dish_name: string;

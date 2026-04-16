@@ -43,7 +43,7 @@ export async function listFinishedByKitchen(
         COUNT(oi.id) AS item_count,
         COALESCE(SUM(oi.quantity), 0) AS total_quantity
       FROM orders o
-      LEFT JOIN order_items oi ON oi.order_id = o.id
+      LEFT JOIN order_items oi ON oi.order_id = o.id AND oi.status != 'cancelled'
       WHERE o.kitchen_id = ?
         AND o.status = 'finished'
         AND o.finished_at IS NOT NULL

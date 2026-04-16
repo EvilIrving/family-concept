@@ -1,6 +1,6 @@
 import type { OrderRow, OrderItemRow } from '../types';
 import { insertOrder, findOpenByKitchen, finishOrder } from '../db/orders';
-import { insertItem } from '../db/order-items';
+import { insertItem, markActiveItemsDoneByOrder } from '../db/order-items';
 import { findById as findDish } from '../db/dishes';
 
 export async function createOrder(
@@ -32,5 +32,6 @@ export async function addItemToOrder(
 }
 
 export async function closeOrder(db: D1Database, orderId: string): Promise<void> {
+  await markActiveItemsDoneByOrder(db, orderId);
   await finishOrder(db, orderId);
 }
