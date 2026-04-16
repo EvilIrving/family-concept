@@ -5,6 +5,7 @@ struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
     @State private var notificationsEnabled = true
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
+    @AppStorage("themeMode") private var themeMode = "system"
     @State private var toast: AppToastData?
     @StateObject private var modalRouter = ModalRouter<SettingsModalRoute>()
 
@@ -65,7 +66,7 @@ struct SettingsView: View {
                 rowDivider
                 placeholderRow(title: "多语言", value: "简体中文")
                 rowDivider
-                placeholderRow(title: "主题色", value: "默认绿色")
+                themeSelectionRow
             }
 
             AppCard {
@@ -165,6 +166,71 @@ struct SettingsView: View {
     private var rowDivider: some View {
         Divider()
             .overlay(AppSemanticColor.border)
+    }
+
+    private var themeSelectionRow: some View {
+        HStack(spacing: AppSpacing.sm) {
+            Text("主题")
+                .font(AppTypography.bodyStrong)
+                .foregroundStyle(AppSemanticColor.textPrimary)
+            Spacer()
+            Menu {
+                Button {
+                    themeMode = "light"
+                    store.setThemeMode("light")
+                } label: {
+                    HStack {
+                        Text("浅色")
+                        if themeMode == "light" {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+                Button {
+                    themeMode = "system"
+                    store.setThemeMode("system")
+                } label: {
+                    HStack {
+                        Text("系统")
+                        if themeMode == "system" {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+                Button {
+                    themeMode = "dark"
+                    store.setThemeMode("dark")
+                } label: {
+                    HStack {
+                        Text("深色")
+                        if themeMode == "dark" {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: AppSpacing.xs) {
+                    Text(themeDisplayName)
+                        .font(AppTypography.body)
+                        .foregroundStyle(AppSemanticColor.textSecondary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: AppIconSize.xs, weight: .semibold))
+                        .foregroundStyle(AppSemanticColor.textTertiary)
+                }
+            }
+        }
+        .frame(minHeight: 44)
+    }
+
+    private var themeDisplayName: String {
+        switch themeMode {
+        case "light":
+            return "浅色"
+        case "dark":
+            return "深色"
+        default:
+            return "系统"
+        }
     }
 
     private func placeholderRow(title: String, value: String) -> some View {

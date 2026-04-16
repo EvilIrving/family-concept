@@ -15,6 +15,7 @@ struct kitchenApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(store)
+                .preferredColorScheme(store.colorScheme)
         }
     }
 }

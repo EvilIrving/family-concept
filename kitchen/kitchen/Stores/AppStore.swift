@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftUI
 
 @MainActor
 final class AppStore: ObservableObject {
@@ -14,6 +15,7 @@ final class AppStore: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var isBootstrapping: Bool = false
     @Published var error: String?
+    @Published var colorScheme: ColorScheme?
 
     let apiClient = APIClient()
 
@@ -23,6 +25,26 @@ final class AppStore: ObservableObject {
     init() {
         authToken = UserDefaults.standard.string(forKey: "authToken") ?? ""
         storedNickName = UserDefaults.standard.string(forKey: "nickName") ?? ""
+        updateColorScheme()
+    }
+
+    // MARK: - Theme Management
+
+    func setThemeMode(_ mode: String) {
+        UserDefaults.standard.set(mode, forKey: "themeMode")
+        updateColorScheme()
+    }
+
+    private func updateColorScheme() {
+        let themeMode = UserDefaults.standard.string(forKey: "themeMode") ?? "system"
+        switch themeMode {
+        case "light":
+            colorScheme = .light
+        case "dark":
+            colorScheme = .dark
+        default:
+            colorScheme = nil
+        }
     }
 
     // MARK: - Computed
