@@ -58,9 +58,7 @@ struct MenuView: View {
             Task {
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let image = UIImage(data: data) {
-                    await MainActor.run {
-                        modalRouter.transition(to: .crop(CropPresentation(image: image)))
-                    }
+                    await presentCrop(for: image, source: .photoLibrary)
                 }
                 await MainActor.run {
                     selectedPhotoItem = nil
@@ -70,8 +68,9 @@ struct MenuView: View {
         .fullScreenCover(isPresented: cameraBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
             DishCameraCaptureView(
                 onCapture: { image in
-                    imageCoordinator.processImage(image)
-                    modalRouter.transition(to: .addDish)
+                    Task {
+                        await presentCrop(for: image, source: .camera)
+                    }
                 },
                 onCancel: {
                     modalRouter.transition(to: .addDish)
@@ -87,7 +86,12 @@ struct MenuView: View {
                     modalRouter.transition(to: .addDish)
                 },
                 onCancel: {
-                    modalRouter.transition(to: .addDish)
+                    switch presentation.source {
+                    case .camera:
+                        modalRouter.transition(to: .camera)
+                    case .photoLibrary:
+                        modalRouter.transition(to: .addDish)
+                    }
                 }
             )
         }
@@ -196,6 +200,14 @@ struct MenuView: View {
     private func resetAddDishDraft() {
         addDishDraft = AddDishDraft()
         imageCoordinator.clearImage()
+    }
+
+    @MainActor
+    private func presentCrop(for image: UIImage, source: CropImageSource) async {
+        let standardized = await Task.detached(priority: .userInitiated) {
+            image.standardizedForCrop()
+        }.value
+        modalRouter.transition(to: .crop(CropPresentation(image: standardized, source: source)))
     }
 
     private var filterCategories: [String] {

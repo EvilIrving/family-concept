@@ -25,6 +25,7 @@ struct AppTextField<Field: Hashable>: View {
     var submitLabel: SubmitLabel = .done
     var onSubmit: (() -> Void)?
     var isInvalid: Bool = false
+    
     var validationTrigger: Int = 0
 
     private var prompt: Text {
@@ -70,16 +71,16 @@ struct AppTextField<Field: Hashable>: View {
                     .padding(.horizontal, focusHitOutsetHorizontal)
             }
             .contentShape(Rectangle())
-            .onTapGesture {
+            .simultaneousGesture(TapGesture().onEnded {
                 focusedField.wrappedValue = field
-            }
+            })
         case .inline:
             fieldContent
                 .frame(maxWidth: .infinity, minHeight: height)
                 .contentShape(Rectangle())
-                .onTapGesture {
+                .simultaneousGesture(TapGesture().onEnded {
                     focusedField.wrappedValue = field
-                }
+                })
         }
     }
 }

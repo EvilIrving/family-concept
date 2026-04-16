@@ -182,7 +182,6 @@ private struct ShoppingListSheet: View {
     var body: some View {
         AppSheetContainer(
             title: "采购清单",
-            subtitle: "按当前订单聚合",
             dismissTitle: "关闭",
             confirmTitle: "完成",
             onDismiss: { dismiss() },

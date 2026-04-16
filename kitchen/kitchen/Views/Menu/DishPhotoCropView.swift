@@ -13,120 +13,137 @@ struct DishPhotoCropView: View {
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
     @State private var suggestedScale: CGFloat = 1.0
-    @State private var isAnalyzing = false
+    @State private var normalizedImage: UIImage?
+
+    private var displayImage: UIImage { normalizedImage ?? sourceImage }
 
     var body: some View {
         GeometryReader { geo in
-            let layout = viewportLayout(in: geo)
-            let vpWidth = layout.width
-            let vpHeight = layout.height
-            let vpY = (geo.size.height - vpHeight) / 2
+            let vpSize = viewportSize(in: geo)
+            let vpWidth = vpSize.width
+            let vpHeight = vpSize.height
+            let topPad = max(geo.safeAreaInsets.top, 16) + 16
+            let bottomPad = max(geo.safeAreaInsets.bottom, 16) + 80
+            let availableH = geo.size.height - topPad - bottomPad
+            let vpY = topPad + max(0, (availableH - vpHeight) / 2)
+            let viewportCenter = CGPoint(x: geo.size.width / 2, y: vpY + vpHeight / 2)
 
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                cropCanvas(vpWidth: vpWidth, vpHeight: vpHeight)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                cropCanvas(vpWidth: vpWidth, vpHeight: vpHeight, viewportCenter: viewportCenter, containerSize: geo.size)
 
-                // Dim areas outside the viewport
-                VStack(spacing: 0) {
-                    Color.black.opacity(0.55).frame(height: vpY)
-                    Color.clear.frame(height: vpHeight)
-                    Color.black.opacity(0.55)
-                }
-                .allowsHitTesting(false)
+                darkOverlay(geo: geo, viewportCenter: viewportCenter, vpWidth: vpWidth, vpHeight: vpHeight)
 
-                // Viewport border
-                Rectangle()
-                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                    .frame(width: vpWidth, height: vpHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius))
-                    .allowsHitTesting(false)
+                viewportBorder(vpWidth: vpWidth, vpHeight: vpHeight)
+                    .position(x: viewportCenter.x, y: viewportCenter.y)
 
-                viewportGuides(width: vpWidth, height: vpHeight)
-                    .allowsHitTesting(false)
-
-                VStack(spacing: 0) {
-                    HStack {
-                        Button("取消") { onCancel() }
-                            .foregroundStyle(.white)
-                            .frame(minWidth: 44, minHeight: 44)
-
-                        Spacer()
-
-                        Button("智能定位") {
-                            Task {
-                                await applySuggestedFraming(vpWidth: vpWidth, vpHeight: vpHeight, forceRefresh: true)
-                            }
-                        }
-                        .foregroundStyle(.white.opacity(isAnalyzing ? 0.45 : 0.95))
-                        .disabled(isAnalyzing)
-                        .frame(minWidth: 44, minHeight: 44)
-
-                        Button("确认") {
-                            crop(geo: geo, vpY: vpY, vpWidth: vpWidth, vpHeight: vpHeight)
-                        }
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.white)
-                        .frame(minWidth: 44, minHeight: 44)
-                    }
-                    .padding(.horizontal, AppSpacing.md)
-                    .padding(.top, max(geo.safeAreaInsets.top, 16) + AppSpacing.xs)
-                    .padding(.bottom, AppSpacing.xs)
-                    .background(
-                        LinearGradient(
-                            colors: [Color.black.opacity(0.78), Color.black.opacity(0.32), .clear],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-
-                    Spacer()
-
-                    if isAnalyzing {
-                        HStack(spacing: 10) {
-                            ProgressView()
-                                .tint(.white)
-                            Text("正在识别菜品主体")
-                                .font(AppTypography.body)
-                                .foregroundStyle(.white)
-                        }
-                        .padding(.horizontal, AppSpacing.md)
-                        .padding(.vertical, AppSpacing.sm)
-                        .background(.black.opacity(0.55), in: Capsule())
-                        .padding(.bottom, max(geo.safeAreaInsets.bottom, 16) + AppSpacing.md)
-                    }
-                }
+                actionButtons(geo: geo, vpWidth: vpWidth, vpY: vpY, vpHeight: vpHeight, viewportCenter: viewportCenter)
             }
+            .frame(width: geo.size.width, height: geo.size.height)
             .task(id: sourceImage) {
-                await applySuggestedFraming(vpWidth: vpWidth, vpHeight: vpHeight, forceRefresh: false)
+                let img = await Task.detached(priority: .userInitiated) {
+                    sourceImage.normalizedForCrop()
+                }.value
+                normalizedImage = img
+                await applySuggestedFraming(vpWidth: vpWidth, vpHeight: vpHeight)
             }
         }
+    }
+
+    // MARK: - Subviews
+
+    @ViewBuilder
+    private func darkOverlay(geo: GeometryProxy, viewportCenter: CGPoint, vpWidth: CGFloat, vpHeight: CGFloat) -> some View {
+        Rectangle()
+            .fill(Color.black.opacity(0.55))
+            .ignoresSafeArea()
+            .overlay(
+                RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius)
+                    .frame(width: vpWidth, height: vpHeight)
+                    .offset(
+                        x: viewportCenter.x - geo.size.width / 2,
+                        y: viewportCenter.y - geo.size.height / 2
+                    )
+                    .blendMode(.destinationOut)
+            )
+            .compositingGroup()
+            .allowsHitTesting(false)
     }
 
     @ViewBuilder
-    private func viewportGuides(width: CGFloat, height: CGFloat) -> some View {
+    private func viewportBorder(vpWidth: CGFloat, vpHeight: CGFloat) -> some View {
         ZStack {
-            Rectangle()
-                .stroke(Color.white.opacity(0.18), style: StrokeStyle(lineWidth: 1, dash: [8, 6]))
-                .frame(width: width * 0.82, height: height * 0.82)
+            // Outer border
+            RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius)
+                .strokeBorder(Color.white.opacity(0.85), lineWidth: 2.5)
+                .frame(width: vpWidth, height: vpHeight)
 
-            Circle()
-                .stroke(Color.white.opacity(0.22), lineWidth: 1)
-                .frame(width: min(width, height) * 0.72, height: min(width, height) * 0.72)
+            // Inner shadow layer
+            RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius)
+                .strokeBorder(Color.black.opacity(0.45), lineWidth: 18)
+                .blur(radius: 12)
+                .frame(width: vpWidth, height: vpHeight)
+                .clipShape(RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius))
         }
+        .allowsHitTesting(false)
     }
 
-    private func cropCanvas(vpWidth: CGFloat, vpHeight: CGFloat) -> some View {
-        let baseFrame = aspectFillFrame(for: sourceImage.normalizedForCrop().size, vpWidth: vpWidth, vpHeight: vpHeight)
+    @ViewBuilder
+    private func actionButtons(geo: GeometryProxy, vpWidth: CGFloat, vpY: CGFloat, vpHeight: CGFloat, viewportCenter: CGPoint) -> some View {
+        let spaceBelow = geo.size.height - geo.safeAreaInsets.bottom - (vpY + vpHeight)
+        let buttonRowY = vpY + vpHeight + spaceBelow / 2
+        let buttonInset = (geo.size.width - vpWidth) / 2 + 8
 
-        return Image(uiImage: sourceImage)
-            .resizable()
-            .frame(
-                width: baseFrame.width * scale,
-                height: baseFrame.height * scale
+        HStack(spacing: 0) {
+            Button(action: onCancel) {
+                ZStack {
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.55), lineWidth: 1.5)
+                        .frame(width: 56, height: 56)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(width: 56, height: 56)
+
+            Spacer()
+
+            Button(action: {
+                crop(viewportCenter: viewportCenter, vpY: vpY, vpWidth: vpWidth, vpHeight: vpHeight)
+            }) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 64, height: 64)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(.black)
+                }
+            }
+            .frame(width: 64, height: 64)
+        }
+        .padding(.horizontal, buttonInset)
+        .frame(width: geo.size.width)
+        .position(x: geo.size.width / 2, y: buttonRowY)
+    }
+
+    private func cropCanvas(vpWidth: CGFloat, vpHeight: CGFloat, viewportCenter: CGPoint, containerSize: CGSize) -> some View {
+        let baseFrame = aspectFillFrame(for: displayImage.size, vpWidth: vpWidth, vpHeight: vpHeight)
+        let baseOffset = CGSize(
+            width: viewportCenter.x - containerSize.width / 2,
+            height: viewportCenter.y - containerSize.height / 2
+        )
+
+        return Color.clear
+            .frame(width: containerSize.width, height: containerSize.height)
+            .overlay(
+                Image(uiImage: displayImage)
+                    .resizable()
+                    .frame(width: baseFrame.width * scale, height: baseFrame.height * scale)
+                    .offset(x: baseOffset.width + offset.width, y: baseOffset.height + offset.height)
             )
-            .offset(offset)
             .clipped()
             .contentShape(Rectangle())
             .gesture(
@@ -155,50 +172,44 @@ struct DishPhotoCropView: View {
             )
     }
 
-    private func clamped(_ proposed: CGSize, vpWidth: CGFloat, vpHeight: CGFloat) -> CGSize {
-        let baseFrame = aspectFillFrame(for: sourceImage.normalizedForCrop().size, vpWidth: vpWidth, vpHeight: vpHeight)
-        let scaledWidth = baseFrame.width * scale
-        let scaledHeight = baseFrame.height * scale
-        let maxX = max(0, (scaledWidth - vpWidth) / 2)
-        let maxY = max(0, (scaledHeight - vpHeight) / 2)
-        return CGSize(
-            width: proposed.width.clamped(to: -maxX...maxX),
-            height: proposed.height.clamped(to: -maxY...maxY)
-        )
+    // MARK: - Layout
+
+    private func viewportSize(in geo: GeometryProxy) -> CGSize {
+        let topPad = max(geo.safeAreaInsets.top, 16) + 16
+        let bottomPad = max(geo.safeAreaInsets.bottom, 16) + 80
+        let maxWidth = max(160, geo.size.width - 32)
+        let maxHeight = max(160, geo.size.height - topPad - bottomPad)
+        let fittedWidth = min(maxWidth, maxHeight * DishImageSpec.viewportAspectRatio)
+        return CGSize(width: fittedWidth, height: fittedWidth / DishImageSpec.viewportAspectRatio)
     }
 
     private func aspectFillFrame(for imageSize: CGSize, vpWidth: CGFloat, vpHeight: CGFloat) -> CGSize {
         guard imageSize.width > 0, imageSize.height > 0 else {
             return CGSize(width: vpWidth, height: vpHeight)
         }
-
         let fillScale = max(vpWidth / imageSize.width, vpHeight / imageSize.height)
         return CGSize(width: imageSize.width * fillScale, height: imageSize.height * fillScale)
     }
 
-    private func viewportLayout(in geo: GeometryProxy) -> CGSize {
-        let maxWidth = max(160, geo.size.width - DishImageSpec.viewportHorizontalInset * 2)
-        let topReserved = max(geo.safeAreaInsets.top, 16) + 84
-        let bottomReserved = max(geo.safeAreaInsets.bottom, 16) + 108
-        let maxHeight = max(160, geo.size.height - topReserved - bottomReserved)
-        let fittedWidth = min(maxWidth, maxHeight * DishImageSpec.viewportAspectRatio)
+    private func clamped(_ proposed: CGSize, vpWidth: CGFloat, vpHeight: CGFloat) -> CGSize {
+        let baseFrame = aspectFillFrame(for: displayImage.size, vpWidth: vpWidth, vpHeight: vpHeight)
+        let maxX = max(0, (baseFrame.width * scale - vpWidth) / 2)
+        let maxY = max(0, (baseFrame.height * scale - vpHeight) / 2)
         return CGSize(
-            width: fittedWidth,
-            height: fittedWidth / DishImageSpec.viewportAspectRatio
+            width: proposed.width.clamped(to: -maxX...maxX),
+            height: proposed.height.clamped(to: -maxY...maxY)
         )
     }
 
-    /// 与 `Image` + `scaledToFill` 一致：先按比例铺满画布，再按视口与偏移裁切，避免 `draw(in:)` 拉伸整张图导致变形。
-    private func crop(geo: GeometryProxy, vpY: CGFloat, vpWidth: CGFloat, vpHeight: CGFloat) {
-        let normalized = sourceImage.normalizedForCrop()
-        let baseFrame = aspectFillFrame(for: normalized.size, vpWidth: vpWidth, vpHeight: vpHeight)
+    // MARK: - Crop output
+
+    private func crop(viewportCenter: CGPoint, vpY: CGFloat, vpWidth: CGFloat, vpHeight: CGFloat) {
+        let img = displayImage
+        let baseFrame = aspectFillFrame(for: img.size, vpWidth: vpWidth, vpHeight: vpHeight)
         let canvasW = baseFrame.width * scale
         let canvasH = baseFrame.height * scale
-
-        let w = geo.size.width
-        let h = geo.size.height
-        let imageLeft = w / 2 + offset.width - canvasW / 2
-        let imageTop = h / 2 + offset.height - canvasH / 2
+        let imageLeft = viewportCenter.x + offset.width - canvasW / 2
+        let imageTop = viewportCenter.y + offset.height - canvasH / 2
 
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -206,34 +217,30 @@ struct DishPhotoCropView: View {
 
         let outputSize = DishImageSpec.outputSize
         let outputScale = outputSize.width / vpWidth
-        let viewportOrigin = CGPoint(x: 0, y: vpY)
+        let vpLeft = viewportCenter.x - vpWidth / 2
         let renderer = UIGraphicsImageRenderer(size: outputSize, format: format)
         let out = renderer.image { _ in
             let drawRect = CGRect(
-                x: (imageLeft - viewportOrigin.x) * outputScale,
-                y: (imageTop - viewportOrigin.y) * outputScale,
+                x: (imageLeft - vpLeft) * outputScale,
+                y: (imageTop - vpY) * outputScale,
                 width: canvasW * outputScale,
                 height: canvasH * outputScale
             )
-            normalized.drawAspectFill(in: drawRect)
+            img.drawAspectFill(in: drawRect)
         }
         onConfirm(out)
     }
 
+    // MARK: - Vision framing
+
     @MainActor
-    private func applySuggestedFraming(vpWidth: CGFloat, vpHeight: CGFloat, forceRefresh: Bool) async {
-        if isAnalyzing { return }
-        if !forceRefresh, suggestedScale > 1.0001 { return }
+    private func applySuggestedFraming(vpWidth: CGFloat, vpHeight: CGFloat) async {
+        guard suggestedScale <= 1.0001 else { return }
 
-        isAnalyzing = true
-        defer { isAnalyzing = false }
-
-        guard let framing = await suggestedFraming(for: sourceImage, vpWidth: vpWidth, vpHeight: vpHeight) else {
-            let fallback = fallbackFraming(for: sourceImage, vpWidth: vpWidth, vpHeight: vpHeight)
-            setFraming(scale: fallback.scale, offset: fallback.offset, vpWidth: vpWidth, vpHeight: vpHeight)
+        guard let framing = await Self.visionFraming(for: displayImage, vpWidth: vpWidth, vpHeight: vpHeight) else {
+            setFraming(scale: 1.0, offset: .zero, vpWidth: vpWidth, vpHeight: vpHeight)
             return
         }
-
         setFraming(scale: framing.scale, offset: framing.offset, vpWidth: vpWidth, vpHeight: vpHeight)
     }
 
@@ -247,120 +254,97 @@ struct DishPhotoCropView: View {
         self.suggestedScale = self.scale
     }
 
-    private func fallbackFraming(for image: UIImage, vpWidth: CGFloat, vpHeight: CGFloat) -> (scale: CGFloat, offset: CGSize) {
-        let imageSize = image.normalizedForCrop().size
-        guard imageSize.width > 0, imageSize.height > 0 else {
-            return (1.12, .zero)
-        }
+    private static func visionFraming(for image: UIImage, vpWidth: CGFloat, vpHeight: CGFloat) async -> (scale: CGFloat, offset: CGSize)? {
+        await Task.detached(priority: .userInitiated) {
+            guard let cgImage = image.scaledDown(toLongSide: 1024).cgImage else { return nil }
 
-        let fillScale = max(vpWidth / imageSize.width, vpHeight / imageSize.height)
-        let displayWidth = imageSize.width * fillScale
-        let displayHeight = imageSize.height * fillScale
-        let widthScale = (vpWidth * 0.88) / min(displayWidth, vpWidth * 0.88)
-        let heightScale = (vpHeight * 0.9) / min(displayHeight, vpHeight * 0.9)
-        let suggested = max(minimumScale, min(widthScale, heightScale))
-        return (suggested, .zero)
-    }
+            do {
+                let request = VNGenerateForegroundInstanceMaskRequest()
+                let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+                try handler.perform([request])
 
-    private func suggestedFraming(for image: UIImage, vpWidth: CGFloat, vpHeight: CGFloat) async -> (scale: CGFloat, offset: CGSize)? {
-        guard let cgImage = image.normalizedForCrop().cgImage else { return nil }
+                guard let observation = request.results?.first,
+                      let normBounds = try observation.subjectBounds(using: handler) else { return nil }
 
-        do {
-            let request = VNGenerateForegroundInstanceMaskRequest()
-            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            try handler.perform([request])
+                let imageSize = CGSize(width: CGFloat(cgImage.width), height: CGFloat(cgImage.height))
+                let subjectCenter = CGPoint(
+                    x: normBounds.midX * imageSize.width,
+                    y: normBounds.midY * imageSize.height
+                )
+                let baseScale = max(vpWidth / imageSize.width, vpHeight / imageSize.height)
+                let subjectScreenWidth = normBounds.width * imageSize.width * baseScale
+                let subjectScreenHeight = normBounds.height * imageSize.height * baseScale
 
-            guard let observation = request.results?.first else { return nil }
-            let points = try observation.allPoints(in: cgImage)
-            guard !points.isEmpty else { return nil }
+                guard subjectScreenWidth > 1, subjectScreenHeight > 1 else { return nil }
 
-            let bounds = points.reduce(into: CGRect.null) { partial, point in
-                partial = partial.union(CGRect(x: point.x, y: point.y, width: 1, height: 1))
+                let fitScale = min(vpWidth * 0.82 / subjectScreenWidth, vpHeight * 0.82 / subjectScreenHeight)
+                let imageCenter = CGPoint(x: imageSize.width / 2, y: imageSize.height / 2)
+                let offset = CGSize(
+                    width: (imageCenter.x - subjectCenter.x) * baseScale * fitScale,
+                    height: (imageCenter.y - subjectCenter.y) * baseScale * fitScale
+                )
+                return (fitScale, offset)
+            } catch {
+                return nil
             }
-
-            guard bounds.width > 0, bounds.height > 0 else { return nil }
-
-            let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
-            let baseScale = max(vpWidth / imageSize.width, vpHeight / imageSize.height)
-            let targetWidth = vpWidth * 0.82
-            let targetHeight = vpHeight * 0.82
-            let subjectWidth = bounds.width * baseScale
-            let subjectHeight = bounds.height * baseScale
-
-            let fitScale = max(subjectWidth / targetWidth, subjectHeight / targetHeight)
-            let suggestedScale = max(minimumScale, fitScale)
-
-            let imageCenter = CGPoint(x: imageSize.width / 2, y: imageSize.height / 2)
-            // Vision mask points use a bottom-left origin; SwiftUI image offsets use a top-left visual space.
-            let subjectCenter = CGPoint(
-                x: bounds.midX,
-                y: imageSize.height - bounds.midY
-            )
-            let centeredOffset = CGSize(
-                width: (imageCenter.x - subjectCenter.x) * baseScale * suggestedScale,
-                height: (imageCenter.y - subjectCenter.y) * baseScale * suggestedScale
-            )
-
-            return (suggestedScale, centeredOffset)
-        } catch {
-            return nil
-        }
+        }.value
     }
 }
 
+// MARK: - UIImage helpers
+
 private extension UIImage {
-    /// 与 `DishImagePipeline` 一致：修正 EXIF 方向，避免裁切与后续处理错位。
-    func normalizedForCrop() -> UIImage {
+    nonisolated func normalizedForCrop() -> UIImage {
         guard imageOrientation != .up else { return self }
-        let renderer = UIGraphicsImageRenderer(size: size)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
         return renderer.image { _ in draw(in: CGRect(origin: .zero, size: size)) }
     }
 
-    /// 在 `rect` 内按 UIViewContentMode.scaleAspectFill 绘制（不拉伸变形）。
     func drawAspectFill(in rect: CGRect) {
-        let iw = size.width
-        let ih = size.height
-        guard iw > 0, ih > 0 else { return }
-        let s = max(rect.width / iw, rect.height / ih)
-        let dw = iw * s
-        let dh = ih * s
-        let ox = rect.midX - dw / 2
-        let oy = rect.midY - dh / 2
-        draw(in: CGRect(x: ox, y: oy, width: dw, height: dh))
+        guard size.width > 0, size.height > 0 else { return }
+        let s = max(rect.width / size.width, rect.height / size.height)
+        let dw = size.width * s
+        let dh = size.height * s
+        draw(in: CGRect(x: rect.midX - dw / 2, y: rect.midY - dh / 2, width: dw, height: dh))
     }
 }
 
+// MARK: - VNInstanceMaskObservation helper
+
 private extension VNInstanceMaskObservation {
-    func allPoints(in cgImage: CGImage) throws -> [CGPoint] {
-        let maskBuffer = try generateScaledMaskForImage(forInstances: allInstances, from: VNImageRequestHandler(cgImage: cgImage, options: [:]))
+    nonisolated func subjectBounds(using handler: VNImageRequestHandler) throws -> CGRect? {
+        let maskBuffer = try generateScaledMaskForImage(forInstances: allInstances, from: handler)
         CVPixelBufferLockBaseAddress(maskBuffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(maskBuffer, .readOnly) }
 
-        guard let baseAddress = CVPixelBufferGetBaseAddress(maskBuffer) else { return [] }
+        guard let base = CVPixelBufferGetBaseAddress(maskBuffer) else { return nil }
 
-        let width = CVPixelBufferGetWidth(maskBuffer)
-        let height = CVPixelBufferGetHeight(maskBuffer)
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(maskBuffer)
-        let buffer = baseAddress.assumingMemoryBound(to: UInt8.self)
-        let scaleX = CGFloat(cgImage.width) / CGFloat(width)
-        let scaleY = CGFloat(cgImage.height) / CGFloat(height)
+        let w = CVPixelBufferGetWidth(maskBuffer)
+        let h = CVPixelBufferGetHeight(maskBuffer)
+        let bpr = CVPixelBufferGetBytesPerRow(maskBuffer)
+        let ptr = base.assumingMemoryBound(to: UInt8.self)
 
-        var points: [CGPoint] = []
-        points.reserveCapacity(width * height / 4)
-
-        for y in 0..<height {
-            let row = buffer.advanced(by: y * bytesPerRow)
-            for x in 0..<width where row[x] > 0 {
-                points.append(
-                    CGPoint(
-                        x: CGFloat(x) * scaleX,
-                        y: CGFloat(y) * scaleY
-                    )
-                )
+        var minX = w, maxX = 0, minY = h, maxY = 0
+        for y in 0..<h {
+            let row = ptr.advanced(by: y * bpr)
+            for x in 0..<w where row[x] > 0 {
+                if x < minX { minX = x }
+                if x > maxX { maxX = x }
+                if y < minY { minY = y }
+                if y > maxY { maxY = y }
             }
         }
 
-        return points
+        guard maxX >= minX, maxY >= minY else { return nil }
+
+        return CGRect(
+            x: CGFloat(minX) / CGFloat(w),
+            y: CGFloat(minY) / CGFloat(h),
+            width: CGFloat(maxX - minX + 1) / CGFloat(w),
+            height: CGFloat(maxY - minY + 1) / CGFloat(h)
+        )
     }
 }
 
@@ -372,7 +356,30 @@ private extension CGFloat {
 
 #Preview {
     DishPhotoCropView(
-        sourceImage: UIImage(systemName: "photo")!,
+        sourceImage: {
+            let size = CGSize(width: 1200, height: 900)
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+                let colors = [UIColor.systemOrange, UIColor.systemYellow, UIColor.systemPink]
+                let gradient = CGGradient(
+                    colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                    colors: colors.map(\.cgColor) as CFArray,
+                    locations: [0, 0.5, 1]
+                )!
+                ctx.cgContext.drawLinearGradient(
+                    gradient,
+                    start: .zero,
+                    end: CGPoint(x: size.width, y: size.height),
+                    options: []
+                )
+                let label = "预览图" as NSString
+                label.draw(
+                    at: CGPoint(x: size.width / 2 - 40, y: size.height / 2 - 20),
+                    withAttributes: [.font: UIFont.systemFont(ofSize: 40, weight: .bold), .foregroundColor: UIColor.white]
+                )
+            }
+        }(),
         onConfirm: { _ in },
         onCancel: {}
     )

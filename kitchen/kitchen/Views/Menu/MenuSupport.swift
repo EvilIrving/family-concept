@@ -45,7 +45,13 @@ enum MenuModalRoute: Identifiable {
     }
 }
 
+enum CropImageSource {
+    case camera
+    case photoLibrary
+}
+
 struct CropPresentation: Identifiable {
     let id = UUID()
     let image: UIImage
+    let source: CropImageSource
 }
