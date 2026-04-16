@@ -61,11 +61,11 @@ struct SettingsView: View {
                 AppSectionHeader(title: "偏好")
                 toggleRow(title: "消息通知", isOn: $notificationsEnabled)
                 rowDivider
+                toggleRow(title: "震动反馈", isOn: $hapticsEnabled)
+                rowDivider
                 placeholderRow(title: "多语言", value: "简体中文")
                 rowDivider
                 placeholderRow(title: "主题色", value: "默认绿色")
-                rowDivider
-                toggleRow(title: "震动反馈", isOn: $hapticsEnabled)
             }
 
             AppCard {
@@ -73,6 +73,7 @@ struct SettingsView: View {
                     Task { await store.signOut() }
                 } label: {
                     HStack {
+                        Spacer()
                         Text("退出登录")
                             .font(AppTypography.bodyStrong)
                             .foregroundStyle(AppColor.danger)
@@ -95,12 +96,6 @@ struct SettingsView: View {
 
     private var kitchenIdentityCluster: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            if let nickName = store.currentMember?.nickName {
-                Text("当前：\(nickName)")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-            }
-
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: -14) {
                     ForEach(Array(store.members.enumerated()), id: \.element.id) { index, member in
