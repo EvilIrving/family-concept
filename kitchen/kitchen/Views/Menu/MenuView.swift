@@ -26,7 +26,9 @@ struct MenuView: View {
             .padding(.top, AppSpacing.xs)
 
             menuContent
-            menuCartBar
+            if store.cartCount > 0 {
+                menuCartBar
+            }
         }
         .appPageBackground()
         .sheet(isPresented: addDishBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
@@ -266,7 +268,7 @@ struct MenuView: View {
     }
 
     private var cartBarTitle: String {
-        store.cartCount == 0 ? "购物车 · 暂无菜品" : "共 \(store.cartCount) 件 · 点单菜品"
+        "已选 \(store.cartCount) 道菜"
     }
 
     private var searchBar: some View {

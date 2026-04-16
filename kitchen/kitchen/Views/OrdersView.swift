@@ -14,7 +14,7 @@ struct OrdersView: View {
                         Text("当前出餐")
                             .font(AppTypography.sectionTitle)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text("\(store.orderItems.count) 道")
+                        Text("\(store.totalOrderQuantity) 份")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColor.textSecondary)
                         Spacer(minLength: 0)
@@ -30,7 +30,7 @@ struct OrdersView: View {
             .padding(.horizontal, AppSpacing.md)
             .padding(.top, AppSpacing.xs)
 
-            if store.orderItems.isEmpty {
+            if store.groupedOrderItems.isEmpty {
                 VStack(spacing: AppSpacing.sm) {
                     Spacer(minLength: 0)
 
@@ -51,13 +51,13 @@ struct OrdersView: View {
             } else {
                 ScrollView(showsIndicators: false) {
                     AppCard {
-                        ForEach(store.orderItems) { item in
-                            OrderItemRow(item: item, dishName: dishName(for: item.dishId), canManage: store.canManageOrders) {
+                        ForEach(store.groupedOrderItems) { item in
+                            OrderItemRow(item: item, canManage: store.canManageOrders) {
                                 Task {
-                                    await store.cycleStatus(for: item.id)
+                                    await store.cycleStatuses(for: item.itemIDs)
                                 }
                             }
-                            if item.id != store.orderItems.last?.id {
+                            if item.id != store.groupedOrderItems.last?.id {
                                 Divider()
                                     .overlay(AppColor.lineSoft)
                             }
@@ -82,20 +82,16 @@ struct OrdersView: View {
         }
     }
 
-    private func dishName(for dishID: String) -> String {
-        store.dishes.first(where: { $0.id == dishID })?.name ?? "未知菜品"
-    }
-
     private var waitingCount: Int {
-        store.orderItems.filter { $0.status == .waiting }.count
+        store.quantity(for: .waiting)
     }
 
     private var cookingCount: Int {
-        store.orderItems.filter { $0.status == .cooking }.count
+        store.quantity(for: .cooking)
     }
 
     private var doneCount: Int {
-        store.orderItems.filter { $0.status == .done }.count
+        store.quantity(for: .done)
     }
 
     private var ordersShoppingListBar: some View {
@@ -370,30 +366,30 @@ private final class ShoppingListShareItemSource: NSObject, UIActivityItemSource 
 }
 
 private struct OrderItemRow: View {
-    let item: OrderItem
-    let dishName: String
+    let item: GroupedOrderItem
     let canManage: Bool
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: AppSpacing.sm) {
-                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                    .fill(statusBackground)
-                    .frame(width: 42, height: 42)
-                    .overlay {
-                        Circle()
-                            .fill(statusColor)
-                            .frame(width: 10, height: 10)
-                    }
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 10, height: 10)
 
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                    Text(dishName)
-                        .font(AppTypography.bodyStrong)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("\(item.quantity) 份")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColor.textSecondary)
+                    HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
+                        Text(item.dishName)
+                            .font(AppTypography.bodyStrong)
+                            .foregroundStyle(AppColor.textPrimary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+
+                        Text("\(item.quantity) 份")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .fixedSize()
+                    }
                 }
 
                 Spacer()

@@ -55,6 +55,22 @@ final class AppStore: ObservableObject {
         cartItems.reduce(0) { $0 + $1.quantity }
     }
 
+    var groupedOrderItems: [GroupedOrderItem] {
+        orderItems.grouped(using: dishes)
+    }
+
+    var totalOrderQuantity: Int {
+        orderItems
+            .filter { $0.status != .cancelled }
+            .reduce(0) { $0 + $1.quantity }
+    }
+
+    func quantity(for status: ItemStatus) -> Int {
+        orderItems
+            .filter { $0.status == status }
+            .reduce(0) { $0 + $1.quantity }
+    }
+
     func cartQuantity(for dishID: String) -> Int {
         cartItems.first(where: { $0.dishID == dishID })?.quantity ?? 0
     }
@@ -131,6 +147,7 @@ final class AppStore: ObservableObject {
     func refreshOrderItems() async {
         guard let kitchen else { return }
         do {
+            let previousItems = orderItems
             let result = try await apiClient.fetchOpenOrder(
                 kitchenID: kitchen.id, authToken: authToken
             )
@@ -141,12 +158,14 @@ final class AppStore: ObservableObject {
                     createdAt: order.createdAt, finishedAt: order.finishedAt
                 )
                 self.orderItems = order.items ?? []
+                triggerOrderHaptics(previousItems: previousItems, updatedItems: self.orderItems)
             } else {
                 self.currentOrder = nil
                 self.orderItems = []
             }
         } catch {
             self.error = error.localizedDescription
+            HapticManager.shared.trigger(.error)
         }
     }
 
@@ -394,8 +413,7 @@ final class AppStore: ObservableObject {
         switch item.status {
         case .waiting: next = .cooking
         case .cooking: next = .done
-        case .done: next = .waiting
-        case .cancelled: next = .waiting
+        case .done, .cancelled: return
         }
 
         do {
@@ -403,8 +421,16 @@ final class AppStore: ObservableObject {
                 id: itemID, status: next, authToken: authToken
             )
             orderItems[index] = updated
+            HapticManager.shared.trigger(updated.status == .done ? .dishCompleted : .statusChanged)
         } catch {
             self.error = error.localizedDescription
+            HapticManager.shared.trigger(.error)
+        }
+    }
+
+    func cycleStatuses(for itemIDs: [String]) async {
+        for itemID in itemIDs {
+            await cycleStatus(for: itemID)
         }
     }
 
@@ -500,5 +526,14 @@ final class AppStore: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "authToken")
         UserDefaults.standard.removeObject(forKey: "accountID")
         UserDefaults.standard.removeObject(forKey: "nickName")
+    }
+
+    private func triggerOrderHaptics(previousItems: [OrderItem], updatedItems: [OrderItem]) {
+        let previousIDs = Set(previousItems.map(\.id))
+        let hasNewItems = updatedItems.contains { !previousIDs.contains($0.id) }
+
+        if hasNewItems {
+            HapticManager.shared.trigger(.newDishAdded)
+        }
     }
 }

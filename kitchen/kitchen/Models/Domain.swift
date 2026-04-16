@@ -164,6 +164,61 @@ struct OrderItem: Identifiable, Codable, Equatable {
     let updatedAt: String
 }
 
+struct GroupedOrderItem: Identifiable, Equatable {
+    let itemIDs: [String]
+    let dishId: String
+    let dishName: String
+    let quantity: Int
+    let status: ItemStatus
+    let createdAt: String
+
+    var id: String {
+        "\(dishId)-\(status.rawValue)"
+    }
+}
+
+private struct GroupedOrderItemKey: Hashable {
+    let dishId: String
+    let status: ItemStatus
+}
+
+extension Array where Element == OrderItem {
+    func grouped(using dishes: [Dish]) -> [GroupedOrderItem] {
+        let dishNames = Dictionary(uniqueKeysWithValues: dishes.map { ($0.id, $0.name) })
+        var groupedByKey: [GroupedOrderItemKey: GroupedOrderItem] = [:]
+        var orderedKeys: [GroupedOrderItemKey] = []
+
+        for item in self where item.status != .cancelled {
+            let key = GroupedOrderItemKey(dishId: item.dishId, status: item.status)
+
+            if var existing = groupedByKey[key] {
+                existing = GroupedOrderItem(
+                    itemIDs: existing.itemIDs + [item.id],
+                    dishId: existing.dishId,
+                    dishName: existing.dishName,
+                    quantity: existing.quantity + item.quantity,
+                    status: existing.status,
+                    createdAt: existing.createdAt
+                )
+                groupedByKey[key] = existing
+                continue
+            }
+
+            groupedByKey[key] = GroupedOrderItem(
+                itemIDs: [item.id],
+                dishId: item.dishId,
+                dishName: dishNames[item.dishId] ?? "未知菜品",
+                quantity: item.quantity,
+                status: item.status,
+                createdAt: item.createdAt
+            )
+            orderedKeys.append(key)
+        }
+
+        return orderedKeys.compactMap { groupedByKey[$0] }
+    }
+}
+
 // MARK: - CartItem (local only)
 
 struct CartItem: Identifiable, Equatable {

@@ -7,9 +7,9 @@ struct MenuCartSheet: View {
 
     var body: some View {
         AppSheetContainer(
-            title: "购物车",
+            title: "已选菜品",
             dismissTitle: "关闭",
-            confirmTitle: "提交下单",
+            confirmTitle: "下单",
             onDismiss: { dismiss() },
             onConfirm: {
                 Task {

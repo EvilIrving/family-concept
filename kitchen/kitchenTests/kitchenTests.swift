@@ -1,6 +1,7 @@
 import Testing
 @testable import kitchen
 
+@MainActor
 struct kitchenTests {
 
     // MARK: - Model computed properties
@@ -9,7 +10,7 @@ struct kitchenTests {
         let dish = Dish(
             id: "1", kitchenId: "k1", name: "番茄炒蛋", category: "家常",
             imageKey: nil, ingredientsJson: "[\"番茄\",\"鸡蛋\"]",
-            createdByDeviceId: "d1", createdAt: "", updatedAt: "", archivedAt: nil
+            createdByAccountId: "d1", createdAt: "", updatedAt: "", archivedAt: nil
         )
         #expect(dish.ingredients == ["番茄", "鸡蛋"])
     }
@@ -18,7 +19,7 @@ struct kitchenTests {
         let dish = Dish(
             id: "1", kitchenId: "k1", name: "test", category: "test",
             imageKey: nil, ingredientsJson: "not json",
-            createdByDeviceId: "d1", createdAt: "", updatedAt: "", archivedAt: nil
+            createdByAccountId: "d1", createdAt: "", updatedAt: "", archivedAt: nil
         )
         #expect(dish.ingredients == [])
     }
@@ -27,12 +28,12 @@ struct kitchenTests {
         let archived = Dish(
             id: "1", kitchenId: "k1", name: "test", category: "test",
             imageKey: nil, ingredientsJson: "[]",
-            createdByDeviceId: "d1", createdAt: "", updatedAt: "", archivedAt: "2026-01-01"
+            createdByAccountId: "d1", createdAt: "", updatedAt: "", archivedAt: "2026-01-01"
         )
         let active = Dish(
             id: "2", kitchenId: "k1", name: "test", category: "test",
             imageKey: nil, ingredientsJson: "[]",
-            createdByDeviceId: "d1", createdAt: "", updatedAt: "", archivedAt: nil
+            createdByAccountId: "d1", createdAt: "", updatedAt: "", archivedAt: nil
         )
         #expect(archived.isArchived == true)
         #expect(active.isArchived == false)
@@ -63,7 +64,7 @@ struct kitchenTests {
         let dish = Dish(
             id: "d1", kitchenId: "k1", name: "番茄炒蛋", category: "家常",
             imageKey: nil, ingredientsJson: "[]",
-            createdByDeviceId: "dev1", createdAt: "", updatedAt: "", archivedAt: nil
+            createdByAccountId: "dev1", createdAt: "", updatedAt: "", archivedAt: nil
         )
 
         store.addToCart(dish: dish)
@@ -79,7 +80,7 @@ struct kitchenTests {
         let dish = Dish(
             id: "d1", kitchenId: "k1", name: "test", category: "test",
             imageKey: nil, ingredientsJson: "[]",
-            createdByDeviceId: "dev1", createdAt: "", updatedAt: "", archivedAt: nil
+            createdByAccountId: "dev1", createdAt: "", updatedAt: "", archivedAt: nil
         )
 
         store.addToCart(dish: dish)
@@ -95,7 +96,7 @@ struct kitchenTests {
         let dish = Dish(
             id: "d1", kitchenId: "k1", name: "test", category: "test",
             imageKey: nil, ingredientsJson: "[]",
-            createdByDeviceId: "dev1", createdAt: "", updatedAt: "", archivedAt: nil
+            createdByAccountId: "dev1", createdAt: "", updatedAt: "", archivedAt: nil
         )
 
         store.addToCart(dish: dish)
@@ -107,10 +108,10 @@ struct kitchenTests {
     @Test func clearCartRemovesAll() {
         let store = AppStore()
         let d1 = Dish(id: "d1", kitchenId: "k1", name: "a", category: "b",
-                       imageKey: nil, ingredientsJson: "[]", createdByDeviceId: "dev1",
+                       imageKey: nil, ingredientsJson: "[]", createdByAccountId: "dev1",
                        createdAt: "", updatedAt: "", archivedAt: nil)
         let d2 = Dish(id: "d2", kitchenId: "k1", name: "b", category: "b",
-                       imageKey: nil, ingredientsJson: "[]", createdByDeviceId: "dev1",
+                       imageKey: nil, ingredientsJson: "[]", createdByAccountId: "dev1",
                        createdAt: "", updatedAt: "", archivedAt: nil)
 
         store.addToCart(dish: d1)
@@ -130,6 +131,49 @@ struct kitchenTests {
         #expect(store.isAdmin == false)
         #expect(store.canManageDishes == false)
         #expect(store.canManageOrders == false)
+    }
+
+    @Test func groupedOrderItemsMergesSameDishAndStatus() {
+        let dishes = [
+            Dish(id: "d1", kitchenId: "k1", name: "宫保鸡丁", category: "热菜",
+                 imageKey: nil, ingredientsJson: "[]", createdByAccountId: "a1",
+                 createdAt: "", updatedAt: "", archivedAt: nil),
+            Dish(id: "d2", kitchenId: "k1", name: "冬阴功汤", category: "汤",
+                 imageKey: nil, ingredientsJson: "[]", createdByAccountId: "a1",
+                 createdAt: "", updatedAt: "", archivedAt: nil)
+        ]
+        let items = [
+            OrderItem(id: "i1", orderId: "o1", dishId: "d1", addedByAccountId: "a1", quantity: 1, status: .waiting, createdAt: "1", updatedAt: "1"),
+            OrderItem(id: "i2", orderId: "o1", dishId: "d1", addedByAccountId: "a1", quantity: 2, status: .waiting, createdAt: "2", updatedAt: "2"),
+            OrderItem(id: "i3", orderId: "o1", dishId: "d1", addedByAccountId: "a1", quantity: 1, status: .cooking, createdAt: "3", updatedAt: "3"),
+            OrderItem(id: "i4", orderId: "o1", dishId: "d2", addedByAccountId: "a1", quantity: 1, status: .done, createdAt: "4", updatedAt: "4")
+        ]
+
+        let grouped = items.grouped(using: dishes)
+
+        #expect(grouped.count == 3)
+        #expect(grouped[0].dishName == "宫保鸡丁")
+        #expect(grouped[0].status == .waiting)
+        #expect(grouped[0].quantity == 3)
+        #expect(grouped[0].itemIDs == ["i1", "i2"])
+        #expect(grouped[1].status == .cooking)
+        #expect(grouped[1].quantity == 1)
+        #expect(grouped[2].dishName == "冬阴功汤")
+    }
+
+    @Test func orderQuantityCountsUseItemQuantity() {
+        let store = AppStore()
+        store.orderItems = [
+            OrderItem(id: "i1", orderId: "o1", dishId: "d1", addedByAccountId: "a1", quantity: 3, status: .waiting, createdAt: "", updatedAt: ""),
+            OrderItem(id: "i2", orderId: "o1", dishId: "d1", addedByAccountId: "a1", quantity: 1, status: .cooking, createdAt: "", updatedAt: ""),
+            OrderItem(id: "i3", orderId: "o1", dishId: "d2", addedByAccountId: "a1", quantity: 2, status: .done, createdAt: "", updatedAt: ""),
+            OrderItem(id: "i4", orderId: "o1", dishId: "d3", addedByAccountId: "a1", quantity: 5, status: .cancelled, createdAt: "", updatedAt: "")
+        ]
+
+        #expect(store.totalOrderQuantity == 6)
+        #expect(store.quantity(for: .waiting) == 3)
+        #expect(store.quantity(for: .cooking) == 1)
+        #expect(store.quantity(for: .done) == 2)
     }
 
 }

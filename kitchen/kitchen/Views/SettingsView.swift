@@ -4,7 +4,7 @@ import UIKit
 struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
     @State private var notificationsEnabled = true
-    @State private var hapticsEnabled = true
+    @AppStorage("hapticsEnabled") private var hapticsEnabled = true
     @State private var toast: AppToastData?
     @StateObject private var modalRouter = ModalRouter<SettingsModalRoute>()
 
