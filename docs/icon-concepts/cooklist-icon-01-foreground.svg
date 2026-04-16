@@ -1,0 +1,26 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(512 512)">
+    <ellipse cx="0" cy="202" rx="184" ry="34" fill="#183E2F" opacity="0.18"/>
+    <path d="M-214 12H214C214 184 117 300 0 300C-117 300 -214 184 -214 12Z" fill="url(#bowl-body)"/>
+    <path d="M-182 38H182C167 175 95 254 0 254C-95 254 -167 175 -182 38Z" fill="url(#bowl-inner)"/>
+    <path d="M-252 -46C-252 -76 -227 -101 -197 -101H197C227 -101 252 -76 252 -46C252 -16 227 9 197 9H-197C-227 9 -252 -16 -252 -46Z" fill="url(#rim-fill)"/>
+    <path d="M-188 -69H188" stroke="#FFF0C5" stroke-width="16" stroke-linecap="round" opacity="0.85"/>
+    <path d="M-150 102C-131 185 -78 238 -8 259" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" opacity="0.42"/>
+  </g>
+  <defs>
+    <linearGradient id="bowl-body" x1="358" y1="500" x2="678" y2="778" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF8"/>
+      <stop offset="0.52" stop-color="#F7EFE1"/>
+      <stop offset="1" stop-color="#E7D9C5"/>
+    </linearGradient>
+    <linearGradient id="bowl-inner" x1="368" y1="568" x2="652" y2="748" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.52"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rim-fill" x1="260" y1="411" x2="764" y2="521" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EAB75B"/>
+      <stop offset="0.5" stop-color="#F4CB72"/>
+      <stop offset="1" stop-color="#DFA74A"/>
+    </linearGradient>
+  </defs>
+</svg>

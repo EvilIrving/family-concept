@@ -1,3 +1,15 @@
+## 修复菜品图片拍照/选图崩溃并重构图片预处理入口 · 2026-04-16 · Claude
+
+相机拍照或从相册选原图时概率性 OOM crash，根因是全分辨率图（12MP，~46MB）直接进裁图页，内存里同时存在原图、归一化图、Vision 缩图三份副本。另有一个裁切坐标 bug：`crop()` 里 X 轴偏移误用了 `vpY`（Y 轴值），导致水平方向裁切位置偏移。
+
+修复路径：
+
+`DishImagePipeline.swift` 新增 `standardizedForCrop(jpegQuality:)`，在图片进入裁图页前做一次 JPEG 重编码，把 HEIC、Live Photo 静帧等任意格式统一转为标准位图，顺带做质量压缩，不改变像素尺寸。这是给裁图和 Vision 的稳定输入。`jpegReencoded`、`scaledDown` 提升为 `internal`，`DishPhotoCropView` 里的重复私有实现已删除，`process()` 内部的 `normalized()`（已废弃）替换为 `jpegReencoded`。
+
+`MenuView.swift` 两处注入点（PhotosPicker onChange、相机 onCapture 回调）改为调 `standardizedForCrop()`，PhotosPicker 路径在 detached task 里执行避免阻塞主线程。
+
+`DishPhotoCropView.swift` 修正 `crop()` 里的坐标 bug：`imageLeft - vpY` → `imageLeft - vpLeft`，`vpLeft = viewportCenter.x - vpWidth / 2`。
+
 ## iOS 端切换到账号制 · 2026-04-15 · Claude
 
 这次把 iOS 端从旧的 `device_id + displayName + X-Device-Id` 体系完整切到账号制，与 worker 侧已落地的 `/auth/*` 接口对齐。
