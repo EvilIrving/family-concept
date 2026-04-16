@@ -104,12 +104,52 @@ export const orderRoutes: Route[] = [
 
       const member = await findByKitchenAndAccount(env.DB, order.kitchen_id, ctx.account.id);
       if (!member) return forbidden('你不是该 kitchen 的成员');
-      if (member.role === 'member') return forbidden('member 不可修改订单项状态');
 
       const body = await req.json<{ status?: string; quantity?: number }>();
       const validStatuses = ['waiting', 'cooking', 'done', 'cancelled'];
       if (body.status && !validStatuses.includes(body.status)) {
         return badRequest('status 值无效');
+      }
+      if (body.status === undefined && body.quantity === undefined) {
+        return badRequest('至少需要更新 status 或 quantity');
+      }
+      if (body.quantity !== undefined && (!Number.isInteger(body.quantity) || body.quantity < 0)) {
+        return badRequest('quantity 必须为大于等于 0 的整数');
+      }
+
+      const nextStatus = body.status as typeof item.status | undefined;
+      const isPrivileged = member.role === 'owner' || member.role === 'admin';
+
+      if (!isPrivileged) {
+        if (item.status !== 'waiting') return forbidden('只有待制作的明细项可修改');
+        if (nextStatus && nextStatus !== 'waiting' && nextStatus !== 'cancelled') {
+          return forbidden('member 不可推进订单项状态');
+        }
+      }
+
+      if (body.quantity !== undefined) {
+        if (item.status !== 'waiting') {
+          return badRequest('只有待制作的明细项可修改数量');
+        }
+        if (body.quantity === 0) {
+          if (nextStatus && nextStatus !== 'cancelled') {
+            return badRequest('quantity 为 0 时 status 必须为 cancelled');
+          }
+          body.status = 'cancelled';
+        }
+      }
+
+      if (nextStatus === 'cancelled' && item.status !== 'waiting') {
+        return badRequest('只有待制作的明细项可取消');
+      }
+      if (nextStatus === 'cooking' && item.status !== 'waiting') {
+        return badRequest('只有待制作的明细项可开始制作');
+      }
+      if (nextStatus === 'done' && item.status !== 'cooking') {
+        return badRequest('只有制作中的明细项可完成');
+      }
+      if (nextStatus === 'waiting' && item.status !== 'waiting') {
+        return badRequest('当前状态不允许回退到待制作');
       }
 
       await updateItem(env.DB, item.id, {

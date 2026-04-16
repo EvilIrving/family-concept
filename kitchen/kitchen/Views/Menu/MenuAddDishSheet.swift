@@ -2,6 +2,9 @@ import SwiftUI
 import PhotosUI
 
 struct MenuAddDishSheet: View {
+    let title: String
+    let confirmTitle: String
+    let requiresImage: Bool
     @Binding var draft: AddDishDraft
     let quickCategories: [String]
     @Binding var selectedPhotoItem: PhotosPickerItem?
@@ -10,12 +13,13 @@ struct MenuAddDishSheet: View {
     let onDismiss: () -> Void
     let onSave: () -> Void
     let onCameraRequest: () -> Void
+    var onDelete: (() -> Void)? = nil
 
     var body: some View {
         AppSheetContainer(
-            title: "新增菜品",
+            title: title,
             dismissTitle: "关闭",
-            confirmTitle: "保存",
+            confirmTitle: confirmTitle,
             onDismiss: onDismiss,
             onConfirm: onSave,
             isConfirmDisabled: isSaveDisabled
@@ -67,6 +71,14 @@ struct MenuAddDishSheet: View {
                         validationTrigger: draft.validationTrigger,
                         errorMessage: draft.ingredientError
                     )
+
+                    if let onDelete {
+                        AppButton(
+                            title: "删除菜品",
+                            style: .destructive,
+                            action: onDelete
+                        )
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -101,7 +113,7 @@ struct MenuAddDishSheet: View {
         draft.trimmedName.isEmpty == false &&
         draft.hasCategory &&
         draft.hasIngredients &&
-        imageCoordinator.hasImage
+        (!requiresImage || imageCoordinator.hasImage)
     }
 
     // imageCoordinator.hasImage 提供了通用的图片可用性判断

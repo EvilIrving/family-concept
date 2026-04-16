@@ -64,6 +64,7 @@ final class AppStore: ObservableObject {
     var isAdmin: Bool { currentRole == .admin }
     var canManageDishes: Bool { isOwner || isAdmin }
     var canManageOrders: Bool { isOwner || isAdmin }
+    var canEditWaitingOrderItems: Bool { currentMember != nil }
 
     var hasKitchen: Bool { kitchen != nil }
     var isAuthenticated: Bool { !authToken.isEmpty && currentAccount != nil }
@@ -359,6 +360,55 @@ final class AppStore: ObservableObject {
         }
     }
 
+    @discardableResult
+    func updateDish(
+        id: String,
+        name: String,
+        category: String,
+        ingredients: [String],
+        imageFileURL: URL? = nil
+    ) async -> Dish? {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCategory = category.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty, !trimmedCategory.isEmpty else { return nil }
+
+        do {
+            var updated = try await apiClient.updateDish(
+                id: id,
+                name: trimmedName,
+                category: trimmedCategory,
+                ingredients: ingredients,
+                authToken: authToken
+            )
+
+            if let imageFileURL {
+                try await uploadDishImage(dishID: id, fileURL: imageFileURL)
+                if let current = dishes.first(where: { $0.id == id }) {
+                    updated = Dish(
+                        id: updated.id,
+                        kitchenId: updated.kitchenId,
+                        name: updated.name,
+                        category: updated.category,
+                        imageKey: current.imageKey,
+                        ingredientsJson: updated.ingredientsJson,
+                        createdByAccountId: updated.createdByAccountId,
+                        createdAt: updated.createdAt,
+                        updatedAt: updated.updatedAt,
+                        archivedAt: updated.archivedAt
+                    )
+                }
+            }
+
+            if let idx = dishes.firstIndex(where: { $0.id == id }) {
+                dishes[idx] = updated
+            }
+            return updated
+        } catch {
+            self.error = error.localizedDescription
+            return nil
+        }
+    }
+
     // MARK: - Cart
 
     func addToCart(dish: Dish) {
@@ -459,6 +509,49 @@ final class AppStore: ObservableObject {
     func cycleStatuses(for itemIDs: [String]) async {
         for itemID in itemIDs {
             await cycleStatus(for: itemID)
+        }
+    }
+
+    @discardableResult
+    func reduceWaitingItemQuantity(for groupedItem: GroupedOrderItem) async -> Bool {
+        guard groupedItem.status == .waiting else { return false }
+        guard let target = orderItems
+            .filter({ groupedItem.itemIDs.contains($0.id) && $0.status == .waiting })
+            .sorted(by: { $0.createdAt > $1.createdAt })
+            .first else { return false }
+
+        do {
+            let updated = try await apiClient.updateOrderItem(
+                id: target.id,
+                quantity: target.quantity - 1,
+                authToken: authToken
+            )
+            applyOrderItemUpdate(updated)
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            HapticManager.shared.trigger(.error)
+            return false
+        }
+    }
+
+    @discardableResult
+    func cancelWaitingItems(for groupedItem: GroupedOrderItem) async -> Bool {
+        guard groupedItem.status == .waiting else { return false }
+        do {
+            for itemID in groupedItem.itemIDs {
+                let updated = try await apiClient.updateOrderItem(
+                    id: itemID,
+                    status: .cancelled,
+                    authToken: authToken
+                )
+                applyOrderItemUpdate(updated)
+            }
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            HapticManager.shared.trigger(.error)
+            return false
         }
     }
 
@@ -595,6 +688,18 @@ final class AppStore: ObservableObject {
 
         if hasNewItems {
             HapticManager.shared.trigger(.newDishAdded)
+        }
+    }
+
+    private func applyOrderItemUpdate(_ updated: OrderItem) {
+        if updated.status == .cancelled || updated.quantity <= 0 {
+            orderItems.removeAll { $0.id == updated.id }
+            return
+        }
+        if let idx = orderItems.firstIndex(where: { $0.id == updated.id }) {
+            orderItems[idx] = updated
+        } else {
+            orderItems.append(updated)
         }
     }
 }

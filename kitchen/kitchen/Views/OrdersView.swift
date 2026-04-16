@@ -45,11 +45,30 @@ struct OrdersView: View {
                         VStack(spacing: AppSpacing.lg) {
                             AppCard {
                                 ForEach(store.groupedOrderItems) { item in
-                                    OrderItemRow(item: item, canManage: store.canManageOrders) {
-                                        Task {
-                                            await store.cycleStatuses(for: item.itemIDs)
+                                    OrderItemRow(
+                                        item: item,
+                                        canManage: store.canManageOrders,
+                                        canEditWaiting: store.canEditWaitingOrderItems,
+                                        onTap: {
+                                            Task {
+                                                await store.cycleStatuses(for: item.itemIDs)
+                                            }
+                                        },
+                                        onReduce: {
+                                            Task {
+                                                if await store.reduceWaitingItemQuantity(for: item) {
+                                                    toast = AppToastData(message: "已减少 \(item.dishName) 1 份")
+                                                }
+                                            }
+                                        },
+                                        onCancel: {
+                                            Task {
+                                                if await store.cancelWaitingItems(for: item) {
+                                                    toast = AppToastData(message: "已取消 \(item.dishName)")
+                                                }
+                                            }
                                         }
-                                    }
+                                    )
                                     if item.id != store.groupedOrderItems.last?.id {
                                         Divider()
                                             .overlay(AppSemanticColor.border)
@@ -426,39 +445,51 @@ private final class ShoppingListShareItemSource: NSObject, UIActivityItemSource 
 private struct OrderItemRow: View {
     let item: GroupedOrderItem
     let canManage: Bool
+    let canEditWaiting: Bool
     let onTap: () -> Void
+    let onReduce: () -> Void
+    let onCancel: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: AppSpacing.sm) {
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: AppDimension.statusDot, height: AppDimension.statusDot)
+        HStack(spacing: AppSpacing.sm) {
+            Button(action: onTap) {
+                HStack(spacing: AppSpacing.sm) {
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: AppDimension.statusDot, height: AppDimension.statusDot)
 
-                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                    HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
-                        Text(item.dishName)
-                            .font(AppTypography.bodyStrong)
-                            .foregroundStyle(AppSemanticColor.textPrimary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
+                    VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                        HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
+                            Text(item.dishName)
+                                .font(AppTypography.bodyStrong)
+                                .foregroundStyle(AppSemanticColor.textPrimary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
 
-                        Text("\(item.quantity) 份")
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppSemanticColor.textSecondary)
-                            .fixedSize()
+                            Text("\(item.quantity) 份")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppSemanticColor.textSecondary)
+                                .fixedSize()
+                        }
                     }
+
+                    Spacer()
+
+                    AppPill(title: item.status.title, tint: statusColor, background: statusBackground)
                 }
-
-                Spacer()
-
-                AppPill(title: item.status.title, tint: statusColor, background: statusBackground)
+                .frame(minHeight: 52)
+                .contentShape(Rectangle())
             }
-            .frame(minHeight: 52)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .disabled(!canManage)
+
+            if canEditWaiting && item.status == .waiting {
+                HStack(spacing: AppSpacing.xxs) {
+                    AppIconActionButton(systemImage: "minus", tone: .neutral, action: onReduce)
+                    AppIconActionButton(systemImage: "xmark", tone: .danger, action: onCancel)
+                }
+            }
         }
-        .buttonStyle(.plain)
-        .disabled(!canManage)
     }
 
     private var statusColor: Color {

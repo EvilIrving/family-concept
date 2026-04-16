@@ -6,6 +6,7 @@ struct MenuDishCard: View {
     var quantity: Int = 0
     var imageURL: URL? = nil
     var imageSystemName: String = "fork.knife"
+    var onManage: (() -> Void)? = nil
     let onDecrease: () -> Void
     let onIncrease: () -> Void
 
@@ -22,6 +23,16 @@ struct MenuDishCard: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     HStack {
+                        if let onManage {
+                            Button(action: onManage) {
+                                Image(systemName: "ellipsis.circle")
+                                    .font(.system(size: AppIconSize.md, weight: .semibold))
+                                    .foregroundStyle(AppSemanticColor.textSecondary)
+                                    .frame(width: AppDimension.iconButtonSide, height: AppDimension.iconButtonSide)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
                         Spacer()
 
                         HStack(spacing: 2) {

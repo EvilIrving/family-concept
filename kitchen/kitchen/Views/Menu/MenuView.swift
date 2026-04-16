@@ -12,6 +12,7 @@ struct MenuView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var addDishDraft = AddDishDraft()
     @State private var toast: AppToastData?
+    @State private var dishPendingArchive: Dish?
     @FocusState private var focusedField: MenuField?
 
     private let quickCategories = ["自定义", "家常菜", "快手菜", "汤羹", "主食", "饮品", "甜点"]
@@ -41,6 +42,9 @@ struct MenuView: View {
         .appPageBackground()
         .sheet(isPresented: addDishBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
             MenuAddDishSheet(
+                title: sheetTitle,
+                confirmTitle: "保存",
+                requiresImage: requiresDishImage,
                 draft: $addDishDraft,
                 quickCategories: quickCategories,
                 selectedPhotoItem: $selectedPhotoItem,
@@ -48,7 +52,8 @@ struct MenuView: View {
                 imageCoordinator: imageCoordinator,
                 onDismiss: dismissAddDish,
                 onSave: saveDish,
-                onCameraRequest: { modalRouter.transition(to: .camera) }
+                onCameraRequest: { modalRouter.transition(to: .camera) },
+                onDelete: editDeleteAction
             )
         }
         .sheet(isPresented: cartBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
@@ -83,7 +88,7 @@ struct MenuView: View {
                     }
                 },
                 onCancel: {
-                    modalRouter.transition(to: .addDish)
+                    modalRouter.transition(to: draftRoute)
                 }
             )
             .ignoresSafeArea()
@@ -93,19 +98,36 @@ struct MenuView: View {
                 sourceImage: presentation.image,
                 onConfirm: { cropped in
                     imageCoordinator.processImage(cropped)
-                    modalRouter.transition(to: .addDish)
+                    modalRouter.transition(to: draftRoute)
                 },
                 onCancel: {
                     switch presentation.source {
                     case .camera:
                         modalRouter.transition(to: .camera)
                     case .photoLibrary:
-                        modalRouter.transition(to: .addDish)
+                        modalRouter.transition(to: draftRoute)
                     }
                 }
             )
         }
         .appToast($toast)
+        .confirmationDialog(
+            "删除后会归档该菜品",
+            isPresented: archiveDialogBinding,
+            titleVisibility: .visible
+        ) {
+            Button("删除菜品", role: .destructive) {
+                guard let dish = dishPendingArchive else { return }
+                Task {
+                    await store.archiveDish(id: dish.id)
+                    toast = AppToastData(message: "已删除 \(dish.name)")
+                    dishPendingArchive = nil
+                }
+            }
+            Button("取消", role: .cancel) {
+                dishPendingArchive = nil
+            }
+        }
     }
 
     private var menuContent: some View {
@@ -127,6 +149,9 @@ struct MenuView: View {
                     onIncrease: { dish in
                         store.addToCart(dish: dish)
                     },
+                    onManage: store.canManageDishes ? { dish in
+                        beginEditing(dish)
+                    } : nil,
                     onTapBackground: { focusedField = nil }
                 )
             }
@@ -135,6 +160,19 @@ struct MenuView: View {
 
     private var dishHasImage: Bool {
         imageCoordinator.hasImage
+    }
+
+    private var sheetTitle: String {
+        isEditingDish ? "编辑菜品" : "新增菜品"
+    }
+
+    private var requiresDishImage: Bool {
+        !isEditingDish
+    }
+
+    private var editDeleteAction: (() -> Void)? {
+        guard isEditingDish else { return nil }
+        return { confirmArchiveCurrentDish() }
     }
 
     private func saveDish() {
@@ -150,7 +188,7 @@ struct MenuView: View {
         let finalCategory = addDishDraft.resolvedCategory
         store.error = nil
 
-        guard dishHasImage else {
+        guard dishHasImage || addDishDraft.editingDishID != nil else {
             addDishDraft.invalidImage = true
             addDishDraft.imageError = "请添加菜品图片"
             addDishDraft.validationTrigger += 1
@@ -194,12 +232,26 @@ struct MenuView: View {
                 imageFileURL = nil
             }
 
-            guard let dish = await store.addDish(
-                name: addedName,
-                category: finalCategory,
-                ingredients: addDishDraft.ingredientTags,
-                imageFileURL: imageFileURL
-            ) else {
+            let editingDishID = addDishDraft.editingDishID
+            let result: Dish?
+            if let editingDishID {
+                result = await store.updateDish(
+                    id: editingDishID,
+                    name: addedName,
+                    category: finalCategory,
+                    ingredients: addDishDraft.ingredientTags,
+                    imageFileURL: imageFileURL
+                )
+            } else {
+                result = await store.addDish(
+                    name: addedName,
+                    category: finalCategory,
+                    ingredients: addDishDraft.ingredientTags,
+                    imageFileURL: imageFileURL
+                )
+            }
+
+            guard let dish = result else {
                 addDishDraft.imageError = store.error ?? "保存失败"
                 if let imageFileURL {
                     restoreUploadState(
@@ -218,7 +270,11 @@ struct MenuView: View {
             let savedName = dish.name
             resetAddDishDraft()
             modalRouter.dismiss()
-            toast = AppToastData(message: "已新增 \(savedName)")
+            if editingDishID == nil {
+                toast = AppToastData(message: "已新增 \(savedName)")
+            } else {
+                toast = AppToastData(message: "已更新 \(savedName)")
+            }
         }
     }
 
@@ -238,6 +294,20 @@ struct MenuView: View {
     private func resetAddDishDraft() {
         addDishDraft = AddDishDraft()
         imageCoordinator.clearImage()
+    }
+
+    private func beginEditing(_ dish: Dish) {
+        addDishDraft = .editing(dish, quickCategories: quickCategories)
+        imageCoordinator.clearImage()
+        modalRouter.present(.editDish(dish.id))
+    }
+
+    private func confirmArchiveCurrentDish() {
+        guard let dishID = addDishDraft.editingDishID,
+              let dish = store.dishes.first(where: { $0.id == dishID }) else { return }
+        modalRouter.dismiss()
+        resetAddDishDraft()
+        dishPendingArchive = dish
     }
 
     @MainActor
@@ -401,7 +471,35 @@ struct MenuView: View {
         if case .addDish = modalRouter.current {
             return true
         }
+        if case .editDish = modalRouter.current {
+            return true
+        }
         return false
+    }
+
+    private var isEditingDish: Bool {
+        if case .editDish = modalRouter.current {
+            return true
+        }
+        return addDishDraft.editingDishID != nil
+    }
+
+    private var draftRoute: MenuModalRoute {
+        if let editingDishID = addDishDraft.editingDishID {
+            return .editDish(editingDishID)
+        }
+        return .addDish
+    }
+
+    private var archiveDialogBinding: Binding<Bool> {
+        Binding(
+            get: { dishPendingArchive != nil },
+            set: { isPresented in
+                if !isPresented {
+                    dishPendingArchive = nil
+                }
+            }
+        )
     }
 
     private var addDishBinding: Binding<Bool> {
@@ -506,6 +604,7 @@ private struct MenuDishGridView: View {
     let quantityForDish: (String) -> Int
     let onDecrease: (Dish) -> Void
     let onIncrease: (Dish) -> Void
+    let onManage: ((Dish) -> Void)?
     let onTapBackground: () -> Void
 
     private let gridColumns = [
@@ -523,6 +622,7 @@ private struct MenuDishGridView: View {
                             category: dish.category,
                             quantity: quantityForDish(dish.id),
                             imageURL: dish.publicImageURL(baseURL: DishImageSpec.r2PublicBaseURL),
+                            onManage: onManage.map { handler in { handler(dish) } },
                             onDecrease: { onDecrease(dish) },
                             onIncrease: { onIncrease(dish) }
                         )

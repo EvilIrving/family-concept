@@ -8,6 +8,7 @@ enum MenuField {
 }
 
 struct AddDishDraft {
+    var editingDishID: String?
     var name = ""
     var selectedQuickCategory = "家常菜"
     var customCategory = ""
@@ -54,10 +55,25 @@ struct AddDishDraft {
         ingredientError = nil
         imageError = nil
     }
+
+    static func editing(_ dish: Dish, quickCategories: [String]) -> AddDishDraft {
+        var draft = AddDishDraft()
+        draft.editingDishID = dish.id
+        draft.name = dish.name
+        draft.ingredientTags = dish.ingredients
+        if quickCategories.contains(dish.category) {
+            draft.selectedQuickCategory = dish.category
+        } else {
+            draft.selectedQuickCategory = "自定义"
+            draft.customCategory = dish.category
+        }
+        return draft
+    }
 }
 
 enum MenuModalRoute: Identifiable {
     case addDish
+    case editDish(String)
     case cart
     case camera
     case crop(CropPresentation)
@@ -66,6 +82,8 @@ enum MenuModalRoute: Identifiable {
         switch self {
         case .addDish:
             return "add-dish"
+        case .editDish(let dishID):
+            return "edit-dish-\(dishID)"
         case .cart:
             return "cart"
         case .camera:

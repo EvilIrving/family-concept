@@ -175,6 +175,18 @@ struct AppStoreLocalRulesTests {
         #expect(store.title(for: "missing") == "待制作")
     }
 
+    @Test("member 也允许编辑 waiting 明细")
+    func memberCanEditWaitingOrderItems() {
+        let store = AppStore()
+        store.currentAccount = Account(id: "a1", userName: "member", nickName: "成员", createdAt: "")
+        store.members = [
+            Member(id: "m1", kitchenId: "k1", accountId: "a1", role: .member, nickName: "成员")
+        ]
+
+        #expect(store.canEditWaitingOrderItems)
+        #expect(store.canManageOrders == false)
+    }
+
     private func makeDish(
         id: String,
         name: String,
