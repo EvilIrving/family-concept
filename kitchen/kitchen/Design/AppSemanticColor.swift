@@ -56,4 +56,15 @@ enum AppSemanticColor {
 
     static let toastBackground = AppPalette.green900
     static let toastAccent = AppPalette.green300
+
+    // MARK: - Camera / Crop
+
+    static let cameraBackdrop = AppPalette.gray900
+    static let cropOverlay = AppPalette.gray900.opacity(0.55)
+    static let cropViewportBorder = AppPalette.gray000.opacity(0.85)
+    static let cropViewportShadow = AppPalette.gray900.opacity(0.45)
+    static let cropControlForeground = AppPalette.gray000
+    static let cropControlBorder = AppPalette.gray000.opacity(0.55)
+    static let cropConfirmBackground = AppPalette.gray000
+    static let cropConfirmForeground = AppPalette.gray900
 }

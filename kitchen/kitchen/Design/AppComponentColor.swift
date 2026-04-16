@@ -76,4 +76,15 @@ enum AppComponentColor {
         static let foreground = AppSemanticColor.onPrimary
         static let accent = AppSemanticColor.toastAccent
     }
+
+    enum Cropper {
+        static let backdrop = AppSemanticColor.cameraBackdrop
+        static let overlay = AppSemanticColor.cropOverlay
+        static let viewportBorder = AppSemanticColor.cropViewportBorder
+        static let viewportShadow = AppSemanticColor.cropViewportShadow
+        static let controlForeground = AppSemanticColor.cropControlForeground
+        static let controlBorder = AppSemanticColor.cropControlBorder
+        static let confirmBackground = AppSemanticColor.cropConfirmBackground
+        static let confirmForeground = AppSemanticColor.cropConfirmForeground
+    }
 }

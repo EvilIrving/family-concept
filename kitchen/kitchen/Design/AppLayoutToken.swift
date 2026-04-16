@@ -66,10 +66,20 @@ enum AppDimension {
     static let textFieldHeight: CGFloat = 52
     static let floatingButtonHeight: CGFloat = 56
     static let tabBarItemHeight: CGFloat = 56
+    static let compactPillHeight: CGFloat = 32
+    static let toolbarButtonHeight: CGFloat = 48
+    static let barControlHeight: CGFloat = 50
+    static let imagePreviewMinHeight: CGFloat = 120
+    static let progressBlockMinHeight: CGFloat = 80
+    static let dishArtworkHeight: CGFloat = 112
 
     static let iconButtonSide: CGFloat = 32
     static let avatar: CGFloat = 44
     static let badgeMinSide: CGFloat = 20
+    static let quantityBadgeMinWidth: CGFloat = 24
+    static let statusDot: CGFloat = 10
+    static let cropDismissButtonSide: CGFloat = 56
+    static let cropConfirmButtonSide: CGFloat = 64
 
     static let divider: CGFloat = 1
     static let dragIndicatorWidth: CGFloat = 42
@@ -87,4 +97,6 @@ enum AppIconSize {
     static let xl: CGFloat = 20
     static let xxl: CGFloat = 22
     static let display: CGFloat = 28
+    static let cropDismiss: CGFloat = 18
+    static let cropConfirm: CGFloat = 22
 }
