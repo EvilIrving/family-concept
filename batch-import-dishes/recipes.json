@@ -1,146 +1,158 @@
 [
   {
-    "name": "清炒上海青",
-    "image": "IMG_20241230_134921.jpg",
-    "ingredients": ["上海青", "蒜", "盐"],
-    "category": "家常"
-  },
-  {
-    "name": "黄瓜牛肉",
-    "image": "IMG_20260131_122153.jpg",
-    "ingredients": ["牛肉", "黄瓜", "小米椒", "洋葱"],
-    "category": "家常"
-  },
-  {
-    "name": "清汤萝卜",
-    "image": "IMG_20260201_102037.jpg",
-    "ingredients": ["白萝卜", "八角", "枸杞", "盐"],
-    "category": "汤羹"
-  },
-  {
-    "name": "蒜蓉上海青",
-    "image": "IMG_20260222_192338.jpg",
-    "ingredients": ["上海青", "蒜", "盐"],
-    "category": "家常"
-  },
-  {
-    "name": "白萝卜汤",
-    "image": "IMG_20260222_192530.jpg",
-    "ingredients": ["白萝卜", "盐", "水"],
-    "category": "汤羹"
-  },
-  {
-    "name": "蒜蓉油麦菜",
-    "image": "IMG_20260223_092730.jpg",
-    "ingredients": ["油麦菜", "蒜", "盐"],
-    "category": "家常"
-  },
-  {
-    "name": "青椒炒肉",
-    "image": "IMG_20260223_193641.jpg",
-    "ingredients": ["猪肉", "青椒", "蒜", "生抽"],
-    "category": "家常"
-  },
-  {
-    "name": "白菜炒香菇",
-    "image": "IMG_20260224_104457.jpg",
-    "ingredients": ["白菜", "香菇", "干辣椒", "蒜"],
-    "category": "家常"
-  },
-  {
-    "name": "清炒空心菜",
-    "image": "IMG_20260224_180549.jpg",
-    "ingredients": ["空心菜", "蒜", "盐"],
-    "category": "家常"
-  },
-  {
-    "name": "青椒鸡蛋炒河粉",
-    "image": "IMG_20260224_180555.jpg",
-    "ingredients": ["河粉", "青椒", "鸡蛋", "小米椒"],
-    "category": "主食"
-  },
-  {
-    "name": "白菜牛肉",
-    "image": "IMG_20260225_191742.jpg",
-    "ingredients": ["白菜", "牛肉", "青椒", "洋葱"],
-    "category": "家常"
-  },
-  {
-    "name": "小白菜拌牛肉",
-    "image": "IMG_20260228_200517.jpg",
-    "ingredients": ["小白菜", "牛肉", "香菜", "辣椒"],
-    "category": "凉菜"
-  },
-  {
-    "name": "干煸豆角",
-    "image": "IMG_20260305_211754.jpg",
-    "ingredients": ["豆角", "蒜", "干辣椒", "盐"],
-    "category": "家常"
-  },
-  {
-    "name": "金针菇拌粉丝",
-    "image": "IMG_20260315_115654.jpg",
-    "ingredients": ["金针菇", "粉丝", "香菇", "小米椒"],
-    "category": "凉菜"
-  },
-  {
-    "name": "麻辣素面",
-    "image": "IMG_20260315_191240.jpg",
-    "ingredients": ["面条", "油菜", "香菇", "芹菜"],
-    "category": "主食"
-  },
-  {
-    "name": "番茄鸡蛋面",
-    "image": "IMG_20260321_193441.jpg",
-    "ingredients": ["番茄", "鸡蛋", "面条", "金针菇"],
-    "category": "主食"
-  },
-  {
-    "name": "豆角红椒拌面",
-    "image": "IMG_20260322_121115.jpg",
-    "ingredients": ["豆角", "红椒", "面条", "辣椒"],
-    "category": "主食"
-  },
-  {
-    "name": "菌菇青菜汤面",
-    "image": "IMG_20260405_103919.jpg",
-    "ingredients": ["面条", "青菜", "蘑菇", "鸡蛋"],
-    "category": "主食"
-  },
-  {
-    "name": "青菜蘑菇拌面",
-    "image": "IMG_20260412_112902.jpg",
-    "ingredients": ["面条", "青菜", "红椒", "蘑菇"],
-    "category": "主食"
-  },
-  {
-    "name": "芦笋炒虾仁",
-    "image": "IMG_20260414_203928.jpg",
-    "ingredients": ["芦笋", "虾仁", "蒜", "干辣椒"],
+    "name": "洋葱炒土豆丝",
+    "image": "yangcongchaotudousi.png",
+    "ingredients": ["土豆", "洋葱", "辣椒"],
     "category": "家常"
   },
   {
     "name": "清炒莴笋丝",
-    "image": "IMG_20260414_203938.jpg",
-    "ingredients": ["莴笋", "红椒", "蒜", "盐"],
+    "image": "qingchaowosunsi.png",
+    "ingredients": ["莴笋", "红椒", "干辣椒"],
     "category": "家常"
   },
   {
-    "name": "蒜香红椒炒豌豆苗",
-    "image": "IMG_20260414_203945.jpg",
-    "ingredients": ["豌豆苗", "红椒", "蒜", "盐"],
-    "category": "家常"
-  },
-  {
-    "name": "凉拌黄瓜丝",
-    "image": "KAPI_Kodak 5219_260407083422087.jpg",
-    "ingredients": ["黄瓜", "粉丝", "木耳", "蒜"],
+    "name": "香菜拌牛肉",
+    "image": "xiangcaibanniurou.png",
+    "ingredients": ["牛肉", "香菜"],
     "category": "凉菜"
   },
   {
-    "name": "生日蛋糕",
-    "image": "mmexport1742041642673.jpg",
-    "ingredients": ["奶油", "蛋糕胚", "巧克力"],
+    "name": "醋溜白菜",
+    "image": "culiubaicai.png",
+    "ingredients": ["白菜", "香菇", "辣椒"],
+    "category": "家常"
+  },
+  {
+    "name": "宠物生日蛋糕",
+    "image": "chongwushengridangao.png",
+    "ingredients": ["宠物罐头", "干粮粒", "装饰插牌"],
+    "category": "甜品"
+  },
+  {
+    "name": "豆角拌面",
+    "image": "doujiaobanmian.png",
+    "ingredients": ["面条", "豆角", "红椒"],
+    "category": "主食"
+  },
+  {
+    "name": "清炒豆苗",
+    "image": "qingchaodoumiao.png",
+    "ingredients": ["豆苗"],
+    "category": "家常"
+  },
+  {
+    "name": "青菜蘑菇鸡蛋面",
+    "image": "qingcaimogujidanmian.png",
+    "ingredients": ["面条", "青菜", "蘑菇", "鸡蛋", "枸杞"],
+    "category": "主食"
+  },
+  {
+    "name": "蓝莓青提",
+    "image": "lanmeiqingti.png",
+    "ingredients": ["蓝莓", "青提"],
+    "category": "甜品"
+  },
+  {
+    "name": "皮蛋瘦肉粥",
+    "image": "pidanshourouzhou.png",
+    "ingredients": ["大米", "皮蛋", "瘦肉", "青菜"],
+    "category": "主食"
+  },
+  {
+    "name": "清炒上海青",
+    "image": "qingchaoshanghaiqing.png",
+    "ingredients": ["上海青"],
+    "category": "家常"
+  },
+  {
+    "name": "春卷",
+    "image": "chunjuan.png",
+    "ingredients": ["春卷皮", "卷心菜", "胡萝卜"],
+    "category": "家常"
+  },
+  {
+    "name": "凉拌莴笋丝",
+    "image": "liangbanwosunsi.png",
+    "ingredients": ["莴笋", "辣椒"],
+    "category": "凉菜"
+  },
+  {
+    "name": "西红柿鸡蛋面",
+    "image": "xihongshijidanmian.png",
+    "ingredients": ["面条", "番茄", "鸡蛋"],
+    "category": "主食"
+  },
+  {
+    "name": "黄瓜牛肉",
+    "image": "huangguaniurou.png",
+    "ingredients": ["牛肉", "黄瓜", "白菜", "辣椒"],
+    "category": "家常"
+  },
+  {
+    "name": "菠菜鸡蛋汤",
+    "image": "bocaijidantang.png",
+    "ingredients": ["菠菜", "鸡蛋"],
+    "category": "汤羹"
+  },
+  {
+    "name": "蘑菇青菜炒面",
+    "image": "moguqingcaichaomian.png",
+    "ingredients": ["面条", "青菜", "蘑菇", "红椒"],
+    "category": "主食"
+  },
+  {
+    "name": "芦笋炒虾仁",
+    "image": "lusunchaoxiaren.png",
+    "ingredients": ["芦笋", "虾仁", "干辣椒"],
+    "category": "家常"
+  },
+  {
+    "name": "腊肉炒白菜",
+    "image": "larouchaobaicai.png",
+    "ingredients": ["腊肉", "白菜"],
+    "category": "家常"
+  },
+  {
+    "name": "青椒鸡蛋炒面",
+    "image": "qingjiaojidanchaomian.png",
+    "ingredients": ["刀削面", "鸡蛋", "青椒", "辣椒"],
+    "category": "主食"
+  },
+  {
+    "name": "干煸豆角",
+    "image": "ganbiandoujiao.png",
+    "ingredients": ["豆角", "干辣椒"],
+    "category": "家常"
+  },
+  {
+    "name": "青椒炒牛肉",
+    "image": "qingjiaochaoniurou.png",
+    "ingredients": ["牛肉", "青椒"],
+    "category": "家常"
+  },
+  {
+    "name": "豆芽炒香菇",
+    "image": "douyachaoxianggu.png",
+    "ingredients": ["豆芽", "香菇", "辣椒"],
+    "category": "家常"
+  },
+  {
+    "name": "红薯粥",
+    "image": "hongshuzhou.png",
+    "ingredients": ["红薯", "大米"],
+    "category": "主食"
+  },
+  {
+    "name": "香菇油菜",
+    "image": "xiangguyoucai.png",
+    "ingredients": ["油菜", "香菇"],
+    "category": "家常"
+  },
+  {
+    "name": "樱桃番茄",
+    "image": "yingtaofanqie.png",
+    "ingredients": ["樱桃番茄"],
     "category": "甜品"
   }
 ]

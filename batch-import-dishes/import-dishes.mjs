@@ -5,6 +5,23 @@ import path from 'node:path';
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.heic'];
 
+function contentTypeForImage(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  switch (ext) {
+    case '.png':
+      return 'image/png';
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.webp':
+      return 'image/webp';
+    case '.heic':
+      return 'image/heic';
+    default:
+      throw new Error(`不支持的图片格式: ${ext || filePath}`);
+  }
+}
+
 function parseArgs(argv) {
   const args = {};
   for (let i = 0; i < argv.length; i += 1) {
@@ -117,7 +134,7 @@ async function createDish(baseUrl, kitchenId, token, dish, dryRun) {
   }
 
   const imageBuffer = await fs.readFile(dish.imagePath);
-  const imageBlob = new Blob([imageBuffer], { type: 'image/png' });
+  const imageBlob = new Blob([imageBuffer], { type: dish.imageContentType });
   form.set('image', imageBlob, path.basename(dish.imagePath));
 
   const response = await fetch(`${baseUrl}/api/v1/kitchens/${kitchenId}/dishes`, {
@@ -186,11 +203,12 @@ async function main() {
     try {
       const ingredients = normalizeIngredients(rawItem?.ingredients, name);
       const imagePath = await resolveImagePath(imagesDir, imageName);
+      const imageContentType = contentTypeForImage(imagePath);
       const result = await createDish(
         baseUrl,
         kitchenId,
         token,
-        { name, category, ingredients, imagePath },
+        { name, category, ingredients, imagePath, imageContentType },
         dryRun
       );
 
