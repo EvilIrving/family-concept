@@ -86,18 +86,15 @@ struct MenuDishCard: View {
         }
         .overlay {
             if let imageURL {
-                AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .padding(AppSpacing.xs)
-                    case .empty:
-                        AppLoadingBlock(label: "加载中", tone: .secondary)
-                    default:
-                        imageFailurePlaceholder
-                    }
+                RemoteDishImage(url: imageURL) { image in
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .padding(AppSpacing.xs)
+                } placeholder: {
+                    AppLoadingBlock(label: "加载中", tone: .secondary)
+                } failure: {
+                    imageFailurePlaceholder
                 }
             } else {
                 placeholderIcon

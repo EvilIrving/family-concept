@@ -13,9 +13,12 @@ struct MenuView: View {
     @State private var addDishDraft = AddDishDraft()
     @State private var toast: AppToastData?
     @State private var dishPendingArchive: Dish?
+    @State private var visibleDishCount = 12
     @FocusState private var focusedField: MenuField?
 
     private let quickCategories = ["自定义", "家常菜", "快手菜", "汤羹", "主食", "饮品", "甜点"]
+    private let dishPageSize = 12
+    private let preloadScreenCount = 12
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -67,6 +70,15 @@ struct MenuView: View {
             try? await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled else { return }
             debouncedSearchText = searchText
+        }
+        .onChange(of: debouncedSearchText) { _, _ in
+            resetVisibleDishes()
+        }
+        .onChange(of: selectedCategory) { _, _ in
+            resetVisibleDishes()
+        }
+        .onChange(of: store.dishes) { _, _ in
+            resetVisibleDishes()
         }
         .onChange(of: selectedPhotoItem) { _, item in
             guard let item else { return }
@@ -140,7 +152,7 @@ struct MenuView: View {
                 )
             } else {
                 MenuDishGridView(
-                    dishes: filteredDishes,
+                    dishes: visibleDishes,
                     quantityForDish: { store.cartQuantity(for: $0) },
                     onDecrease: { dish in
                         guard store.cartQuantity(for: dish.id) > 0 else { return }
@@ -152,6 +164,7 @@ struct MenuView: View {
                     onManage: store.canManageDishes ? { dish in
                         beginEditing(dish)
                     } : nil,
+                    onDishAppear: handleDishAppear,
                     onTapBackground: { focusedField = nil }
                 )
             }
@@ -329,6 +342,22 @@ struct MenuView: View {
             let matchesSearch = keyword.isEmpty || dish.name.localizedCaseInsensitiveContains(keyword)
             return matchesCategory && matchesSearch
         }
+    }
+
+    private var visibleDishes: [Dish] {
+        Array(filteredDishes.prefix(visibleDishCount))
+    }
+
+    private func resetVisibleDishes() {
+        visibleDishCount = dishPageSize
+    }
+
+    private func handleDishAppear(_ dish: Dish) {
+        guard let index = visibleDishes.firstIndex(where: { $0.id == dish.id }) else { return }
+        let thresholdIndex = max(0, visibleDishes.count - preloadScreenCount)
+        guard index >= thresholdIndex else { return }
+        guard visibleDishCount < filteredDishes.count else { return }
+        visibleDishCount = min(filteredDishes.count, visibleDishCount + dishPageSize)
     }
 
     private var emptySearchHint: String {
@@ -605,6 +634,7 @@ private struct MenuDishGridView: View {
     let onDecrease: (Dish) -> Void
     let onIncrease: (Dish) -> Void
     let onManage: ((Dish) -> Void)?
+    let onDishAppear: (Dish) -> Void
     let onTapBackground: () -> Void
 
     private let gridColumns = [
@@ -626,6 +656,9 @@ private struct MenuDishGridView: View {
                             onDecrease: { onDecrease(dish) },
                             onIncrease: { onIncrease(dish) }
                         )
+                        .onAppear {
+                            onDishAppear(dish)
+                        }
                     }
                 }
                 .padding(AppSpacing.md)

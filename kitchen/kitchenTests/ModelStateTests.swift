@@ -54,6 +54,7 @@ struct ModelStateTests {
         )
 
         #expect(dish.publicImageURL(baseURL: "https://img.example.com")?.absoluteString == "https://img.example.com/menu/ribs.png")
+        #expect(dish.publicImageURL(baseURL: "https://img.example.com/")?.absoluteString == "https://img.example.com/menu/ribs.png")
         #expect(dish.publicImageURL(baseURL: "") == nil)
     }
 

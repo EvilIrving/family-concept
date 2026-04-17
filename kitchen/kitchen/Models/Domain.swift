@@ -126,8 +126,13 @@ struct Dish: Identifiable, Codable, Equatable {
     var isArchived: Bool { archivedAt != nil }
 
     func publicImageURL(baseURL: String) -> URL? {
-        guard let key = imageKey, !baseURL.isEmpty else { return nil }
-        return URL(string: "\(baseURL)/\(key)")
+        guard let key = imageKey?.trimmingCharacters(in: .whitespacesAndNewlines), !key.isEmpty else { return nil }
+        guard var base = URL(string: baseURL), !baseURL.isEmpty else { return nil }
+
+        for component in key.split(separator: "/").map(String.init) {
+            base.appendPathComponent(component)
+        }
+        return base
     }
 }
 
