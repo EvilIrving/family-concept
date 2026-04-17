@@ -63,8 +63,6 @@
 
 - [x] `NSCameraUsageDescription` 已配置
 - [x] `NSPhotoLibraryUsageDescription` 已配置
-- [ ] 麦克风权限文案已配置
-- [ ] 语音识别权限文案已配置
 - [ ] 推送权限文案已配置
 - [ ] 每项权限只在真实使用前请求
 - [ ] 权限前置说明文案已统一

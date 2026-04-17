@@ -1,8 +1,7 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
   <g filter="url(#tile-shadow)">
-    <rect x="77" y="77" width="870" height="870" rx="196" fill="url(#tile-bg)"/>
+    <rect x="0" y="0" width="1024" height="1024" rx="0" fill="url(#tile-bg)"/>
   </g>
-  <rect x="112" y="112" width="800" height="800" rx="166" fill="url(#tile-glow)" opacity="0.42"/>
   <g transform="translate(512 512)">
     <ellipse cx="0" cy="202" rx="184" ry="34" fill="#183E2F" opacity="0.18"/>
     <path d="M-214 12H214C214 184 117 300 0 300C-117 300 -214 184 -214 12Z" fill="url(#bowl-body)"/>

@@ -1,7 +1,7 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="77" y="77" width="870" height="870" rx="196" fill="url(#tile-bg)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="0" fill="url(#tile-bg)"/>
   <defs>
-    <linearGradient id="tile-bg" x1="77" y1="77" x2="947" y2="947" gradientUnits="userSpaceOnUse">
+    <linearGradient id="tile-bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
       <stop stop-color="#2C6D50"/>
       <stop offset="0.55" stop-color="#3F8765"/>
       <stop offset="1" stop-color="#204C3A"/>

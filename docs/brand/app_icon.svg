@@ -1,0 +1,26 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="squircle">
+      <path d="M512,0 C892,0 1024,132 1024,512 C1024,892 892,1024 512,1024 C132,1024 0,892 0,512 C0,132 132,0 512,0 Z"/>
+    </clipPath>
+  </defs>
+  <!-- 背景铺满整幅画布（不受 squircle 裁剪，四角不透明） -->
+  <rect x="0" y="0" width="1024" height="1024" fill="#C97B5A"/>
+  <g clip-path="url(#squircle)">
+    <g transform="translate(512, 512)">
+      <!-- 蒸汽：三缕弯曲线条 -->
+      <g fill="none" stroke="#F5EBDD" stroke-width="24" stroke-linecap="round" opacity="0.85">
+        <path d="M -110,-270 C -155,-220 -65,-185 -110,-135"/>
+        <path d="M 0,-290 C -45,-240 45,-205 0,-155"/>
+        <path d="M 110,-270 C 65,-220 155,-185 110,-135"/>
+      </g>
+      <!-- 盘盖：椭圆半拱形 -->
+      <path d="M -310,80 C -310,-130 -180,-230 0,-230 C 180,-230 310,-130 310,80 Z"
+            fill="#F5EBDD"/>
+      <!-- 盖顶把手 -->
+      <ellipse cx="0" cy="-230" rx="32" ry="24" fill="#2B2622"/>
+      <!-- 底盘 -->
+      <rect x="-370" y="80" width="740" height="52" rx="26" fill="#2B2622"/>
+    </g>
+  </g>
+</svg>

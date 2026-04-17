@@ -58,6 +58,7 @@ playground.xcworkspace
 .env.local
 .env.*.local
 *.local.xcconfig
+batch-import-dishes/config.local.json
 
 # Node / Cloudflare Worker
 node_modules/

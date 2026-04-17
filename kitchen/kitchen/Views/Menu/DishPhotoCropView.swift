@@ -14,6 +14,7 @@ struct DishPhotoCropView: View {
     @State private var lastOffset: CGSize = .zero
     @State private var suggestedScale: CGFloat = 1.0
     @State private var normalizedImage: UIImage?
+    @State private var dissolveImage: UIImage?
 
     private var displayImage: UIImage { normalizedImage ?? sourceImage }
 
@@ -39,6 +40,13 @@ struct DishPhotoCropView: View {
                     .position(x: viewportCenter.x, y: viewportCenter.y)
 
                 actionButtons(geo: geo, vpWidth: vpWidth, vpY: vpY, vpHeight: vpHeight, viewportCenter: viewportCenter)
+
+                if let dissolveImage {
+                    DishConfirmDissolveView(image: dissolveImage) {
+                        onConfirm(dissolveImage)
+                    }
+                    .transition(.opacity)
+                }
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .task(id: sourceImage) {
@@ -228,7 +236,9 @@ struct DishPhotoCropView: View {
             )
             img.drawAspectFill(in: drawRect)
         }
-        onConfirm(out)
+        withAnimation(.easeInOut(duration: 0.2)) {
+            dissolveImage = out
+        }
     }
 
     // MARK: - Vision framing

@@ -29,6 +29,7 @@ export const dishRoutes: Route[] = [
         let category: string | undefined
         let ingredients: unknown[] | undefined
         let imageBytes: ArrayBuffer | undefined
+        let imageContentType: string | undefined
 
         if (contentType.includes('multipart/form-data')) {
           const form = await req.formData();
@@ -45,6 +46,7 @@ export const dishRoutes: Route[] = [
           if (imageFile instanceof File) {
             imageBytes = await imageFile.arrayBuffer();
             if (imageBytes.byteLength === 0) return badRequest('图片内容为空');
+            imageContentType = imageFile.type || 'application/octet-stream';
           }
         } else {
           const body = await req.json<{ name?: string; category?: string; ingredients?: unknown[] }>();
@@ -64,7 +66,7 @@ export const dishRoutes: Route[] = [
         try {
           if (imageBytes && imageKey) {
             await env.ASSETS.put(imageKey, imageBytes, {
-              httpMetadata: { contentType: 'image/png' },
+              httpMetadata: { contentType: imageContentType ?? 'application/octet-stream' },
             });
           }
 
