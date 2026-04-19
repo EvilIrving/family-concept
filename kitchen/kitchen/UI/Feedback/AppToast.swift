@@ -1,7 +1,140 @@
 import Combine
 import SwiftUI
 
-struct AppToastData: Identifiable {
+enum AppFeedbackHint {
+    case centerToast
+}
+
+@MainActor
+final class AppFeedbackRouter: ObservableObject {
+    static let shared = AppFeedbackRouter()
+
+    @Published private(set) var topToasts: [UUID] = []
+    @Published private(set) var centerToasts: [UUID] = []
+    @Published private(set) var currentBannerID: UUID?
+
+    private var toastStore: [UUID: AppToastData] = [:]
+    private var bannerStore: [UUID: BottomBannerData] = [:]
+    private var lastMessage = ""
+    private var lastMessageDate = Date.distantPast
+    private let duplicateWindow: TimeInterval
+
+    init(duplicateWindow: TimeInterval = 1.5) {
+        self.duplicateWindow = duplicateWindow
+    }
+
+    var isBannerActive: Bool {
+        currentBannerID != nil
+    }
+
+    func show(_ feedback: AppFeedback, hint: AppFeedbackHint? = nil) {
+        guard shouldAccept(feedback) else { return }
+
+        switch feedback.level {
+        case .high:
+            showBanner(feedback)
+        case .low, .neutral:
+            guard isBannerActive == false else { return }
+            showToast(feedback, hint: hint)
+        }
+    }
+
+    func dismissToast(id: UUID) {
+        toastStore[id] = nil
+        topToasts.removeAll { $0 == id }
+        centerToasts.removeAll { $0 == id }
+    }
+
+    func dismissBanner(id: UUID? = nil) {
+        guard id == nil || currentBannerID == id else { return }
+        if let currentBannerID {
+            bannerStore[currentBannerID] = nil
+        }
+        withAnimation(bannerAnimation) {
+            currentBannerID = nil
+        }
+    }
+
+    fileprivate func toast(for id: UUID) -> AppToastData? {
+        toastStore[id]
+    }
+
+    fileprivate func currentBanner() -> BottomBannerData? {
+        guard let currentBannerID else { return nil }
+        return bannerStore[currentBannerID]
+    }
+
+    private func shouldAccept(_ feedback: AppFeedback) -> Bool {
+        let message = feedback.messageText
+        guard message.isEmpty == false else { return true }
+
+        let now = Date()
+        if message == lastMessage, now.timeIntervalSince(lastMessageDate) < duplicateWindow {
+            return false
+        }
+
+        lastMessage = message
+        lastMessageDate = now
+        return true
+    }
+
+    private func showToast(_ feedback: AppFeedback, hint: AppFeedbackHint?) {
+        let toast = AppToastData(
+            text: feedback.messageText,
+            duration: .seconds(2.2),
+            placement: hint == .centerToast ? .center : .top,
+            showsIcon: feedback.systemImage != nil,
+            iconSystemName: feedback.systemImage,
+            foregroundColor: feedback.level == .high ? AppSemanticColor.danger : AppSemanticColor.onPrimary,
+            backgroundColor: feedback.level == .high ? AppSemanticColor.dangerBackground : Color.black.opacity(0.82)
+        )
+
+        toastStore[toast.id] = toast
+        withAnimation(toastAnimation) {
+            switch toast.placement {
+            case .top:
+                topToasts = [toast.id]
+            case .center:
+                centerToasts = [toast.id]
+            }
+        }
+    }
+
+    private func showBanner(_ feedback: AppFeedback) {
+        let banner = BottomBannerData(
+            text: feedback.messageText,
+            duration: .seconds(2.2),
+            showsIcon: feedback.systemImage != nil,
+            iconSystemName: feedback.systemImage,
+            foregroundColor: AppSemanticColor.onPrimary,
+            backgroundColor: AppSemanticColor.infoForeground
+        )
+
+        bannerStore[banner.id] = banner
+        withAnimation(bannerAnimation) {
+            currentBannerID = banner.id
+        }
+    }
+
+    private var toastAnimation: Animation {
+        .spring(response: 0.34, dampingFraction: 0.84)
+    }
+
+    private var bannerAnimation: Animation {
+        .easeInOut(duration: 0.24)
+    }
+}
+
+private extension AppFeedback {
+    var messageText: String {
+        if let message, message.isEmpty == false {
+            return message
+        }
+        return title ?? ""
+    }
+}
+
+private struct AppToastData: Identifiable {
     enum Placement {
         case top
         case center
@@ -17,7 +150,7 @@ struct AppToastData: Identifiable {
     var backgroundColor: Color = Color.black.opacity(0.82)
 }
 
-struct BottomBannerData: Identifiable {
+private struct BottomBannerData: Identifiable {
     let id = UUID()
     var text: String
     var duration: Duration = .seconds(2.2)
@@ -27,171 +160,8 @@ struct BottomBannerData: Identifiable {
     var backgroundColor: Color = AppSemanticColor.infoForeground
 }
 
-@MainActor
-final class ToastQueue: ObservableObject {
-    static let shared = ToastQueue()
-
-    @Published private(set) var topToasts: [AppToastData] = []
-    @Published private(set) var centerToasts: [AppToastData] = []
-
-    private let maxTopToastCount = 2
-    private let maxCenterToastCount = 5
-
-    private let maxQueuedTopToastCount = 2
-    private var queuedTopToasts: [AppToastData] = []
-
-    private init() {}
-
-    func showToast(_ toast: AppToastData) {
-        enqueueToast(toast)
-    }
-
-    func showToast(
-        text: String,
-        duration: Duration = .seconds(2.2),
-        placement: AppToastData.Placement = .top,
-        showsIcon: Bool = false,
-        iconSystemName: String? = nil,
-        foregroundColor: Color? = nil,
-        backgroundColor: Color? = nil
-    ) {
-        showToast(
-            AppToastData(
-                text: text,
-                duration: duration,
-                placement: placement,
-                showsIcon: showsIcon,
-                iconSystemName: iconSystemName,
-                foregroundColor: foregroundColor ?? AppSemanticColor.onPrimary,
-                backgroundColor: backgroundColor ?? Color.black.opacity(0.82)
-            )
-        )
-    }
-
-    func dismissToast(id: UUID) {
-        let removedTop = removeToast(with: id, from: &topToasts)
-        let removedCenter = removeToast(with: id, from: &centerToasts)
-        guard removedTop || removedCenter else { return }
-        pumpTopToasts()
-    }
-
-    private func enqueueToast(_ toast: AppToastData) {
-        switch toast.placement {
-        case .top:
-            resolveTopToast(toast)
-        case .center:
-            resolveCenterToast(toast)
-        }
-    }
-
-    private func pumpTopToasts() {
-        while topToasts.count < maxTopToastCount, !queuedTopToasts.isEmpty {
-            let nextToast = queuedTopToasts.removeFirst()
-            withAnimation(toastAnimation) {
-                topToasts.insert(nextToast, at: 0)
-            }
-        }
-    }
-
-    private func resolveTopToast(_ incoming: AppToastData) {
-        withAnimation(toastAnimation) {
-            topToasts.insert(incoming, at: 0)
-            if topToasts.count > maxTopToastCount, let displaced = topToasts.popLast() {
-                queuedTopToasts.insert(displaced, at: 0)
-                if queuedTopToasts.count > maxQueuedTopToastCount {
-                    queuedTopToasts.removeLast()
-                }
-            }
-        }
-    }
-
-    private func resolveCenterToast(_ incoming: AppToastData) {
-        withAnimation(toastAnimation) {
-            centerToasts.insert(incoming, at: 0)
-            if centerToasts.count > maxCenterToastCount {
-                centerToasts.removeLast()
-            }
-        }
-    }
-
-    private func removeToast(with id: UUID, from toasts: inout [AppToastData]) -> Bool {
-        let initialCount = toasts.count
-        withAnimation(toastAnimation) {
-            toasts.removeAll { $0.id == id }
-        }
-        return toasts.count != initialCount
-    }
-
-    private var toastAnimation: Animation {
-        .spring(response: 0.34, dampingFraction: 0.84)
-    }
-}
-
-@MainActor
-final class BBQueue: ObservableObject {
-    static let shared = BBQueue()
-
-    @Published private(set) var currentBanner: BottomBannerData?
-
-    private var queuedBanners: [BottomBannerData] = []
-
-    private init() {}
-
-    func showBottomBanner(_ banner: BottomBannerData) {
-        if currentBanner == nil {
-            withAnimation(bottomBannerAnimation) {
-                currentBanner = banner
-            }
-            return
-        }
-
-        queuedBanners.append(banner)
-    }
-
-    func showBottomBanner(
-        text: String,
-        duration: Duration = .seconds(2.2),
-        showsIcon: Bool = false,
-        iconSystemName: String? = nil,
-        foregroundColor: Color? = nil,
-        backgroundColor: Color? = nil
-    ) {
-        showBottomBanner(
-            BottomBannerData(
-                text: text,
-                duration: duration,
-                showsIcon: showsIcon,
-                iconSystemName: iconSystemName,
-                foregroundColor: foregroundColor ?? AppSemanticColor.onPrimary,
-                backgroundColor: backgroundColor ?? AppSemanticColor.infoForeground
-            )
-        )
-    }
-
-    func dismissBottomBanner(id: UUID? = nil) {
-        guard id == nil || currentBanner?.id == id else { return }
-        withAnimation(bottomBannerAnimation) {
-            currentBanner = nil
-        }
-        pumpQueue()
-    }
-
-    private func pumpQueue() {
-        guard currentBanner == nil, let nextBanner = queuedBanners.first else { return }
-        queuedBanners.removeFirst()
-        withAnimation(bottomBannerAnimation) {
-            currentBanner = nextBanner
-        }
-    }
-
-    private var bottomBannerAnimation: Animation {
-        .easeInOut(duration: 0.24)
-    }
-}
-
 struct AppToastHost: ViewModifier {
-    @EnvironmentObject private var toastQueue: ToastQueue
-    @EnvironmentObject private var bbQueue: BBQueue
+    @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
 
     func body(content: Content) -> some View {
         GeometryReader { proxy in
@@ -201,15 +171,17 @@ struct AppToastHost: ViewModifier {
             content
                 .overlay(alignment: .top) {
                     VStack(spacing: AppSpacing.sm) {
-                        ForEach(toastQueue.topToasts) { toast in
-                            toastView(for: toast)
-                                .frame(maxWidth: .infinity)
-                                .task(id: toast.id) {
-                                    try? await Task.sleep(for: toast.duration)
-                                    await MainActor.run {
-                                        toastQueue.dismissToast(id: toast.id)
+                        ForEach(feedbackRouter.topToasts, id: \.self) { id in
+                            if let toast = feedbackRouter.toast(for: id) {
+                                toastView(for: toast)
+                                    .frame(maxWidth: .infinity)
+                                    .task(id: toast.id) {
+                                        try? await Task.sleep(for: toast.duration)
+                                        await MainActor.run {
+                                            feedbackRouter.dismissToast(id: toast.id)
+                                        }
                                     }
-                                }
+                            }
                         }
                     }
                     .padding(.top, topInset)
@@ -218,17 +190,17 @@ struct AppToastHost: ViewModifier {
                 }
                 .overlay {
                     ZStack {
-                        ForEach(Array(toastQueue.centerToasts.enumerated()), id: \.element.id) { index, toast in
-                            toastView(for: toast)
-                                .frame(maxWidth: .infinity)
-                                .offset(y: CGFloat(index) * -68)
-                                .zIndex(Double(toastQueue.centerToasts.count - index))
-                                .task(id: toast.id) {
-                                    try? await Task.sleep(for: toast.duration)
-                                    await MainActor.run {
-                                        toastQueue.dismissToast(id: toast.id)
+                        ForEach(feedbackRouter.centerToasts, id: \.self) { id in
+                            if let toast = feedbackRouter.toast(for: id) {
+                                toastView(for: toast)
+                                    .frame(maxWidth: .infinity)
+                                    .task(id: toast.id) {
+                                        try? await Task.sleep(for: toast.duration)
+                                        await MainActor.run {
+                                            feedbackRouter.dismissToast(id: toast.id)
+                                        }
                                     }
-                                }
+                            }
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -238,21 +210,21 @@ struct AppToastHost: ViewModifier {
                     .allowsHitTesting(false)
                 }
                 .overlay(alignment: .bottom) {
-                    if let banner = bbQueue.currentBanner {
+                    if let banner = feedbackRouter.currentBanner() {
                         bottomBannerView(for: banner)
                             .padding(.horizontal, AppSpacing.md)
                             .padding(.bottom, bottomInset)
                             .task(id: banner.id) {
                                 try? await Task.sleep(for: banner.duration)
                                 await MainActor.run {
-                                    bbQueue.dismissBottomBanner(id: banner.id)
+                                    feedbackRouter.dismissBanner(id: banner.id)
                                 }
                             }
                     }
                 }
-                .animation(.spring(response: 0.34, dampingFraction: 0.84), value: toastQueue.topToasts.map(\.id))
-                .animation(.spring(response: 0.34, dampingFraction: 0.84), value: toastQueue.centerToasts.map(\.id))
-                .animation(.easeInOut(duration: 0.24), value: bbQueue.currentBanner?.id)
+                .animation(.spring(response: 0.34, dampingFraction: 0.84), value: feedbackRouter.topToasts)
+                .animation(.spring(response: 0.34, dampingFraction: 0.84), value: feedbackRouter.centerToasts)
+                .animation(.easeInOut(duration: 0.24), value: feedbackRouter.currentBannerID)
         }
     }
 

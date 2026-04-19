@@ -3,8 +3,7 @@ import PhotosUI
 
 struct MenuView: View {
     @EnvironmentObject private var store: AppStore
-    @EnvironmentObject private var toastQueue: ToastQueue
-    @EnvironmentObject private var bbQueue: BBQueue
+    @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
     @StateObject private var modalRouter = ModalRouter<MenuModalRoute>()
     @StateObject private var imageCoordinator = DishImageCoordinator()
 
@@ -109,6 +108,7 @@ struct MenuView: View {
         .fullScreenCover(item: cropBinding, onDismiss: { modalRouter.didDismissCurrent() }) { presentation in
             DishPhotoCropView(
                 sourceImage: presentation.image,
+                source: presentation.source == .camera ? .camera : .album,
                 onConfirm: { cropped in
                     imageCoordinator.processImage(cropped)
                     modalRouter.transition(to: draftRoute)
@@ -132,14 +132,12 @@ struct MenuView: View {
                 guard let dish = dishPendingArchive else { return }
                 Task {
                     await store.archiveDish(id: dish.id)
-                    toastQueue.showToast(
-                        text: "\(dish.name) 已移入归档，可在后续补充撤销能力。",
-                        duration: .seconds(3),
-                        placement: .center,
-                        showsIcon: true,
-                        iconSystemName: "exclamationmark.triangle.fill",
-                        foregroundColor: AppSemanticColor.textPrimary,
-                        backgroundColor: AppSemanticColor.warningBackground
+                    feedbackRouter.show(
+                        .low(
+                            message: "\(dish.name) 已移入归档，可在后续补充撤销能力。",
+                            systemImage: "exclamationmark.triangle.fill"
+                        ),
+                        hint: .centerToast
                     )
                     dishPendingArchive = nil
                 }
@@ -294,9 +292,9 @@ struct MenuView: View {
             resetAddDishDraft()
             modalRouter.dismiss()
             if editingDishID == nil {
-                bbQueue.showBottomBanner(text: "已新增 \(savedName)")
+                feedbackRouter.show(.high(message: "已新增 \(savedName)"))
             } else {
-                bbQueue.showBottomBanner(text: "已更新 \(savedName)")
+                feedbackRouter.show(.high(message: "已更新 \(savedName)"))
             }
         }
     }

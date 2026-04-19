@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MenuCartSheet: View {
     @EnvironmentObject private var store: AppStore
-    @EnvironmentObject private var bbQueue: BBQueue
+    @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -15,7 +15,7 @@ struct MenuCartSheet: View {
                 Task {
                     await store.submitCart()
                     guard store.error == nil else { return }
-                    bbQueue.showBottomBanner(text: "已下单")
+                    feedbackRouter.show(.high(message: "已下单"))
                     dismiss()
                 }
             },

@@ -2,8 +2,9 @@ import Foundation
 import CoreGraphics
 
 enum DishImageSpec {
-    static let viewportAspectRatio: CGFloat = 3.0 / 2.0
-    static let outputSize = CGSize(width: 1200, height: 800)
+    static let viewportAspectRatio: CGFloat = 1.0
+    static let outputSize = CGSize(width: 1200, height: 1200)
+    static let subjectFillRatio: CGFloat = 0.8
     static let mimeType = "image/png"
     static let fileExtension = "png"
     static let viewportHorizontalInset: CGFloat = 16

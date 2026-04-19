@@ -1,5 +1,30 @@
 import SwiftUI
 
+enum AppFeedbackLevel: Equatable {
+    case low
+    case neutral
+    case high
+}
+
+struct AppFeedbackPayload: Equatable {
+    let title: String?
+    let message: String?
+    let icon: String?
+    let actionLabel: String?
+
+    init(
+        title: String? = nil,
+        message: String? = nil,
+        icon: String? = nil,
+        actionLabel: String? = nil
+    ) {
+        self.title = title
+        self.message = message
+        self.icon = icon
+        self.actionLabel = actionLabel
+    }
+}
+
 enum AppFeedbackKind: Equatable {
     case empty(AppEmptyKind)
     case network
@@ -15,10 +40,9 @@ enum AppEmptyKind: Equatable {
 }
 
 struct AppFeedback: Equatable {
+    let level: AppFeedbackLevel
     let kind: AppFeedbackKind
-    let titleOverride: String?
-    let messageOverride: String?
-    let systemImageOverride: String?
+    let payload: AppFeedbackPayload
 
     static func empty(
         kind: AppEmptyKind = .noData,
@@ -27,10 +51,13 @@ struct AppFeedback: Equatable {
         systemImage: String? = nil
     ) -> AppFeedback {
         AppFeedback(
+            level: .neutral,
             kind: .empty(kind),
-            titleOverride: title,
-            messageOverride: message,
-            systemImageOverride: systemImage
+            payload: AppFeedbackPayload(
+                title: title,
+                message: message,
+                icon: systemImage
+            )
         )
     }
 
@@ -40,10 +67,13 @@ struct AppFeedback: Equatable {
         systemImage: String = "wifi.exclamationmark"
     ) -> AppFeedback {
         AppFeedback(
+            level: .high,
             kind: .network,
-            titleOverride: title,
-            messageOverride: message,
-            systemImageOverride: systemImage
+            payload: AppFeedbackPayload(
+                title: title,
+                message: message,
+                icon: systemImage
+            )
         )
     }
 
@@ -53,10 +83,13 @@ struct AppFeedback: Equatable {
         systemImage: String = "lock.slash"
     ) -> AppFeedback {
         AppFeedback(
+            level: .high,
             kind: .auth,
-            titleOverride: title,
-            messageOverride: message,
-            systemImageOverride: systemImage
+            payload: AppFeedbackPayload(
+                title: title,
+                message: message,
+                icon: systemImage
+            )
         )
     }
 
@@ -66,10 +99,49 @@ struct AppFeedback: Equatable {
         systemImage: String = "exclamationmark.triangle"
     ) -> AppFeedback {
         AppFeedback(
+            level: .high,
             kind: .generic,
-            titleOverride: title,
-            messageOverride: message,
-            systemImageOverride: systemImage
+            payload: AppFeedbackPayload(
+                title: title,
+                message: message,
+                icon: systemImage
+            )
+        )
+    }
+
+    static func low(
+        title: String? = nil,
+        message: String? = nil,
+        systemImage: String? = nil,
+        actionLabel: String? = nil
+    ) -> AppFeedback {
+        AppFeedback(
+            level: .low,
+            kind: .generic,
+            payload: AppFeedbackPayload(
+                title: title,
+                message: message,
+                icon: systemImage,
+                actionLabel: actionLabel
+            )
+        )
+    }
+
+    static func high(
+        title: String? = nil,
+        message: String? = nil,
+        systemImage: String? = nil,
+        actionLabel: String? = nil
+    ) -> AppFeedback {
+        AppFeedback(
+            level: .high,
+            kind: .generic,
+            payload: AppFeedbackPayload(
+                title: title,
+                message: message,
+                icon: systemImage,
+                actionLabel: actionLabel
+            )
         )
     }
 
@@ -81,15 +153,15 @@ struct AppFeedback: Equatable {
     }
 
     var title: String? {
-        titleOverride
+        payload.title
     }
 
     var message: String? {
-        messageOverride
+        payload.message
     }
 
     var systemImage: String? {
-        systemImageOverride
+        payload.icon
     }
 }
 

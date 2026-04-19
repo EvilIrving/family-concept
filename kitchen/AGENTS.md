@@ -3,7 +3,6 @@
 ## 概述
 
 私厨 App 的 iOS 客户端，SwiftUI 原生实现，iOS only。本文件覆盖整个 `kitchen/` Xcode 项目的开发约束，子目录的 CLAUDE.md 只写局部规则，不重复本文件内容。
- 
 
 ## 技术栈
 
@@ -98,9 +97,10 @@ kitchen/
 
 - 新增 Model / Store 必须在 `kitchenTests/` 配套单元测试
 - View 不强制单测，但必须能正常编译和 Preview
-- 如需真机构建或安装，默认目标设备为 `“xujinghui”的 iPhone`，`destination id=00008150-0019546A2100401C`
-- **禁止运行 `xcodebuild`**，包括本地验证、提交前检查和 Agent 自动执行
-- 不引入新第三方依赖，除非明确获得批准
+- 执行 iOS `build`、`test`、运行或安装时，默认目标设备为真机 `“xujinghui”的 iPhone`，`destination id=00008150-0019546A2100401C`
+- 除非用户明确要求 simulator，否则不要默认选择 `iphonesimulator`、`simulatorId` 或任何模拟器目标
+- 如工具支持显式目标参数，优先传 `platform=iOS` 与上述 `deviceId`，避免回退到 simulator
+ 
 
 ## 禁止事项
 

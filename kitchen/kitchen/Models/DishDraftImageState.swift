@@ -2,7 +2,7 @@ import UIKit
 
 enum DishDraftImageState {
     case empty
-    case cropping(UIImage)
+    case extracting(UIImage)
     case processing
     case ready(previewImage: UIImage, fileURL: URL)
     case uploading
@@ -16,8 +16,8 @@ extension DishDraftImageState {
         switch self {
         case .empty:
             return "待添加图片"
-        case .cropping:
-            return "正在裁切"
+        case .extracting:
+            return "正在识别主体"
         case .processing:
             return "正在优化菜品图"
         case .ready:
@@ -35,8 +35,8 @@ extension DishDraftImageState {
         switch self {
         case .empty:
             return "拍一张正面的菜品照，系统会自动去背景"
-        case .cropping:
-            return "正在准备取景区域"
+        case .extracting:
+            return "Vision 正在提取菜品前景"
         case .processing:
             return "识别主体、去背景并生成成品图"
         case .ready:

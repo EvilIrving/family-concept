@@ -4,8 +4,7 @@ import LinkPresentation
 
 struct OrdersView: View {
     @EnvironmentObject private var store: AppStore
-    @EnvironmentObject private var toastQueue: ToastQueue
-    @EnvironmentObject private var bbQueue: BBQueue
+    @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
     @StateObject private var modalRouter = ModalRouter<OrdersModalRoute>()
 
     var body: some View {
@@ -40,14 +39,14 @@ struct OrdersView: View {
                                         onReduce: {
                                             Task {
                                                 if await store.reduceWaitingItemQuantity(for: item) {
-                                                    bbQueue.showBottomBanner(text: "已减少 \(item.dishName) 1 份")
+                                                    feedbackRouter.show(.high(message: "已减少 \(item.dishName) 1 份"))
                                                 }
                                             }
                                         },
                                         onCancel: {
                                             Task {
                                                 if await store.cancelWaitingItems(for: item) {
-                                                    bbQueue.showBottomBanner(text: "已取消 \(item.dishName)")
+                                                    feedbackRouter.show(.high(message: "已取消 \(item.dishName)"))
                                                 }
                                             }
                                         }
@@ -64,7 +63,7 @@ struct OrdersView: View {
                                     Task {
                                         let didFinish = await store.finishOrder()
                                         if didFinish {
-                                            bbQueue.showBottomBanner(text: "这顿收好了")
+                                            feedbackRouter.show(.high(message: "这顿收好了"))
                                         }
                                     }
                                 }
@@ -95,7 +94,7 @@ struct OrdersView: View {
         .sheet(isPresented: shoppingListBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
             ShoppingListSheet()
                 .environmentObject(store)
-                .environmentObject(toastQueue)
+                .environmentObject(feedbackRouter)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
         }
@@ -242,7 +241,7 @@ private extension OrdersView {
 
 private struct ShoppingListSheet: View {
     @EnvironmentObject private var store: AppStore
-    @EnvironmentObject private var toastQueue: ToastQueue
+    @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
     @Environment(\.dismiss) private var dismiss
     @State private var exportPayload: SharePayload?
 
@@ -284,14 +283,12 @@ private struct ShoppingListSheet: View {
 
     private func exportShoppingList() {
         guard let image = renderShoppingListImage() else {
-            toastQueue.showToast(
-                text: "采购清单图片生成失败，请稍后重试。",
-                duration: .seconds(3),
-                placement: .center,
-                showsIcon: true,
-                iconSystemName: "xmark.octagon.fill",
-                foregroundColor: AppSemanticColor.danger,
-                backgroundColor: AppSemanticColor.dangerBackground
+            feedbackRouter.show(
+                .low(
+                    message: "采购清单图片生成失败，请稍后重试。",
+                    systemImage: "xmark.octagon.fill"
+                ),
+                hint: .centerToast
             )
             return
         }

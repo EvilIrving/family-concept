@@ -10,15 +10,13 @@ import SwiftUI
 @main
 struct kitchenApp: App {
     @StateObject private var store = AppStore()
-    @StateObject private var toastQueue = ToastQueue.shared
-    @StateObject private var bbQueue = BBQueue.shared
+    @StateObject private var feedbackRouter = AppFeedbackRouter.shared
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(store)
-                .environmentObject(toastQueue)
-                .environmentObject(bbQueue)
+                .environmentObject(feedbackRouter)
                 .preferredColorScheme(store.colorScheme)
         }
     }

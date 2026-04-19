@@ -140,6 +140,7 @@ struct ModelStateTests {
     func emptyFeedbackCarriesSemanticKind() {
         let feedback = AppFeedback.empty(kind: .noSearchResult)
 
+        #expect(feedback.level == .neutral)
         #expect(feedback.emptyKind == .noSearchResult)
         #expect(feedback.kind == .empty(.noSearchResult))
         #expect(feedback.title == nil)
@@ -184,5 +185,53 @@ struct ModelStateTests {
         #expect(context.mode == .progress)
         #expect(context.label == "上传中")
         #expect(context.progress == 0.45)
+    }
+
+    @Test("AppFeedbackRouter 将 low feedback 路由到 toast")
+    func appFeedbackRouterRoutesLowFeedbackToToast() {
+        let router = AppFeedbackRouter(duplicateWindow: 0.2)
+
+        router.show(.low(message: "已复制邀请码"))
+
+        #expect(router.topToasts.count == 1)
+        #expect(router.centerToasts.isEmpty)
+        #expect(router.currentBannerID == nil)
+        #expect(router.isBannerActive == false)
+    }
+
+    @Test("AppFeedbackRouter 将 high feedback 路由到 banner")
+    func appFeedbackRouterRoutesHighFeedbackToBanner() {
+        let router = AppFeedbackRouter(duplicateWindow: 0.2)
+
+        router.show(.high(message: "保存成功"))
+
+        #expect(router.topToasts.isEmpty)
+        #expect(router.centerToasts.isEmpty)
+        #expect(router.currentBannerID != nil)
+        #expect(router.isBannerActive)
+    }
+
+    @Test("AppFeedbackRouter 在 banner active 时丢弃 toast")
+    func appFeedbackRouterDropsToastWhenBannerIsActive() {
+        let router = AppFeedbackRouter(duplicateWindow: 0.2)
+
+        router.show(.high(message: "保存成功"))
+        router.show(.low(message: "已复制邀请码"))
+
+        #expect(router.currentBannerID != nil)
+        #expect(router.topToasts.isEmpty)
+        #expect(router.centerToasts.isEmpty)
+    }
+
+    @Test("AppFeedbackRouter 在短时间窗口内抑制重复消息")
+    func appFeedbackRouterSuppressesDuplicateMessages() {
+        let router = AppFeedbackRouter(duplicateWindow: 5)
+
+        router.show(.low(message: "重复消息"))
+        router.show(.low(message: "重复消息"))
+
+        #expect(router.topToasts.count == 1)
+        #expect(router.centerToasts.isEmpty)
+        #expect(router.currentBannerID == nil)
     }
 }

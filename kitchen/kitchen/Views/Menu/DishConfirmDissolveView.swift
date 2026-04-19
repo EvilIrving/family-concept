@@ -1,25 +1,24 @@
 import SwiftUI
-import Vision
-import CoreImage
-import CoreImage.CIFilterBuiltins
 
+/// 识别阶段过渡动画：接收取景框子图与异步成品图生成器，在一次连续动画内完成
+/// "半透明→不透明 + 粒子扩散 + 揭示成品图 + 缩放到 80% 主体尺寸"。
 struct DishConfirmDissolveView: View {
-    let image: UIImage
-    let onFinish: () -> Void
+    let sourceImage: UIImage
+    let produceFinal: @Sendable () async -> UIImage
+    let onFinish: (UIImage) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var foreground: UIImage?
+    @State private var finalImage: UIImage?
     @State private var particles: [Particle] = []
     @State private var phase: Phase = .identifying
     @State private var startTime: Date = .now
-    @State private var glowOpacity: CGFloat = 0
-    @State private var glowScale: CGFloat = 1
     @State private var bgOpacity: CGFloat = 1
-    @State private var fgScale: CGFloat = 1
-    @State private var scanOpacity: CGFloat = 0.6
+    @State private var fgOpacity: CGFloat = 0
+    @State private var fgScale: CGFloat = 0.92
+    @State private var backdropOpacity: CGFloat = 0.5
 
-    private enum Phase { case identifying, glowing, dissolving, done }
+    private enum Phase { case identifying, revealing, done }
 
     private struct Particle: Identifiable {
         let id: Int
@@ -34,17 +33,19 @@ struct DishConfirmDissolveView: View {
         GeometryReader { geo in
             let stage = stageSize(in: geo.size)
             ZStack {
-                AppComponentColor.Cropper.backdrop.ignoresSafeArea()
+                AppComponentColor.Cropper.backdrop
+                    .opacity(backdropOpacity)
+                    .ignoresSafeArea()
 
                 ZStack {
-                    Image(uiImage: image)
+                    Image(uiImage: sourceImage)
                         .resizable()
                         .scaledToFill()
                         .frame(width: stage.width, height: stage.height)
                         .opacity(bgOpacity)
                         .clipped()
 
-                    if phase == .dissolving {
+                    if phase == .identifying {
                         TimelineView(.animation) { ctx in
                             Canvas { gctx, size in
                                 let t = ctx.date.timeIntervalSince(startTime)
@@ -55,38 +56,13 @@ struct DishConfirmDissolveView: View {
                         }
                     }
 
-                    if phase == .identifying {
-                        LinearGradient(
-                            colors: [.clear, Color.white.opacity(0.18), .clear],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(width: stage.width, height: stage.height * 0.35)
-                        .offset(y: stage.height * (scanOpacity - 0.5))
-                        .blendMode(.plusLighter)
-                        .allowsHitTesting(false)
-                    }
-
-                    if let fg = foreground, phase != .identifying {
+                    if let fg = finalImage, phase != .identifying {
                         Image(uiImage: fg)
                             .resizable()
-                            .scaledToFill()
+                            .scaledToFit()
                             .frame(width: stage.width, height: stage.height)
+                            .opacity(fgOpacity)
                             .scaleEffect(fgScale)
-                            .clipped()
-                    }
-
-                    if let fg = foreground, phase == .glowing || phase == .dissolving {
-                        Image(uiImage: fg)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: stage.width, height: stage.height)
-                            .colorMultiply(.white)
-                            .blur(radius: 18)
-                            .opacity(glowOpacity)
-                            .scaleEffect(glowScale)
-                            .blendMode(.plusLighter)
-                            .allowsHitTesting(false)
                     }
                 }
                 .frame(width: stage.width, height: stage.height)
@@ -95,11 +71,7 @@ struct DishConfirmDissolveView: View {
             }
         }
         .task {
-            if reduceMotion {
-                onFinish()
-                return
-            }
-            await runSequence()
+            try? await runSequence()
         }
     }
 
@@ -115,66 +87,64 @@ struct DishConfirmDissolveView: View {
 
     // MARK: - Sequence
 
-    private func runSequence() async {
-        withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
-            scanOpacity = 0.95
+    private func runSequence() async throws {
+        if reduceMotion {
+            let result = await produceFinal()
+            onFinish(result)
+            return
         }
 
-        async let fg = Self.extractForeground(from: image)
-        async let dust = Self.sampleParticles(from: image)
-        let (extracted, sampled) = await (fg, dust)
-        foreground = extracted
-        particles = sampled
-
-        phase = .glowing
-        glowOpacity = 0
-        glowScale = 0.96
-        withAnimation(.easeOut(duration: 0.3)) {
-            glowOpacity = 1.0
-            glowScale = 1.04
+        withAnimation(.easeInOut(duration: 0.25)) {
+            backdropOpacity = 1.0
         }
-        try? await Task.sleep(nanoseconds: 300_000_000)
-        withAnimation(.easeInOut(duration: 0.2)) {
-            glowScale = 1.0
-        }
-        try? await Task.sleep(nanoseconds: 180_000_000)
 
+        async let visionResult: UIImage = produceFinal()
+        async let sampled: [Particle] = Self.sampleParticles(from: sourceImage)
+        particles = await sampled
         startTime = .now
-        phase = .dissolving
-        withAnimation(.easeIn(duration: 0.7)) { bgOpacity = 0 }
-        withAnimation(.easeOut(duration: 0.9).delay(0.4)) { glowOpacity = 0 }
-        withAnimation(.easeOut(duration: 0.6).delay(0.7)) { fgScale = 1.02 }
-        try? await Task.sleep(nanoseconds: 1_350_000_000)
+
+        let minParticleDuration: UInt64 = 700_000_000
+        async let wait: () = Task.sleep(nanoseconds: minParticleDuration)
+        let (_, extracted) = try await (wait, visionResult)
+        finalImage = extracted
+
+        phase = .revealing
+        withAnimation(.easeIn(duration: 0.45)) {
+            bgOpacity = 0
+        }
+        withAnimation(.easeOut(duration: 0.5).delay(0.1)) {
+            fgOpacity = 1
+        }
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.78).delay(0.1)) {
+            fgScale = 1.0
+        }
+        try? await Task.sleep(nanoseconds: 800_000_000)
 
         phase = .done
-        withAnimation(.easeInOut(duration: 0.15)) { fgScale = 1.0 }
-        try? await Task.sleep(nanoseconds: 150_000_000)
-        onFinish()
+        onFinish(extracted)
     }
 
     // MARK: - Canvas
 
     private func drawDust(_ gctx: GraphicsContext, size: CGSize, elapsed: TimeInterval) {
-        let life: Double = 1.25
+        let life: Double = 1.4
         let sx = size.width / CGFloat(Self.sampleGridSize.width)
         let sy = size.height / CGFloat(Self.sampleGridSize.height)
         let cx = size.width / 2
         let cy = size.height / 2
 
         for p in particles {
-            let delay = Double(p.seed) * 0.18
+            let delay = Double(p.seed) * 0.2
             let age = elapsed - delay
             guard age > 0 else { continue }
             if age > life { continue }
             let n = age / life
-            // 扩散：先慢后快（accelerating）
             let spread = n * n
-            // 消失：先快后慢（decelerating）
             let opacity = pow(1 - n, 2) * 0.9
             let baseX = p.origin.x * sx
             let baseY = p.origin.y * sy
-            let radialX = (baseX - cx) / max(1, cx) * 48
-            let radialY = (baseY - cy) / max(1, cy) * 48
+            let radialX = (baseX - cx) / max(1, cx) * 52
+            let radialY = (baseY - cy) / max(1, cy) * 52
             let px = baseX + (radialX + p.driftX) * CGFloat(spread)
             let py = baseY + (radialY + p.driftY - 44) * CGFloat(spread)
             let r: CGFloat = 1.1 + (1 - CGFloat(n)) * 0.7
@@ -185,7 +155,7 @@ struct DishConfirmDissolveView: View {
 
     // MARK: - Data prep
 
-    private static let sampleGridSize = (width: 72, height: 48)
+    nonisolated private static let sampleGridSize = (width: 72, height: 72)
 
     private static func sampleParticles(from image: UIImage) async -> [Particle] {
         await Task.detached(priority: .userInitiated) {
@@ -230,29 +200,6 @@ struct DishConfirmDissolveView: View {
                 }
             }
             return out
-        }.value
-    }
-
-    private static func extractForeground(from image: UIImage) async -> UIImage? {
-        await Task.detached(priority: .userInitiated) {
-            guard let cg = image.cgImage else { return nil }
-            let handler = VNImageRequestHandler(cgImage: cg, options: [:])
-            let request = VNGenerateForegroundInstanceMaskRequest()
-            do {
-                try handler.perform([request])
-                guard let obs = request.results?.first else { return nil }
-                let buffer = try obs.generateMaskedImage(
-                    ofInstances: obs.allInstances,
-                    from: handler,
-                    croppedToInstancesExtent: false
-                )
-                let ci = CIImage(cvPixelBuffer: buffer)
-                let ctx = CIContext()
-                guard let cgOut = ctx.createCGImage(ci, from: ci.extent) else { return nil }
-                return UIImage(cgImage: cgOut)
-            } catch {
-                return nil
-            }
         }.value
     }
 }

@@ -3,7 +3,7 @@ import UIKit
 
 struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
-    @EnvironmentObject private var toastQueue: ToastQueue
+    @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
     @State private var notificationsEnabled = true
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
     @AppStorage("themeMode") private var themeMode = "system"
@@ -31,7 +31,7 @@ struct SettingsView: View {
 
                             Button {
                                 UIPasteboard.general.string = kitchen.inviteCode
-                                toastQueue.showToast(text: "已复制邀请码", placement: .center)
+                                feedbackRouter.show(.low(message: "已复制邀请码"), hint: .centerToast)
                             } label: {
                                 HStack(spacing: AppSpacing.sm) {
                                     VStack(alignment: .leading, spacing: AppSpacing.xxs) {
