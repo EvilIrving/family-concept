@@ -14,9 +14,10 @@ final class AppFeedbackRouter: ObservableObject {
     @Published private(set) var currentBannerID: UUID?
 
     private var toastStore: [UUID: AppToastData] = [:]
-    private var bannerStore: [UUID: BottomBannerData] = [:]
-    private var lastMessage = ""
-    private var lastMessageDate = Date.distantPast
+    private var bannerStore: [UUID: TopBannerData] = [:]
+    private var bannerSeverityStore: [UUID: AppFeedbackSeverity] = [:]
+    private var lastFingerprint = ""
+    private var lastFingerprintDate = Date.distantPast
     private let duplicateWindow: TimeInterval
 
     init(duplicateWindow: TimeInterval = 1.5) {
@@ -27,16 +28,21 @@ final class AppFeedbackRouter: ObservableObject {
         currentBannerID != nil
     }
 
+    var currentBannerAutoDismissDuration: Duration? {
+        guard let currentBannerID else { return nil }
+        return bannerStore[currentBannerID]?.autoDismissDuration
+    }
+
     func show(_ feedback: AppFeedback, hint: AppFeedbackHint? = nil) {
         guard shouldAccept(feedback) else { return }
 
-        switch feedback.level {
-        case .high:
+        if feedback.severity.prefersBanner {
             showBanner(feedback)
-        case .low, .neutral:
-            guard isBannerActive == false else { return }
-            showToast(feedback, hint: hint)
+            return
         }
+
+        guard isBannerActive == false else { return }
+        showToast(feedback, hint: hint)
     }
 
     func dismissToast(id: UUID) {
@@ -49,6 +55,7 @@ final class AppFeedbackRouter: ObservableObject {
         guard id == nil || currentBannerID == id else { return }
         if let currentBannerID {
             bannerStore[currentBannerID] = nil
+            bannerSeverityStore[currentBannerID] = nil
         }
         withAnimation(bannerAnimation) {
             currentBannerID = nil
@@ -59,35 +66,36 @@ final class AppFeedbackRouter: ObservableObject {
         toastStore[id]
     }
 
-    fileprivate func currentBanner() -> BottomBannerData? {
+    fileprivate func currentBanner() -> TopBannerData? {
         guard let currentBannerID else { return nil }
         return bannerStore[currentBannerID]
     }
 
     private func shouldAccept(_ feedback: AppFeedback) -> Bool {
-        let message = feedback.messageText
-        guard message.isEmpty == false else { return true }
+        let fingerprint = feedback.semanticFingerprint
+        guard fingerprint.isEmpty == false else { return true }
 
         let now = Date()
-        if message == lastMessage, now.timeIntervalSince(lastMessageDate) < duplicateWindow {
+        if fingerprint == lastFingerprint, now.timeIntervalSince(lastFingerprintDate) < duplicateWindow {
             return false
         }
 
-        lastMessage = message
-        lastMessageDate = now
+        lastFingerprint = fingerprint
+        lastFingerprintDate = now
         return true
     }
 
     private func showToast(_ feedback: AppFeedback, hint: AppFeedbackHint?) {
+        let tokens = FeedbackPresentationTokens(feedback: feedback)
         let toast = AppToastData(
             text: feedback.messageText,
             duration: .seconds(2.2),
             placement: hint == .centerToast ? .center : .top,
-            showsIcon: feedback.systemImage != nil,
-            iconSystemName: feedback.systemImage,
-            feedbackLevel: feedback.level,
-            foregroundColor: feedback.level == .high ? AppSemanticColor.danger : AppSemanticColor.onPrimary,
-            backgroundColor: feedback.level == .high ? AppSemanticColor.dangerBackground : Color.black.opacity(0.82)
+            showsIcon: tokens.iconSystemName != nil,
+            iconSystemName: tokens.iconSystemName,
+            feedbackLevel: tokens.hapticLevel,
+            foregroundColor: tokens.foregroundColor,
+            backgroundColor: tokens.toastBackgroundColor
         )
 
         toastStore[toast.id] = toast
@@ -102,20 +110,28 @@ final class AppFeedbackRouter: ObservableObject {
     }
 
     private func showBanner(_ feedback: AppFeedback) {
-        let banner = BottomBannerData(
+        guard shouldReplaceCurrentBanner(with: feedback.severity) else { return }
+        let tokens = FeedbackPresentationTokens(feedback: feedback)
+        let banner = TopBannerData(
             text: feedback.messageText,
-            duration: .seconds(2.2),
-            showsIcon: feedback.systemImage != nil,
-            iconSystemName: feedback.systemImage,
-            feedbackLevel: feedback.level,
-            foregroundColor: AppSemanticColor.onPrimary,
-            backgroundColor: AppSemanticColor.infoForeground
+            autoDismissDuration: feedback.persistence == .persistent ? nil : .seconds(2.2),
+            showsIcon: tokens.iconSystemName != nil,
+            iconSystemName: tokens.iconSystemName,
+            foregroundColor: tokens.foregroundColor,
+            backgroundColor: tokens.bannerBackgroundColor
         )
 
         bannerStore[banner.id] = banner
+        bannerSeverityStore[banner.id] = feedback.severity
         withAnimation(bannerAnimation) {
             currentBannerID = banner.id
         }
+    }
+
+    private func shouldReplaceCurrentBanner(with severity: AppFeedbackSeverity) -> Bool {
+        guard let currentBannerID else { return true }
+        guard let currentSeverity = bannerSeverityStore[currentBannerID] else { return true }
+        return severity.rawValue >= currentSeverity.rawValue
     }
 
     private var toastAnimation: Animation {
@@ -133,6 +149,66 @@ private extension AppFeedback {
             return message
         }
         return title ?? ""
+    }
+
+    var semanticFingerprint: String {
+        [
+            payload.severityKey,
+            title ?? "",
+            message ?? "",
+            payload.actionIntentKey
+        ].joined(separator: "|")
+    }
+}
+
+private extension AppFeedbackPayload {
+    var severityKey: String {
+        switch severity {
+        case .info:
+            return "info"
+        case .success:
+            return "success"
+        case .warning:
+            return "warning"
+        case .error:
+            return "error"
+        }
+    }
+
+    var actionIntentKey: String {
+        actionLabel ?? ""
+    }
+}
+
+private struct FeedbackPresentationTokens {
+    let iconSystemName: String?
+    let foregroundColor: Color
+    let toastBackgroundColor: Color
+    let bannerBackgroundColor: Color
+    let hapticLevel: AppFeedbackLevel
+
+    init(feedback: AppFeedback) {
+        iconSystemName = feedback.systemImage
+        hapticLevel = feedback.severity.presentationLevel
+
+        switch feedback.severity {
+        case .info:
+            foregroundColor = AppSemanticColor.onPrimary
+            toastBackgroundColor = Color.black.opacity(0.82)
+            bannerBackgroundColor = AppSemanticColor.infoForeground
+        case .success:
+            foregroundColor = AppSemanticColor.onPrimary
+            toastBackgroundColor = AppSemanticColor.success
+            bannerBackgroundColor = AppSemanticColor.success
+        case .warning:
+            foregroundColor = AppSemanticColor.onPrimary
+            toastBackgroundColor = AppSemanticColor.dangerBackground
+            bannerBackgroundColor = AppSemanticColor.dangerBackground
+        case .error:
+            foregroundColor = AppSemanticColor.onPrimary
+            toastBackgroundColor = AppSemanticColor.dangerBackground
+            bannerBackgroundColor = AppSemanticColor.infoForeground
+        }
     }
 }
 
@@ -153,13 +229,12 @@ private struct AppToastData: Identifiable {
     var backgroundColor: Color = Color.black.opacity(0.82)
 }
 
-private struct BottomBannerData: Identifiable {
+private struct TopBannerData: Identifiable {
     let id = UUID()
     var text: String
-    var duration: Duration = .seconds(2.2)
+    var autoDismissDuration: Duration? = .seconds(2.2)
     var showsIcon: Bool = false
     var iconSystemName: String? = nil
-    var feedbackLevel: AppFeedbackLevel = .high
     var foregroundColor: Color = AppSemanticColor.onPrimary
     var backgroundColor: Color = AppSemanticColor.infoForeground
 }
@@ -177,8 +252,8 @@ final class AppFeedbackPresentationHaptics {
         notePresented(id: toast.id, level: toast.feedbackLevel)
     }
 
-    fileprivate func notePresentedBanner(_ banner: BottomBannerData) {
-        notePresented(id: banner.id, level: banner.feedbackLevel)
+    fileprivate func notePresentedBanner(_ banner: TopBannerData) {
+        notePresented(id: banner.id, level: .high)
     }
 
     func notePresented(id: UUID, level: AppFeedbackLevel) {
@@ -254,16 +329,17 @@ struct AppToastHost: ViewModifier {
                     .padding(.bottom, bottomInset)
                     .allowsHitTesting(false)
                 }
-                .overlay(alignment: .bottom) {
+                .overlay(alignment: .top) {
                     if let banner = feedbackRouter.currentBanner() {
-                        bottomBannerView(for: banner)
+                        topBannerView(for: banner)
                             .padding(.horizontal, AppSpacing.md)
-                            .padding(.bottom, bottomInset)
+                            .padding(.top, topInset)
                             .onAppear {
                                 presentationHaptics.notePresentedBanner(banner)
                             }
                             .task(id: banner.id) {
-                                try? await Task.sleep(for: banner.duration)
+                                guard let autoDismissDuration = banner.autoDismissDuration else { return }
+                                try? await Task.sleep(for: autoDismissDuration)
                                 await MainActor.run {
                                     feedbackRouter.dismissBanner(id: banner.id)
                                 }
@@ -302,7 +378,7 @@ struct AppToastHost: ViewModifier {
         .shadow(color: AppSemanticColor.shadowSubtle, radius: 16, y: 8)
     }
 
-    private func bottomBannerView(for banner: BottomBannerData) -> some View {
+    private func topBannerView(for banner: TopBannerData) -> some View {
         HStack(spacing: AppSpacing.sm) {
             if banner.showsIcon {
                 Image(systemName: banner.iconSystemName ?? "info.circle.fill")
@@ -317,7 +393,7 @@ struct AppToastHost: ViewModifier {
         .padding(.horizontal, AppSpacing.md)
         .padding(.vertical, AppSpacing.sm)
         .background(banner.backgroundColor, in: Capsule())
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .transition(.move(edge: .top).combined(with: .opacity))
         .shadow(color: AppSemanticColor.shadowSubtle, radius: 16, y: 8)
     }
 }

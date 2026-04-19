@@ -187,8 +187,8 @@ struct ModelStateTests {
         #expect(context.progress == 0.45)
     }
 
-    @Test("AppFeedbackRouter 将 low feedback 路由到 toast")
-    func appFeedbackRouterRoutesLowFeedbackToToast() {
+    @Test("AppFeedbackRouter 将 info payload 路由到 toast")
+    func appFeedbackRouterRoutesInfoPayloadToToast() {
         let router = AppFeedbackRouter(duplicateWindow: 0.2)
 
         router.show(.low(message: "已复制邀请码"))
@@ -199,23 +199,23 @@ struct ModelStateTests {
         #expect(router.isBannerActive == false)
     }
 
-    @Test("AppFeedbackRouter 将 high feedback 路由到 banner")
-    func appFeedbackRouterRoutesHighFeedbackToBanner() {
+    @Test("AppFeedbackRouter 将 success payload 路由到 toast")
+    func appFeedbackRouterRoutesSuccessPayloadToToast() {
         let router = AppFeedbackRouter(duplicateWindow: 0.2)
 
         router.show(.high(message: "保存成功"))
 
-        #expect(router.topToasts.isEmpty)
+        #expect(router.topToasts.count == 1)
         #expect(router.centerToasts.isEmpty)
-        #expect(router.currentBannerID != nil)
-        #expect(router.isBannerActive)
+        #expect(router.currentBannerID == nil)
+        #expect(router.isBannerActive == false)
     }
 
     @Test("AppFeedbackRouter 在 banner active 时丢弃 toast")
     func appFeedbackRouterDropsToastWhenBannerIsActive() {
         let router = AppFeedbackRouter(duplicateWindow: 0.2)
 
-        router.show(.high(message: "保存成功"))
+        router.show(.network(message: "保存成功"))
         router.show(.low(message: "已复制邀请码"))
 
         #expect(router.currentBannerID != nil)
@@ -233,6 +233,66 @@ struct ModelStateTests {
         #expect(router.topToasts.count == 1)
         #expect(router.centerToasts.isEmpty)
         #expect(router.currentBannerID == nil)
+    }
+
+    @Test("相同文案但不同 severity 不会被语义指纹去重")
+    func semanticFingerprintDoesNotSuppressDifferentSeverity() {
+        let router = AppFeedbackRouter(duplicateWindow: 5)
+
+        router.show(.low(message: "重复消息"))
+        let firstToastID = router.topToasts.first
+        router.show(.network(title: "重复消息", message: "重复消息"))
+
+        #expect(router.topToasts.count == 1)
+        #expect(router.topToasts.first == firstToastID)
+        #expect(router.currentBannerID != nil)
+    }
+
+    @Test("相同文案但不同 action intent 不会被语义指纹去重")
+    func semanticFingerprintDoesNotSuppressDifferentActionIntent() {
+        let router = AppFeedbackRouter(duplicateWindow: 5)
+
+        router.show(.low(message: "重复消息", actionLabel: "重试"))
+        let firstToastID = router.topToasts.first
+        router.show(.low(message: "重复消息", actionLabel: "查看"))
+
+        #expect(router.topToasts.count == 1)
+        #expect(router.topToasts.first != firstToastID)
+        #expect(router.centerToasts.count == 0)
+        #expect(router.currentBannerID == nil)
+    }
+
+    @Test("persistent error banner 不自动消失")
+    func persistentErrorBannerDoesNotAutoDismiss() {
+        let router = AppFeedbackRouter(duplicateWindow: 0.2)
+
+        router.show(.network())
+
+        #expect(router.currentBannerID != nil)
+        #expect(router.currentBannerAutoDismissDuration == nil)
+    }
+
+    @Test("低 severity banner 不能替换高 severity banner")
+    func lowerSeverityBannerDoesNotReplaceHigherSeverityBanner() throws {
+        let router = AppFeedbackRouter(duplicateWindow: 0.2)
+
+        router.show(.auth(message: "登录失效"))
+        let firstBannerID = try #require(router.currentBannerID)
+        let warningFeedback = AppFeedback(
+            level: .high,
+            kind: .generic,
+            payload: AppFeedbackPayload(
+                title: "提醒",
+                message: "请稍后处理",
+                icon: "exclamationmark.triangle",
+                severity: .warning,
+                persistence: .persistent
+            )
+        )
+
+        router.show(warningFeedback)
+
+        #expect(router.currentBannerID == firstBannerID)
     }
 
     @Test("展示态 high feedback 只在首次展示时触发一次震动")
@@ -265,14 +325,25 @@ struct ModelStateTests {
     func droppedOrSuppressedFeedbackNeverReachPresentationHaptics() throws {
         let router = AppFeedbackRouter(duplicateWindow: 5)
 
-        router.show(.high(message: "保存成功"))
+        router.show(.network(message: "保存成功"))
         router.show(.low(message: "已复制邀请码"))
-        router.show(.high(message: "重复消息"))
+        router.show(.auth(message: "重复消息"))
         let firstBannerID = try #require(router.currentBannerID)
         router.dismissBanner(id: firstBannerID)
-        router.show(.high(message: "重复消息"))
+        router.show(.auth(message: "重复消息"))
 
         #expect(router.topToasts.isEmpty)
         #expect(router.currentBannerID == nil)
+    }
+
+    @Test("兼容工厂方法仍然构建 payload 语义")
+    func compatibilityFactoriesBuildPayloadSemantics() {
+        let low = AppFeedback.low(message: "已复制邀请码")
+        let high = AppFeedback.high(message: "保存成功")
+
+        #expect(low.payload.severity == .info)
+        #expect(low.payload.persistence == .autoDismiss)
+        #expect(high.payload.severity == .success)
+        #expect(high.payload.persistence == .autoDismiss)
     }
 }

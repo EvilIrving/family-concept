@@ -6,22 +6,58 @@ enum AppFeedbackLevel: Equatable {
     case high
 }
 
+enum AppFeedbackSeverity: Int, Equatable {
+    case info
+    case success
+    case warning
+    case error
+
+    var presentationLevel: AppFeedbackLevel {
+        switch self {
+        case .info, .success:
+            return .low
+        case .warning, .error:
+            return .high
+        }
+    }
+
+    var prefersBanner: Bool {
+        switch self {
+        case .warning, .error:
+            return true
+        case .info, .success:
+            return false
+        }
+    }
+}
+
+enum AppFeedbackPersistence: Equatable {
+    case autoDismiss
+    case persistent
+}
+
 struct AppFeedbackPayload: Equatable {
     let title: String?
     let message: String?
     let icon: String?
     let actionLabel: String?
+    let severity: AppFeedbackSeverity
+    let persistence: AppFeedbackPersistence
 
     init(
         title: String? = nil,
         message: String? = nil,
         icon: String? = nil,
-        actionLabel: String? = nil
+        actionLabel: String? = nil,
+        severity: AppFeedbackSeverity = .info,
+        persistence: AppFeedbackPersistence = .autoDismiss
     ) {
         self.title = title
         self.message = message
         self.icon = icon
         self.actionLabel = actionLabel
+        self.severity = severity
+        self.persistence = severity.prefersBanner ? persistence : .autoDismiss
     }
 }
 
@@ -56,7 +92,8 @@ struct AppFeedback: Equatable {
             payload: AppFeedbackPayload(
                 title: title,
                 message: message,
-                icon: systemImage
+                icon: systemImage,
+                severity: .info
             )
         )
     }
@@ -72,7 +109,9 @@ struct AppFeedback: Equatable {
             payload: AppFeedbackPayload(
                 title: title,
                 message: message,
-                icon: systemImage
+                icon: systemImage,
+                severity: .error,
+                persistence: .persistent
             )
         )
     }
@@ -88,7 +127,9 @@ struct AppFeedback: Equatable {
             payload: AppFeedbackPayload(
                 title: title,
                 message: message,
-                icon: systemImage
+                icon: systemImage,
+                severity: .error,
+                persistence: .persistent
             )
         )
     }
@@ -104,7 +145,8 @@ struct AppFeedback: Equatable {
             payload: AppFeedbackPayload(
                 title: title,
                 message: message,
-                icon: systemImage
+                icon: systemImage,
+                severity: .error
             )
         )
     }
@@ -122,7 +164,8 @@ struct AppFeedback: Equatable {
                 title: title,
                 message: message,
                 icon: systemImage,
-                actionLabel: actionLabel
+                actionLabel: actionLabel,
+                severity: .info
             )
         )
     }
@@ -140,7 +183,8 @@ struct AppFeedback: Equatable {
                 title: title,
                 message: message,
                 icon: systemImage,
-                actionLabel: actionLabel
+                actionLabel: actionLabel,
+                severity: .success
             )
         )
     }
@@ -162,6 +206,14 @@ struct AppFeedback: Equatable {
 
     var systemImage: String? {
         payload.icon
+    }
+
+    var severity: AppFeedbackSeverity {
+        payload.severity
+    }
+
+    var persistence: AppFeedbackPersistence {
+        payload.persistence
     }
 }
 

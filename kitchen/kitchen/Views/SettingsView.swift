@@ -75,8 +75,8 @@ struct SettingsView: View {
                 }
 //            }
         }
-        .sheet(item: memberSheetBinding, onDismiss: { modalRouter.didDismissCurrent() }) { token in
-            MemberRoleSheet(memberAccountID: token.accountID)
+        .sheet(item: modalRouteBinding, onDismiss: { modalRouter.handleDismissedCurrent() }) { route in
+            MemberRoleSheet(memberAccountID: route.token.accountID)
                 .environmentObject(store)
                 .presentationBackground(.clear)
                 .presentationDetents([.fraction(0.25)])
@@ -251,18 +251,13 @@ struct SettingsView: View {
         .frame(minHeight: 44)
     }
 
-    private var memberSheetBinding: Binding<MemberSheetToken?> {
+    private var modalRouteBinding: Binding<SettingsModalRoute?> {
         Binding(
-            get: {
-                if case .member(let token) = modalRouter.current {
-                    return token
-                }
-                return nil
-            },
-            set: { token in
-                if let token {
-                    modalRouter.present(.member(token))
-                } else if case .member = modalRouter.current {
+            get: { modalRouter.current },
+            set: { route in
+                if let route {
+                    modalRouter.present(route)
+                } else {
                     modalRouter.dismiss()
                 }
             }
@@ -270,18 +265,25 @@ struct SettingsView: View {
     }
 }
 
-private struct MemberSheetToken: Identifiable {
+private struct MemberSheetToken: Identifiable, Equatable {
     let accountID: String
     var id: String { accountID }
 }
 
-private enum SettingsModalRoute: Identifiable {
+private enum SettingsModalRoute: Identifiable, Equatable {
     case member(MemberSheetToken)
 
     var id: String {
         switch self {
         case .member(let token):
             return token.id
+        }
+    }
+
+    var token: MemberSheetToken {
+        switch self {
+        case .member(let token):
+            return token
         }
     }
 }

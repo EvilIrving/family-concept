@@ -92,18 +92,8 @@ struct OrdersView: View {
             .padding(.bottom, store.orderItems.contains(where: { $0.status != .cancelled }) ? AppSpacing.xl + AppDimension.toolbarButtonHeight : AppSpacing.xl)
             .accessibilityLabel("查看历史订单")
         }
-        .sheet(isPresented: shoppingListBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
-            ShoppingListSheet()
-                .environmentObject(store)
-                .environmentObject(feedbackRouter)
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.hidden)
-        }
-        .sheet(isPresented: historyBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
-            OrderHistorySheet()
-            .environmentObject(store)
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.hidden)
+        .sheet(item: modalRouteBinding, onDismiss: { modalRouter.handleDismissedCurrent() }) { route in
+            ordersSheet(for: route)
         }
     }
 
@@ -172,18 +162,30 @@ struct OrdersView: View {
         "查看采购清单"
     }
 
-    private var shoppingListBinding: Binding<Bool> {
+    @ViewBuilder
+    private func ordersSheet(for route: OrdersModalRoute) -> some View {
+        switch route {
+        case .shoppingList:
+            ShoppingListSheet()
+                .environmentObject(store)
+                .environmentObject(feedbackRouter)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.hidden)
+        case .history:
+            OrderHistorySheet()
+                .environmentObject(store)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.hidden)
+        }
+    }
+
+    private var modalRouteBinding: Binding<OrdersModalRoute?> {
         Binding(
-            get: {
-                if case .shoppingList = modalRouter.current {
-                    return true
-                }
-                return false
-            },
-            set: { isPresented in
-                if isPresented {
-                    modalRouter.present(.shoppingList)
-                } else if case .shoppingList = modalRouter.current {
+            get: { modalRouter.current },
+            set: { route in
+                if let route {
+                    modalRouter.present(route)
+                } else {
                     modalRouter.dismiss()
                 }
             }
@@ -206,7 +208,7 @@ struct OrdersView: View {
     }
 }
 
-private enum OrdersModalRoute: Identifiable {
+private enum OrdersModalRoute: Identifiable, Equatable {
     case shoppingList
     case history
 
@@ -217,26 +219,6 @@ private enum OrdersModalRoute: Identifiable {
         case .history:
             return "history"
         }
-    }
-}
-
-private extension OrdersView {
-    var historyBinding: Binding<Bool> {
-        Binding(
-            get: {
-                if case .history = modalRouter.current {
-                    return true
-                }
-                return false
-            },
-            set: { isPresented in
-                if isPresented {
-                    modalRouter.present(.history)
-                } else if case .history = modalRouter.current {
-                    modalRouter.dismiss()
-                }
-            }
-        )
     }
 }
 
