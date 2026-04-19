@@ -14,6 +14,7 @@ struct ContentView: View {
             }
         }
         .appPageBackground()
+        .appToastHost()
         .task {
             await store.bootstrap()
         }

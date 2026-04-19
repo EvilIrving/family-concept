@@ -4,8 +4,9 @@ import LinkPresentation
 
 struct OrdersView: View {
     @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var toastQueue: ToastQueue
+    @EnvironmentObject private var bbQueue: BBQueue
     @StateObject private var modalRouter = ModalRouter<OrdersModalRoute>()
-    @State private var toast: AppToastData?
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -57,14 +58,14 @@ struct OrdersView: View {
                                         onReduce: {
                                             Task {
                                                 if await store.reduceWaitingItemQuantity(for: item) {
-                                                    toast = AppToastData(message: "已减少 \(item.dishName) 1 份")
+                                                    bbQueue.showBottomBanner(text: "已减少 \(item.dishName) 1 份")
                                                 }
                                             }
                                         },
                                         onCancel: {
                                             Task {
                                                 if await store.cancelWaitingItems(for: item) {
-                                                    toast = AppToastData(message: "已取消 \(item.dishName)")
+                                                    bbQueue.showBottomBanner(text: "已取消 \(item.dishName)")
                                                 }
                                             }
                                         }
@@ -81,7 +82,7 @@ struct OrdersView: View {
                                     Task {
                                         let didFinish = await store.finishOrder()
                                         if didFinish {
-                                            toast = AppToastData(message: "这顿收好了")
+                                            bbQueue.showBottomBanner(text: "这顿收好了")
                                         }
                                     }
                                 }
@@ -112,6 +113,7 @@ struct OrdersView: View {
         .sheet(isPresented: shoppingListBinding, onDismiss: { modalRouter.didDismissCurrent() }) {
             ShoppingListSheet()
                 .environmentObject(store)
+                .environmentObject(toastQueue)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
         }
@@ -121,7 +123,6 @@ struct OrdersView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.hidden)
         }
-        .appToast($toast)
     }
 
     private var waitingCount: Int {
@@ -249,9 +250,9 @@ private extension OrdersView {
 
 private struct ShoppingListSheet: View {
     @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var toastQueue: ToastQueue
     @Environment(\.dismiss) private var dismiss
     @State private var exportPayload: SharePayload?
-    @State private var toast: AppToastData?
 
     var body: some View {
         AppSheetContainer(
@@ -287,12 +288,19 @@ private struct ShoppingListSheet: View {
         .sheet(item: $exportPayload) { payload in
             ActivityShareSheet(items: payload.items)
         }
-        .appToast($toast)
     }
 
     private func exportShoppingList() {
         guard let image = renderShoppingListImage() else {
-            toast = AppToastData(message: "导出失败")
+            toastQueue.showToast(
+                text: "采购清单图片生成失败，请稍后重试。",
+                duration: .seconds(3),
+                placement: .center,
+                showsIcon: true,
+                iconSystemName: "xmark.octagon.fill",
+                foregroundColor: AppSemanticColor.danger,
+                backgroundColor: AppSemanticColor.dangerBackground
+            )
             return
         }
         exportPayload = SharePayload(items: [ShoppingListShareItemSource(image: image)])

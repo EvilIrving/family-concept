@@ -2,8 +2,8 @@ import SwiftUI
 
 struct MenuCartSheet: View {
     @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var bbQueue: BBQueue
     @Environment(\.dismiss) private var dismiss
-    @State private var toast: AppToastData?
 
     var body: some View {
         AppSheetContainer(
@@ -15,7 +15,7 @@ struct MenuCartSheet: View {
                 Task {
                     await store.submitCart()
                     guard store.error == nil else { return }
-                    toast = AppToastData(message: "已下单")
+                    bbQueue.showBottomBanner(text: "已下单")
                     dismiss()
                 }
             },
@@ -64,6 +64,5 @@ struct MenuCartSheet: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .appToast($toast)
     }
 }

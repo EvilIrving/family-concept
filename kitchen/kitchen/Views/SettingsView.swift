@@ -3,10 +3,10 @@ import UIKit
 
 struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var toastQueue: ToastQueue
     @State private var notificationsEnabled = true
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
     @AppStorage("themeMode") private var themeMode = "system"
-    @State private var toast: AppToastData?
     @StateObject private var modalRouter = ModalRouter<SettingsModalRoute>()
 
     var body: some View {
@@ -31,7 +31,7 @@ struct SettingsView: View {
 
                             Button {
                                 UIPasteboard.general.string = kitchen.inviteCode
-                                toast = AppToastData(message: "已复制邀请码")
+                                toastQueue.showToast(text: "已复制邀请码", placement: .center)
                             } label: {
                                 HStack(spacing: AppSpacing.sm) {
                                     VStack(alignment: .leading, spacing: AppSpacing.xxs) {
@@ -75,7 +75,6 @@ struct SettingsView: View {
                 }
 //            }
         }
-        .appToast($toast)
         .sheet(item: memberSheetBinding, onDismiss: { modalRouter.didDismissCurrent() }) { token in
             MemberRoleSheet(memberAccountID: token.accountID)
                 .environmentObject(store)

@@ -3,6 +3,8 @@ import PhotosUI
 
 struct MenuView: View {
     @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var toastQueue: ToastQueue
+    @EnvironmentObject private var bbQueue: BBQueue
     @StateObject private var modalRouter = ModalRouter<MenuModalRoute>()
     @StateObject private var imageCoordinator = DishImageCoordinator()
 
@@ -11,7 +13,6 @@ struct MenuView: View {
     @State private var selectedCategory = "全部"
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var addDishDraft = AddDishDraft()
-    @State private var toast: AppToastData?
     @State private var dishPendingArchive: Dish?
     @State private var visibleDishCount = 12
     @FocusState private var focusedField: MenuField?
@@ -122,7 +123,6 @@ struct MenuView: View {
                 }
             )
         }
-        .appToast($toast)
         .confirmationDialog(
             "删除后会归档该菜品",
             isPresented: archiveDialogBinding,
@@ -132,7 +132,15 @@ struct MenuView: View {
                 guard let dish = dishPendingArchive else { return }
                 Task {
                     await store.archiveDish(id: dish.id)
-                    toast = AppToastData(message: "已删除 \(dish.name)")
+                    toastQueue.showToast(
+                        text: "\(dish.name) 已移入归档，可在后续补充撤销能力。",
+                        duration: .seconds(3),
+                        placement: .center,
+                        showsIcon: true,
+                        iconSystemName: "exclamationmark.triangle.fill",
+                        foregroundColor: AppSemanticColor.textPrimary,
+                        backgroundColor: AppSemanticColor.warningBackground
+                    )
                     dishPendingArchive = nil
                 }
             }
@@ -284,9 +292,9 @@ struct MenuView: View {
             resetAddDishDraft()
             modalRouter.dismiss()
             if editingDishID == nil {
-                toast = AppToastData(message: "已新增 \(savedName)")
+                bbQueue.showBottomBanner(text: "已新增 \(savedName)")
             } else {
-                toast = AppToastData(message: "已更新 \(savedName)")
+                bbQueue.showBottomBanner(text: "已更新 \(savedName)")
             }
         }
     }
