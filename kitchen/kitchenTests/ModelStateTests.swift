@@ -234,4 +234,45 @@ struct ModelStateTests {
         #expect(router.centerToasts.isEmpty)
         #expect(router.currentBannerID == nil)
     }
+
+    @Test("展示态 high feedback 只在首次展示时触发一次震动")
+    func presentationHapticsFireOnceForDisplayedHighFeedback() {
+        var triggeredLevels: [AppFeedbackLevel] = []
+        let haptics = AppFeedbackPresentationHaptics { level in
+            triggeredLevels.append(level)
+        }
+        let presentationID = UUID()
+
+        haptics.notePresented(id: presentationID, level: .high)
+        haptics.notePresented(id: presentationID, level: .high)
+
+        #expect(triggeredLevels == [.high])
+    }
+
+    @Test("展示态 low feedback 不触发震动")
+    func presentationHapticsDoNotFireForDisplayedLowFeedback() {
+        var triggeredLevels: [AppFeedbackLevel] = []
+        let haptics = AppFeedbackPresentationHaptics { level in
+            triggeredLevels.append(level)
+        }
+
+        haptics.notePresented(id: UUID(), level: .low)
+
+        #expect(triggeredLevels.isEmpty)
+    }
+
+    @Test("被 router 丢弃或抑制的 feedback 不触发展示震动")
+    func droppedOrSuppressedFeedbackNeverReachPresentationHaptics() throws {
+        let router = AppFeedbackRouter(duplicateWindow: 5)
+
+        router.show(.high(message: "保存成功"))
+        router.show(.low(message: "已复制邀请码"))
+        router.show(.high(message: "重复消息"))
+        let firstBannerID = try #require(router.currentBannerID)
+        router.dismissBanner(id: firstBannerID)
+        router.show(.high(message: "重复消息"))
+
+        #expect(router.topToasts.isEmpty)
+        #expect(router.currentBannerID == nil)
+    }
 }

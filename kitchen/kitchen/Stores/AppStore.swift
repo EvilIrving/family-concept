@@ -177,7 +177,6 @@ final class AppStore: ObservableObject {
     func refreshOrderItems() async {
         guard let kitchen else { return }
         do {
-            let previousItems = orderItems
             let result = try await apiClient.fetchOpenOrder(
                 kitchenID: kitchen.id, authToken: authToken
             )
@@ -188,14 +187,12 @@ final class AppStore: ObservableObject {
                     createdAt: order.createdAt, finishedAt: order.finishedAt
                 )
                 self.orderItems = order.items ?? []
-                triggerOrderHaptics(previousItems: previousItems, updatedItems: self.orderItems)
             } else {
                 self.currentOrder = nil
                 self.orderItems = []
             }
         } catch {
             consumeError(error)
-            HapticManager.shared.trigger(.error)
         }
     }
 
@@ -503,10 +500,8 @@ final class AppStore: ObservableObject {
                 id: itemID, status: next, authToken: authToken
             )
             orderItems[index] = updated
-            HapticManager.shared.trigger(updated.status == .done ? .dishCompleted : .statusChanged)
         } catch {
             consumeError(error)
-            HapticManager.shared.trigger(.error)
         }
     }
 
@@ -534,7 +529,6 @@ final class AppStore: ObservableObject {
             return true
         } catch {
             consumeError(error)
-            HapticManager.shared.trigger(.error)
             return false
         }
     }
@@ -554,7 +548,6 @@ final class AppStore: ObservableObject {
             return true
         } catch {
             consumeError(error)
-            HapticManager.shared.trigger(.error)
             return false
         }
     }
@@ -684,15 +677,6 @@ final class AppStore: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "authToken")
         UserDefaults.standard.removeObject(forKey: "accountID")
         UserDefaults.standard.removeObject(forKey: "nickName")
-    }
-
-    private func triggerOrderHaptics(previousItems: [OrderItem], updatedItems: [OrderItem]) {
-        let previousIDs = Set(previousItems.map(\.id))
-        let hasNewItems = updatedItems.contains { !previousIDs.contains($0.id) }
-
-        if hasNewItems {
-            HapticManager.shared.trigger(.newDishAdded)
-        }
     }
 
     private func applyOrderItemUpdate(_ updated: OrderItem) {

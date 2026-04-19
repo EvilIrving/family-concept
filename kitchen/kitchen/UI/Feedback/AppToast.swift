@@ -85,6 +85,7 @@ final class AppFeedbackRouter: ObservableObject {
             placement: hint == .centerToast ? .center : .top,
             showsIcon: feedback.systemImage != nil,
             iconSystemName: feedback.systemImage,
+            feedbackLevel: feedback.level,
             foregroundColor: feedback.level == .high ? AppSemanticColor.danger : AppSemanticColor.onPrimary,
             backgroundColor: feedback.level == .high ? AppSemanticColor.dangerBackground : Color.black.opacity(0.82)
         )
@@ -106,6 +107,7 @@ final class AppFeedbackRouter: ObservableObject {
             duration: .seconds(2.2),
             showsIcon: feedback.systemImage != nil,
             iconSystemName: feedback.systemImage,
+            feedbackLevel: feedback.level,
             foregroundColor: AppSemanticColor.onPrimary,
             backgroundColor: AppSemanticColor.infoForeground
         )
@@ -146,6 +148,7 @@ private struct AppToastData: Identifiable {
     var placement: Placement = .top
     var showsIcon: Bool = false
     var iconSystemName: String? = nil
+    var feedbackLevel: AppFeedbackLevel = .low
     var foregroundColor: Color = AppSemanticColor.onPrimary
     var backgroundColor: Color = Color.black.opacity(0.82)
 }
@@ -156,12 +159,48 @@ private struct BottomBannerData: Identifiable {
     var duration: Duration = .seconds(2.2)
     var showsIcon: Bool = false
     var iconSystemName: String? = nil
+    var feedbackLevel: AppFeedbackLevel = .high
     var foregroundColor: Color = AppSemanticColor.onPrimary
     var backgroundColor: Color = AppSemanticColor.infoForeground
 }
 
+@MainActor
+final class AppFeedbackPresentationHaptics {
+    private var firedPresentationIDs: Set<UUID> = []
+    private let perform: @MainActor (AppFeedbackLevel) -> Void
+
+    init(perform: @MainActor @escaping (AppFeedbackLevel) -> Void = AppFeedbackPresentationHaptics.performDefaultHaptic) {
+        self.perform = perform
+    }
+
+    fileprivate func notePresentedToast(_ toast: AppToastData) {
+        notePresented(id: toast.id, level: toast.feedbackLevel)
+    }
+
+    fileprivate func notePresentedBanner(_ banner: BottomBannerData) {
+        notePresented(id: banner.id, level: banner.feedbackLevel)
+    }
+
+    func notePresented(id: UUID, level: AppFeedbackLevel) {
+        guard firedPresentationIDs.contains(id) == false else { return }
+        firedPresentationIDs.insert(id)
+        guard level == .high else { return }
+        perform(level)
+    }
+
+    private static func performDefaultHaptic(for level: AppFeedbackLevel) {
+        switch level {
+        case .high:
+            HapticManager.shared.triggerMediumImpact()
+        case .low, .neutral:
+            break
+        }
+    }
+}
+
 struct AppToastHost: ViewModifier {
     @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
+    @State private var presentationHaptics = AppFeedbackPresentationHaptics()
 
     func body(content: Content) -> some View {
         GeometryReader { proxy in
@@ -175,6 +214,9 @@ struct AppToastHost: ViewModifier {
                             if let toast = feedbackRouter.toast(for: id) {
                                 toastView(for: toast)
                                     .frame(maxWidth: .infinity)
+                                    .onAppear {
+                                        presentationHaptics.notePresentedToast(toast)
+                                    }
                                     .task(id: toast.id) {
                                         try? await Task.sleep(for: toast.duration)
                                         await MainActor.run {
@@ -194,6 +236,9 @@ struct AppToastHost: ViewModifier {
                             if let toast = feedbackRouter.toast(for: id) {
                                 toastView(for: toast)
                                     .frame(maxWidth: .infinity)
+                                    .onAppear {
+                                        presentationHaptics.notePresentedToast(toast)
+                                    }
                                     .task(id: toast.id) {
                                         try? await Task.sleep(for: toast.duration)
                                         await MainActor.run {
@@ -214,6 +259,9 @@ struct AppToastHost: ViewModifier {
                         bottomBannerView(for: banner)
                             .padding(.horizontal, AppSpacing.md)
                             .padding(.bottom, bottomInset)
+                            .onAppear {
+                                presentationHaptics.notePresentedBanner(banner)
+                            }
                             .task(id: banner.id) {
                                 try? await Task.sleep(for: banner.duration)
                                 await MainActor.run {

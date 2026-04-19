@@ -1,18 +1,11 @@
 import UIKit
 
-enum HapticEvent {
-    case newDishAdded
-    case dishCompleted
-    case statusChanged
-    case error
-}
-
 @MainActor
 final class HapticManager {
     static let shared = HapticManager()
 
     private let defaults: UserDefaults
-    private let heavyImpact = UIImpactFeedbackGenerator(style: .heavy)
+    private let lightImpact = UIImpactFeedbackGenerator(style: .light)
     private let mediumImpact = UIImpactFeedbackGenerator(style: .medium)
     private let notification = UINotificationFeedbackGenerator()
 
@@ -21,27 +14,26 @@ final class HapticManager {
         prepareAll()
     }
 
-    func trigger(_ event: HapticEvent) {
+    func triggerLightImpact() {
         guard defaults.object(forKey: "hapticsEnabled") as? Bool ?? true else { return }
+        lightImpact.impactOccurred(intensity: 0.8)
+        lightImpact.prepare()
+    }
 
-        switch event {
-        case .newDishAdded:
-            heavyImpact.impactOccurred(intensity: 1.0)
-            heavyImpact.prepare()
-        case .dishCompleted:
-            notification.notificationOccurred(.success)
-            notification.prepare()
-        case .statusChanged:
-            mediumImpact.impactOccurred(intensity: 0.85)
-            mediumImpact.prepare()
-        case .error:
-            notification.notificationOccurred(.error)
-            notification.prepare()
-        }
+    func triggerMediumImpact() {
+        guard defaults.object(forKey: "hapticsEnabled") as? Bool ?? true else { return }
+        mediumImpact.impactOccurred(intensity: 0.85)
+        mediumImpact.prepare()
+    }
+
+    func triggerErrorNotification() {
+        guard defaults.object(forKey: "hapticsEnabled") as? Bool ?? true else { return }
+        notification.notificationOccurred(.error)
+        notification.prepare()
     }
 
     private func prepareAll() {
-        heavyImpact.prepare()
+        lightImpact.prepare()
         mediumImpact.prepare()
         notification.prepare()
     }
