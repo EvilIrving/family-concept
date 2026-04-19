@@ -11,16 +11,10 @@ struct OrderHistorySheet: View {
             dismissTitle: "关闭",
             onDismiss: { dismiss() }
         ) {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: AppSpacing.sm) {
-                    if store.orderHistory.isEmpty {
-                        Text("还没有历史记录")
-                            .font(AppTypography.body)
-                            .foregroundStyle(AppSemanticColor.textSecondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, AppSpacing.lg)
-                    } else {
-                        ForEach(store.orderHistory) { order in
+            AppLoadingBlock(phase: historyPhase) { orders in
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: AppSpacing.sm) {
+                        ForEach(orders) { order in
                             Button {
                                 Task {
                                     if await store.fetchOrderDetail(orderID: order.id) != nil {
@@ -53,8 +47,8 @@ struct OrderHistorySheet: View {
                             .buttonStyle(.plain)
                         }
                     }
+                    .padding(.top, AppSpacing.xs)
                 }
-                .padding(.top, AppSpacing.xs)
             }
         }
         .sheet(item: historyDetailBinding, onDismiss: { store.selectedOrderDetail = nil }) { _ in
@@ -67,6 +61,13 @@ struct OrderHistorySheet: View {
 
     private func orderTitle(_ order: OrderHistoryEntry) -> String {
         displayOrderDate(order.finishedAt) ?? "已收好的这一顿"
+    }
+
+    private var historyPhase: LoadingPhase<[OrderHistoryEntry]> {
+        if store.orderHistory.isEmpty {
+            return .failure(.empty(kind: .noData, title: "还没有历史记录"), retainedValue: nil)
+        }
+        return .success(store.orderHistory)
     }
 
     private var historyDetailBinding: Binding<HistoryDetailToken?> {

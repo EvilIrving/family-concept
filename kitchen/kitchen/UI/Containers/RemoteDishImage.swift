@@ -76,6 +76,8 @@ extension RemoteDishImage {
             do {
                 let uiImage = try await RemoteDishImagePipeline.shared.fetchImage(from: url)
                 phase = .success(Image(uiImage: uiImage))
+            } catch RemoteDishImagePipeline.PipelineError.missingResource {
+                phase = .failure(.empty(kind: .missingResource), retainedValue: retainedValue)
             } catch {
                 if (error as? URLError)?.code == .cancelled {
                     return
@@ -91,6 +93,11 @@ extension RemoteDishImage {
 
 actor RemoteDishImagePipeline {
     static let shared = RemoteDishImagePipeline()
+
+    enum PipelineError: Error {
+        case missingResource
+        case badResponse
+    }
 
     private let cache = NSCache<NSURL, UIImage>()
     private let maxConcurrentLoads = 6
@@ -121,12 +128,22 @@ actor RemoteDishImagePipeline {
         let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30)
         let (data, response) = try await URLSession.shared.data(for: request)
 
-        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+        guard let http = response as? HTTPURLResponse else {
+            throw PipelineError.badResponse
+        }
+
+        if http.statusCode == 404 || http.statusCode == 410 {
             #if DEBUG
-            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
-            print("RemoteDishImage load failed: \(url.absoluteString) status=\(statusCode)")
+            print("RemoteDishImage missing resource: \(url.absoluteString) status=\(http.statusCode)")
             #endif
-            throw URLError(.badServerResponse)
+            throw PipelineError.missingResource
+        }
+
+        guard (200...299).contains(http.statusCode) else {
+            #if DEBUG
+            print("RemoteDishImage load failed: \(url.absoluteString) status=\(http.statusCode)")
+            #endif
+            throw PipelineError.badResponse
         }
 
         guard let uiImage = UIImage(data: data) else {

@@ -151,16 +151,18 @@ struct MenuView: View {
     }
 
     private var menuContent: some View {
-        Group {
-            if filteredDishes.isEmpty {
+        AppLoadingBlock(
+            phase: menuPhase,
+            emptyView: { feedback in
                 MenuEmptyStateView(
-                    title: emptyMenuTitle,
-                    hint: emptySearchHint,
+                    feedback: feedback,
                     onTap: { focusedField = nil }
                 )
-            } else {
+            }
+        ) { dishes in
+            Group {
                 MenuDishGridView(
-                    dishes: visibleDishes,
+                    dishes: dishes,
                     quantityForDish: { store.cartQuantity(for: $0) },
                     onDecrease: { dish in
                         guard store.cartQuantity(for: dish.id) > 0 else { return }
@@ -350,6 +352,14 @@ struct MenuView: View {
             let matchesSearch = keyword.isEmpty || dish.name.localizedCaseInsensitiveContains(keyword)
             return matchesCategory && matchesSearch
         }
+    }
+
+    private var menuPhase: LoadingPhase<[Dish]> {
+        if filteredDishes.isEmpty {
+            let kind: AppEmptyKind = debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .noData : .noSearchResult
+            return .failure(.empty(kind: kind, title: emptyMenuTitle, message: emptySearchHint), retainedValue: nil)
+        }
+        return .success(visibleDishes)
     }
 
     private var visibleDishes: [Dish] {
@@ -608,24 +618,25 @@ struct MenuView: View {
 }
 
 private struct MenuEmptyStateView: View {
-    let title: String
-    let hint: String
+    let feedback: AppFeedback
     let onTap: () -> Void
 
     var body: some View {
         VStack(spacing: AppSpacing.sm) {
             Spacer(minLength: 0)
 
-            Text(title)
+            Text(feedback.title ?? "暂无内容")
                 .font(AppTypography.sectionTitle)
                 .foregroundStyle(AppSemanticColor.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text(hint)
-                .font(AppTypography.body)
-                .foregroundStyle(AppSemanticColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, AppSpacing.xl)
+            if let hint = feedback.message {
+                Text(hint)
+                    .font(AppTypography.body)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, AppSpacing.xl)
+            }
 
             Spacer(minLength: 0)
         }

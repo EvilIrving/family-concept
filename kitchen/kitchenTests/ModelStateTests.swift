@@ -136,6 +136,42 @@ struct ModelStateTests {
         #expect(failure.retainedValue == ["old"])
     }
 
+    @Test("AppFeedback empty 支持语义 kind 与默认 override")
+    func emptyFeedbackCarriesSemanticKind() {
+        let feedback = AppFeedback.empty(kind: .noSearchResult)
+
+        #expect(feedback.emptyKind == .noSearchResult)
+        #expect(feedback.kind == .empty(.noSearchResult))
+        #expect(feedback.title == nil)
+        #expect(feedback.message == nil)
+        #expect(feedback.systemImage == nil)
+    }
+
+    @Test("LoadingPhase 通过 failure 承载 empty feedback")
+    func loadingPhaseCarriesEmptyFeedbackThroughFailure() {
+        let phase = LoadingPhase<[String]>.failure(
+            .empty(kind: .noData, title: "还没有内容"),
+            retainedValue: nil
+        )
+
+        #expect(phase.feedback?.emptyKind == .noData)
+        #expect(phase.feedback?.title == "还没有内容")
+        #expect(phase.retainedValue == nil)
+    }
+
+    @Test("LoadingPhase empty 与 error 在同一 feedback 层级")
+    func loadingPhaseTreatsEmptyAndErrorsAsPeerFeedback() {
+        let empty = LoadingPhase<[String]>.failure(.empty(kind: .noData), retainedValue: nil)
+        let network = LoadingPhase<[String]>.failure(.network(), retainedValue: nil)
+        let auth = LoadingPhase<[String]>.failure(.auth(), retainedValue: nil)
+        let generic = LoadingPhase<[String]>.failure(.generic(), retainedValue: nil)
+
+        #expect(empty.feedback?.kind == .empty(.noData))
+        #expect(network.feedback?.kind == .network)
+        #expect(auth.feedback?.kind == .auth)
+        #expect(generic.feedback?.kind == .generic)
+    }
+
     @Test("LoadingPhase 支持明确的 progress loading")
     func loadingPhaseSupportsProgressContext() {
         let phase = LoadingPhase<Void>.progress(0.45, label: "上传中")

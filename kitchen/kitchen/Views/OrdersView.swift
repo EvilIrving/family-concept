@@ -23,29 +23,11 @@ struct OrdersView: View {
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.top, AppSpacing.xs)
 
-                if store.groupedOrderItems.isEmpty {
-                    VStack(spacing: AppSpacing.sm) {
-                        Spacer(minLength: 0)
-
-                        Text("还没有出餐内容")
-                            .font(AppTypography.sectionTitle)
-                            .foregroundStyle(AppSemanticColor.textPrimary)
-                            .multilineTextAlignment(.center)
-
-                        Text("菜单页提交后，这里会直接显示当前订单。")
-                            .font(AppTypography.body)
-                            .foregroundStyle(AppSemanticColor.textSecondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, AppSpacing.xl)
-
-                        Spacer(minLength: 0)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
+                AppLoadingBlock(phase: ordersPhase) { groupedItems in
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: AppSpacing.lg) {
                             AppCard {
-                                ForEach(store.groupedOrderItems) { item in
+                                ForEach(groupedItems) { item in
                                     OrderItemRow(
                                         item: item,
                                         canManage: store.canManageOrders,
@@ -70,7 +52,7 @@ struct OrdersView: View {
                                             }
                                         }
                                     )
-                                    if item.id != store.groupedOrderItems.last?.id {
+                                    if item.id != groupedItems.last?.id {
                                         Divider()
                                             .overlay(AppSemanticColor.border)
                                     }
@@ -127,6 +109,16 @@ struct OrdersView: View {
 
     private var waitingCount: Int {
         store.quantity(for: .waiting)
+    }
+
+    private var ordersPhase: LoadingPhase<[GroupedOrderItem]> {
+        if store.groupedOrderItems.isEmpty {
+            return .failure(
+                .empty(kind: .noData, title: "还没有出餐内容", message: "菜单页提交后，这里会直接显示当前订单。"),
+                retainedValue: nil
+            )
+        }
+        return .success(store.groupedOrderItems)
     }
 
     private var cookingCount: Int {
