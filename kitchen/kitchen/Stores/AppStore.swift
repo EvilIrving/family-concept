@@ -50,6 +50,10 @@ final class AppStore: ObservableObject {
         }
     }
 
+    private func consumeError(_ error: Error) {
+        self.error = error.userMessage
+    }
+
     // MARK: - Computed
 
     var currentMember: Member? {
@@ -166,7 +170,7 @@ final class AppStore: ObservableObject {
         } catch APIError.unauthorized {
             clearSession()
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
         }
     }
 
@@ -190,7 +194,7 @@ final class AppStore: ObservableObject {
                 self.orderItems = []
             }
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
             HapticManager.shared.trigger(.error)
         }
     }
@@ -213,7 +217,7 @@ final class AppStore: ObservableObject {
             // No restorable kitchen — try provided invite code or kitchen name
             await completeOnboarding(inviteCode: inviteCode, kitchenName: kitchenName)
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
         }
     }
 
@@ -226,7 +230,7 @@ final class AppStore: ObservableObject {
             persistAuth(response.token, account: response.account)
             await completeOnboarding(inviteCode: inviteCode, kitchenName: kitchenName)
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
         }
     }
 
@@ -257,7 +261,7 @@ final class AppStore: ObservableObject {
             )
             self.kitchen = updated
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
         }
     }
 
@@ -275,7 +279,7 @@ final class AppStore: ObservableObject {
                 createdAt: kitchen.createdAt
             )
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
         }
     }
 
@@ -289,7 +293,7 @@ final class AppStore: ObservableObject {
             )
             members.removeAll { $0.accountId == accountID }
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
         }
     }
 
@@ -301,7 +305,7 @@ final class AppStore: ObservableObject {
             )
             clearKitchenState()
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
         }
     }
 
@@ -326,7 +330,7 @@ final class AppStore: ObservableObject {
             dishes.insert(dish, at: 0)
             return dish
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
             return nil
         }
     }
@@ -356,7 +360,7 @@ final class AppStore: ObservableObject {
             _ = try await apiClient.archiveDish(id: id, authToken: authToken)
             dishes.removeAll { $0.id == id }
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
         }
     }
 
@@ -404,7 +408,7 @@ final class AppStore: ObservableObject {
             }
             return updated
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
             return nil
         }
     }
@@ -478,7 +482,7 @@ final class AppStore: ObservableObject {
             cartItems.removeAll()
             await refreshOrderItems()
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
         }
     }
 
@@ -501,7 +505,7 @@ final class AppStore: ObservableObject {
             orderItems[index] = updated
             HapticManager.shared.trigger(updated.status == .done ? .dishCompleted : .statusChanged)
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
             HapticManager.shared.trigger(.error)
         }
     }
@@ -529,7 +533,7 @@ final class AppStore: ObservableObject {
             applyOrderItemUpdate(updated)
             return true
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
             HapticManager.shared.trigger(.error)
             return false
         }
@@ -549,7 +553,7 @@ final class AppStore: ObservableObject {
             }
             return true
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
             HapticManager.shared.trigger(.error)
             return false
         }
@@ -572,7 +576,7 @@ final class AppStore: ObservableObject {
             selectedOrderDetail = nil
             return true
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
             return false
         }
     }
@@ -586,7 +590,7 @@ final class AppStore: ObservableObject {
             )
             orderHistory = fetchedHistory.filter { $0.status == .finished && $0.finishedAt != nil }
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
         }
     }
 
@@ -597,7 +601,7 @@ final class AppStore: ObservableObject {
             selectedOrderDetail = detail
             return detail
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
             return nil
         }
     }
@@ -648,7 +652,7 @@ final class AppStore: ObservableObject {
             members = [result.member]
             UserDefaults.standard.set(result.kitchen.id, forKey: "lastKitchenID")
         } catch {
-            self.error = error.localizedDescription
+            consumeError(error)
         }
     }
 

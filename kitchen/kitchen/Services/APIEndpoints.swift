@@ -1,34 +1,243 @@
 import Foundation
 
+/// `Endpoint` is a pure request descriptor.
+/// It must not grow execution policy responsibilities such as retry, caching,
+/// mock payloads, decode strategy, or analytics behavior.
+struct Endpoint<Response: Decodable> {
+    let path: String
+    let method: String
+    let headers: [String: String]
+    let queryItems: [URLQueryItem]
+    let body: Encodable?
+    let requiresAuth: Bool
+
+    init(
+        path: String,
+        method: String = "GET",
+        headers: [String: String] = [:],
+        queryItems: [URLQueryItem] = [],
+        body: Encodable? = nil,
+        requiresAuth: Bool = false
+    ) {
+        self.path = path
+        self.method = method
+        self.headers = headers
+        self.queryItems = queryItems
+        self.body = body
+        self.requiresAuth = requiresAuth
+    }
+}
+
+enum APIEndpoints {
+    enum Auth {
+        static func register(userName: String, password: String, nickName: String) -> Endpoint<AuthResponse> {
+            Endpoint(
+                path: "/api/v1/auth/register",
+                method: "POST",
+                body: [
+                    "user_name": userName,
+                    "password": password,
+                    "nick_name": nickName
+                ]
+            )
+        }
+
+        static func login(userName: String, password: String) -> Endpoint<AuthResponse> {
+            Endpoint(
+                path: "/api/v1/auth/login",
+                method: "POST",
+                body: [
+                    "user_name": userName,
+                    "password": password
+                ]
+            )
+        }
+
+        static func logout() -> Endpoint<OKResult> {
+            Endpoint(path: "/api/v1/auth/logout", method: "POST", requiresAuth: true)
+        }
+
+        static func fetchMe() -> Endpoint<AuthMeResponse> {
+            Endpoint(path: "/api/v1/auth/me", requiresAuth: true)
+        }
+    }
+
+    enum Onboarding {
+        static func complete(
+            mode: String,
+            nickName: String? = nil,
+            inviteCode: String? = nil,
+            kitchenName: String? = nil
+        ) -> Endpoint<APIClient.OnboardingResponse> {
+            var body: [String: String] = ["mode": mode]
+            if let nickName { body["nick_name"] = nickName }
+            if let inviteCode { body["invite_code"] = inviteCode }
+            if let kitchenName { body["kitchen_name"] = kitchenName }
+
+            return Endpoint(
+                path: "/api/v1/onboarding/complete",
+                method: "POST",
+                body: body,
+                requiresAuth: true
+            )
+        }
+    }
+
+    enum Kitchens {
+        static func fetch(id: String) -> Endpoint<Kitchen> {
+            Endpoint(path: "/api/v1/kitchens/\(id)", requiresAuth: true)
+        }
+
+        static func update(id: String, name: String) -> Endpoint<Kitchen> {
+            Endpoint(
+                path: "/api/v1/kitchens/\(id)",
+                method: "PATCH",
+                body: ["name": name],
+                requiresAuth: true
+            )
+        }
+
+        static func rotateInviteCode(kitchenID: String) -> Endpoint<APIClient.InviteCodeResult> {
+            Endpoint(
+                path: "/api/v1/kitchens/\(kitchenID)/rotate_invite",
+                method: "POST",
+                requiresAuth: true
+            )
+        }
+    }
+
+    enum Members {
+        static func fetch(kitchenID: String) -> Endpoint<[Member]> {
+            Endpoint(path: "/api/v1/kitchens/\(kitchenID)/members", requiresAuth: true)
+        }
+
+        static func remove(kitchenID: String, accountID: String) -> Endpoint<OKResult> {
+            Endpoint(
+                path: "/api/v1/kitchens/\(kitchenID)/members/\(accountID)",
+                method: "DELETE",
+                requiresAuth: true
+            )
+        }
+
+        static func leave(kitchenID: String) -> Endpoint<OKResult> {
+            Endpoint(
+                path: "/api/v1/kitchens/\(kitchenID)/leave",
+                method: "POST",
+                requiresAuth: true
+            )
+        }
+    }
+
+    enum Dishes {
+        static func fetch(kitchenID: String) -> Endpoint<[Dish]> {
+            Endpoint(path: "/api/v1/kitchens/\(kitchenID)/dishes", requiresAuth: true)
+        }
+
+        static func create(kitchenID: String, name: String, category: String, ingredients: [String]? = nil) -> Endpoint<Dish> {
+            Endpoint(
+                path: "/api/v1/kitchens/\(kitchenID)/dishes",
+                method: "POST",
+                body: CreateDishBody(name: name, category: category, ingredients: ingredients),
+                requiresAuth: true
+            )
+        }
+
+        static func update(
+            id: String,
+            name: String? = nil,
+            category: String? = nil,
+            ingredients: [String]? = nil,
+            imageKey: String? = nil
+        ) -> Endpoint<Dish> {
+            Endpoint(
+                path: "/api/v1/dishes/\(id)",
+                method: "PATCH",
+                body: UpdateDishBody(name: name, category: category, ingredients: ingredients, imageKey: imageKey),
+                requiresAuth: true
+            )
+        }
+
+        static func archive(id: String) -> Endpoint<OKResult> {
+            Endpoint(path: "/api/v1/dishes/\(id)", method: "DELETE", requiresAuth: true)
+        }
+    }
+
+    enum DishImages {
+        static func requestUploadURL(dishID: String) -> Endpoint<APIClient.DishImageUploadTicket> {
+            Endpoint(
+                path: "/api/v1/dishes/\(dishID)/image_upload_url",
+                method: "POST",
+                requiresAuth: true
+            )
+        }
+    }
+
+    enum Orders {
+        static func fetchOpen(kitchenID: String) -> Endpoint<APIClient.OpenOrderResponse?> {
+            Endpoint(path: "/api/v1/kitchens/\(kitchenID)/orders/open", requiresAuth: true)
+        }
+
+        static func fetchHistory(kitchenID: String) -> Endpoint<[OrderHistoryEntry]> {
+            Endpoint(path: "/api/v1/kitchens/\(kitchenID)/orders/history", requiresAuth: true)
+        }
+
+        static func fetchDetail(orderID: String) -> Endpoint<OrderDetail> {
+            Endpoint(path: "/api/v1/orders/\(orderID)", requiresAuth: true)
+        }
+
+        static func create(kitchenID: String) -> Endpoint<Order> {
+            Endpoint(
+                path: "/api/v1/kitchens/\(kitchenID)/orders",
+                method: "POST",
+                requiresAuth: true
+            )
+        }
+
+        static func addItem(orderID: String, dishID: String, quantity: Int) -> Endpoint<OrderItem> {
+            Endpoint(
+                path: "/api/v1/orders/\(orderID)/items",
+                method: "POST",
+                body: AddOrderItemBody(dishID: dishID, quantity: quantity),
+                requiresAuth: true
+            )
+        }
+
+        static func updateItem(id: String, status: ItemStatus? = nil, quantity: Int? = nil) -> Endpoint<OrderItem> {
+            Endpoint(
+                path: "/api/v1/order_items/\(id)",
+                method: "PATCH",
+                body: UpdateOrderItemBody(status: status?.rawValue, quantity: quantity),
+                requiresAuth: true
+            )
+        }
+
+        static func removeItem(id: String) -> Endpoint<OKResult> {
+            Endpoint(path: "/api/v1/order_items/\(id)", method: "DELETE", requiresAuth: true)
+        }
+
+        static func finish(id: String) -> Endpoint<Order> {
+            Endpoint(path: "/api/v1/orders/\(id)/finish", method: "POST", requiresAuth: true)
+        }
+    }
+}
+
 // MARK: - Auth
 
 extension APIClient {
     func register(userName: String, password: String, nickName: String) async throws -> AuthResponse {
-        try await request(
-            "/api/v1/auth/register",
-            method: "POST",
-            body: ["user_name": userName, "password": password, "nick_name": nickName]
-        )
+        try await request(APIEndpoints.Auth.register(userName: userName, password: password, nickName: nickName))
     }
 
     func login(userName: String, password: String) async throws -> AuthResponse {
-        try await request(
-            "/api/v1/auth/login",
-            method: "POST",
-            body: ["user_name": userName, "password": password]
-        )
+        try await request(APIEndpoints.Auth.login(userName: userName, password: password))
     }
 
     func logout(authToken: String) async throws -> OKResult {
-        try await request(
-            "/api/v1/auth/logout",
-            method: "POST",
-            authToken: authToken
-        )
+        try await request(APIEndpoints.Auth.logout(), authToken: authToken)
     }
 
     func fetchMe(authToken: String) async throws -> AuthMeResponse {
-        try await request("/api/v1/auth/me", authToken: authToken)
+        try await request(APIEndpoints.Auth.fetchMe(), authToken: authToken)
     }
 }
 
@@ -48,15 +257,13 @@ extension APIClient {
         inviteCode: String? = nil,
         kitchenName: String? = nil
     ) async throws -> OnboardingResponse {
-        var body: [String: String] = ["mode": mode]
-        if let nickName { body["nick_name"] = nickName }
-        if let inviteCode { body["invite_code"] = inviteCode }
-        if let kitchenName { body["kitchen_name"] = kitchenName }
-
-        return try await request(
-            "/api/v1/onboarding/complete",
-            method: "POST",
-            body: body,
+        try await request(
+            APIEndpoints.Onboarding.complete(
+                mode: mode,
+                nickName: nickName,
+                inviteCode: inviteCode,
+                kitchenName: kitchenName
+            ),
             authToken: authToken
         )
     }
@@ -65,29 +272,20 @@ extension APIClient {
 // MARK: - Kitchens
 
 extension APIClient {
+    struct InviteCodeResult: Decodable {
+        let inviteCode: String
+    }
+
     func fetchKitchen(id: String, authToken: String) async throws -> Kitchen {
-        try await request("/api/v1/kitchens/\(id)", authToken: authToken)
+        try await request(APIEndpoints.Kitchens.fetch(id: id), authToken: authToken)
     }
 
     func updateKitchen(id: String, name: String, authToken: String) async throws -> Kitchen {
-        try await request(
-            "/api/v1/kitchens/\(id)",
-            method: "PATCH",
-            body: ["name": name],
-            authToken: authToken
-        )
+        try await request(APIEndpoints.Kitchens.update(id: id, name: name), authToken: authToken)
     }
 
     func rotateInviteCode(kitchenID: String, authToken: String) async throws -> InviteCodeResult {
-        try await request(
-            "/api/v1/kitchens/\(kitchenID)/rotate_invite",
-            method: "POST",
-            authToken: authToken
-        )
-    }
-
-    struct InviteCodeResult: Decodable {
-        let inviteCode: String
+        try await request(APIEndpoints.Kitchens.rotateInviteCode(kitchenID: kitchenID), authToken: authToken)
     }
 }
 
@@ -95,23 +293,18 @@ extension APIClient {
 
 extension APIClient {
     func fetchMembers(kitchenID: String, authToken: String) async throws -> [Member] {
-        try await request("/api/v1/kitchens/\(kitchenID)/members", authToken: authToken)
+        try await request(APIEndpoints.Members.fetch(kitchenID: kitchenID), authToken: authToken)
     }
 
     func removeMember(kitchenID: String, accountID: String, authToken: String) async throws -> OKResult {
         try await request(
-            "/api/v1/kitchens/\(kitchenID)/members/\(accountID)",
-            method: "DELETE",
+            APIEndpoints.Members.remove(kitchenID: kitchenID, accountID: accountID),
             authToken: authToken
         )
     }
 
     func leaveKitchen(kitchenID: String, authToken: String) async throws -> OKResult {
-        try await request(
-            "/api/v1/kitchens/\(kitchenID)/leave",
-            method: "POST",
-            authToken: authToken
-        )
+        try await request(APIEndpoints.Members.leave(kitchenID: kitchenID), authToken: authToken)
     }
 }
 
@@ -137,7 +330,7 @@ private struct UpdateDishBody: Encodable {
 
 extension APIClient {
     func fetchDishes(kitchenID: String, authToken: String) async throws -> [Dish] {
-        try await request("/api/v1/kitchens/\(kitchenID)/dishes", authToken: authToken)
+        try await request(APIEndpoints.Dishes.fetch(kitchenID: kitchenID), authToken: authToken)
     }
 
     func createDish(
@@ -169,9 +362,12 @@ extension APIClient {
         }
 
         return try await request(
-            "/api/v1/kitchens/\(kitchenID)/dishes",
-            method: "POST",
-            body: CreateDishBody(name: name, category: category, ingredients: ingredients),
+            APIEndpoints.Dishes.create(
+                kitchenID: kitchenID,
+                name: name,
+                category: category,
+                ingredients: ingredients
+            ),
             authToken: authToken
         )
     }
@@ -185,19 +381,19 @@ extension APIClient {
         authToken: String
     ) async throws -> Dish {
         try await request(
-            "/api/v1/dishes/\(id)",
-            method: "PATCH",
-            body: UpdateDishBody(name: name, category: category, ingredients: ingredients, imageKey: imageKey),
+            APIEndpoints.Dishes.update(
+                id: id,
+                name: name,
+                category: category,
+                ingredients: ingredients,
+                imageKey: imageKey
+            ),
             authToken: authToken
         )
     }
 
     func archiveDish(id: String, authToken: String) async throws -> OKResult {
-        try await request(
-            "/api/v1/dishes/\(id)",
-            method: "DELETE",
-            authToken: authToken
-        )
+        try await request(APIEndpoints.Dishes.archive(id: id), authToken: authToken)
     }
 }
 
@@ -217,11 +413,7 @@ extension APIClient {
     }
 
     func requestDishImageUploadURL(dishID: String, authToken: String) async throws -> DishImageUploadTicket {
-        try await request(
-            "/api/v1/dishes/\(dishID)/image_upload_url",
-            method: "POST",
-            authToken: authToken
-        )
+        try await request(APIEndpoints.DishImages.requestUploadURL(dishID: dishID), authToken: authToken)
     }
 
     @discardableResult
@@ -306,40 +498,24 @@ extension APIClient {
     }
 
     func fetchOpenOrder(kitchenID: String, authToken: String) async throws -> OpenOrderResponse? {
-        let result: OpenOrderResponse? = try await request(
-            "/api/v1/kitchens/\(kitchenID)/orders/open",
-            authToken: authToken
-        )
-        return result
+        try await request(APIEndpoints.Orders.fetchOpen(kitchenID: kitchenID), authToken: authToken)
     }
 
     func fetchOrderHistory(kitchenID: String, authToken: String) async throws -> [OrderHistoryEntry] {
-        try await request(
-            "/api/v1/kitchens/\(kitchenID)/orders/history",
-            authToken: authToken
-        )
+        try await request(APIEndpoints.Orders.fetchHistory(kitchenID: kitchenID), authToken: authToken)
     }
 
     func fetchOrderDetail(orderID: String, authToken: String) async throws -> OrderDetail {
-        try await request(
-            "/api/v1/orders/\(orderID)",
-            authToken: authToken
-        )
+        try await request(APIEndpoints.Orders.fetchDetail(orderID: orderID), authToken: authToken)
     }
 
     func createOrder(kitchenID: String, authToken: String) async throws -> Order {
-        try await request(
-            "/api/v1/kitchens/\(kitchenID)/orders",
-            method: "POST",
-            authToken: authToken
-        )
+        try await request(APIEndpoints.Orders.create(kitchenID: kitchenID), authToken: authToken)
     }
 
     func addOrderItem(orderID: String, dishID: String, quantity: Int = 1, authToken: String) async throws -> OrderItem {
         try await request(
-            "/api/v1/orders/\(orderID)/items",
-            method: "POST",
-            body: AddOrderItemBody(dishID: dishID, quantity: quantity),
+            APIEndpoints.Orders.addItem(orderID: orderID, dishID: dishID, quantity: quantity),
             authToken: authToken
         )
     }
@@ -351,19 +527,17 @@ extension APIClient {
         authToken: String
     ) async throws -> OrderItem {
         try await request(
-            "/api/v1/order_items/\(id)",
-            method: "PATCH",
-            body: UpdateOrderItemBody(status: status?.rawValue, quantity: quantity),
+            APIEndpoints.Orders.updateItem(id: id, status: status, quantity: quantity),
             authToken: authToken
         )
     }
 
+    func removeOrderItem(id: String, authToken: String) async throws -> OKResult {
+        try await request(APIEndpoints.Orders.removeItem(id: id), authToken: authToken)
+    }
+
     func finishOrder(id: String, authToken: String) async throws -> Order {
-        try await request(
-            "/api/v1/orders/\(id)/finish",
-            method: "POST",
-            authToken: authToken
-        )
+        try await request(APIEndpoints.Orders.finish(id: id), authToken: authToken)
     }
 }
 

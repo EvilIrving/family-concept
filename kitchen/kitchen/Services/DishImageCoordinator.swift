@@ -14,7 +14,7 @@ final class DishImageCoordinator: ObservableObject {
                 let (preview, fileURL) = try await pipeline.process(image)
                 imageState = .ready(previewImage: preview, fileURL: fileURL)
             } catch {
-                imageState = .failed(error.localizedDescription)
+                imageState = .failed(error.userMessage)
             }
         }
     }
