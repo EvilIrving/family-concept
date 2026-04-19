@@ -79,6 +79,7 @@ struct OrdersView: View {
                     ordersShoppingListBar
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .appPageBackground()
 
             FloatButton(systemImage: "clock.arrow.circlepath") {

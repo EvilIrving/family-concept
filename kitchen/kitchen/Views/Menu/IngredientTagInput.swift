@@ -10,24 +10,30 @@ struct IngredientTagInput: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
-            FlowLayout(spacing: AppSpacing.xs) {
-                ForEach(tags, id: \.self) { tag in
-                    HStack(spacing: AppGap.tight) {
-                        Text(tag)
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppSemanticColor.textPrimary)
-                        Button {
-                            tags.removeAll { $0 == tag }
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(.system(size: AppIconSize.xxs, weight: .bold))
-                                .foregroundStyle(AppSemanticColor.textSecondary)
+            if !tags.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: AppSpacing.xs) {
+                        ForEach(tags, id: \.self) { tag in
+                            HStack(spacing: AppGap.tight) {
+                                Text(tag)
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(AppSemanticColor.textPrimary)
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
+                                Button {
+                                    tags.removeAll { $0 == tag }
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: AppIconSize.xxs, weight: .bold))
+                                        .foregroundStyle(AppSemanticColor.textSecondary)
+                                }
+                            }
+                            .padding(.horizontal, AppSpacing.sm)
+                            .padding(.vertical, AppInset.chipVertical)
+                            .background(AppSemanticColor.surfaceSecondary, in: Capsule())
+                            .overlay(Capsule().stroke(AppSemanticColor.border, lineWidth: AppBorderWidth.hairline))
                         }
                     }
-                    .padding(.horizontal, AppSpacing.sm)
-                    .padding(.vertical, AppInset.chipVertical)
-                    .background(AppSemanticColor.surfaceSecondary, in: Capsule())
-                    .overlay(Capsule().stroke(AppSemanticColor.border, lineWidth: AppBorderWidth.hairline))
                 }
             }
 
