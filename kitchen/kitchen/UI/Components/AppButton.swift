@@ -12,14 +12,14 @@ struct AppButton: View {
     var systemImage: String? = nil
     var style: Style = .primary
     var fullWidth: Bool = true
-    var isLoading: Bool = false
+    var phase: LoadingPhase<Void> = .idle
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: AppSpacing.xs) {
-                if isLoading {
-                    AppLoadingIndicator(tone: loadingTone, controlSize: .small)
+                if phase.isLoading {
+                    AppLoadingIndicator(label: loadingLabel, tone: loadingTone, controlSize: .small)
                 } else if let systemImage {
                     Image(systemName: systemImage)
                         .font(.system(size: AppIconSize.sm, weight: .semibold))
@@ -33,7 +33,7 @@ struct AppButton: View {
             .padding(.horizontal, AppSpacing.md)
         }
         .buttonStyle(AppButtonStyle(style: style))
-        .disabled(isLoading)
+        .disabled(phase.isLoading)
     }
 
     private var foregroundColor: Color {
@@ -56,6 +56,11 @@ struct AppButton: View {
         case .secondary, .ghost:
             return .secondary
         }
+    }
+
+    private var loadingLabel: String? {
+        guard case .loading(let context) = phase else { return nil }
+        return context.label == title ? nil : context.label
     }
 }
 

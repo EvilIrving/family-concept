@@ -84,22 +84,18 @@ struct MenuDishCard: View {
             AppPill(title: category)
                 .padding(AppSpacing.sm)
         }
-        .overlay {
-            if let imageURL {
-                RemoteDishImage(url: imageURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFit()
-                        .padding(AppSpacing.xs)
-                } placeholder: {
-                    AppLoadingBlock(label: "加载中", tone: .secondary)
-                } failure: {
-                    imageFailurePlaceholder
+            .overlay {
+                if let imageURL {
+                    RemoteDishImage(url: imageURL) { image in
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .padding(AppSpacing.xs)
+                    }
+                } else {
+                    placeholderIcon
                 }
-            } else {
-                placeholderIcon
             }
-        }
         .clipShape(
             UnevenRoundedRectangle(
                 topLeadingRadius: AppRadius.md,
@@ -118,16 +114,6 @@ struct MenuDishCard: View {
                 .foregroundStyle(AppSemanticColor.textSecondary)
 
             Text("暂无图片")
-                .font(AppTypography.micro)
-                .foregroundStyle(AppSemanticColor.textSecondary)
-        }
-        .padding(AppSpacing.sm)
-    }
-
-    private var imageFailurePlaceholder: some View {
-        VStack(spacing: AppSpacing.xs) {
-            placeholderIcon
-            Text("图片加载失败")
                 .font(AppTypography.micro)
                 .foregroundStyle(AppSemanticColor.textSecondary)
         }

@@ -1,28 +1,49 @@
+import Combine
 import SwiftUI
 import UIKit
-import Combine
 
-struct RemoteDishImage<Content: View, Placeholder: View, Failure: View>: View {
+struct RemoteDishImage<Content: View>: View {
     let url: URL
-    @ViewBuilder let content: (Image) -> Content
-    @ViewBuilder let placeholder: () -> Placeholder
-    @ViewBuilder let failure: () -> Failure
+    var retryTitle: String = "重试"
+    let content: (Image) -> Content
 
     @StateObject private var loader = Loader()
 
     var body: some View {
         Group {
             switch loader.phase {
-            case .idle, .loading:
-                placeholder()
+            case .idle:
+                AppSkeletonImage(minHeight: AppDimension.dishArtworkHeight)
+            case .loading(let context):
+                loadingBody(context: context)
             case .success(let image):
                 content(image)
-            case .failure:
-                failure()
+                    .transition(.opacity)
+            case .failure(let feedback, _):
+                AppErrorPlaceholder(feedback: feedback, retryTitle: retryTitle) {
+                    Task {
+                        await loader.load(from: url)
+                    }
+                }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task(id: url) {
             await loader.load(from: url)
+        }
+    }
+
+    @ViewBuilder
+    private func loadingBody(context: LoadingContext<Image>) -> some View {
+        switch context.mode {
+        case .progress:
+            if let progress = context.progress {
+                AppProgressIndicator(progress: progress, label: context.label)
+            } else {
+                AppSkeletonImage(minHeight: AppDimension.dishArtworkHeight)
+            }
+        case .initial, .refresh:
+            AppSkeletonImage(minHeight: AppDimension.dishArtworkHeight)
         }
     }
 }
@@ -30,14 +51,7 @@ struct RemoteDishImage<Content: View, Placeholder: View, Failure: View>: View {
 extension RemoteDishImage {
     @MainActor
     final class Loader: ObservableObject {
-        enum Phase {
-            case idle
-            case loading
-            case success(Image)
-            case failure
-        }
-
-        @Published var phase: Phase = .idle
+        @Published var phase: LoadingPhase<Image> = .idle
         private var lastURL: URL?
 
         func load(from url: URL) async {
@@ -45,6 +59,7 @@ extension RemoteDishImage {
                 return
             }
 
+            let retainedValue = phase.retainedValue
             lastURL = url
 
             if let cached = await RemoteDishImagePipeline.shared.cachedImage(for: url) {
@@ -52,20 +67,23 @@ extension RemoteDishImage {
                 return
             }
 
-            phase = .loading
+            if let retainedValue {
+                phase = .loading(LoadingContext(mode: .refresh, label: "加载中", retainedValue: retainedValue))
+            } else {
+                phase = .loading(LoadingContext(mode: .initial, label: "加载中"))
+            }
 
             do {
                 let uiImage = try await RemoteDishImagePipeline.shared.fetchImage(from: url)
                 phase = .success(Image(uiImage: uiImage))
             } catch {
                 if (error as? URLError)?.code == .cancelled {
-                    phase = .loading
                     return
                 }
                 #if DEBUG
                 print("RemoteDishImage request error: \(url.absoluteString) error=\(error.localizedDescription)")
                 #endif
-                phase = .failure
+                phase = .failure(.network(message: "图片加载失败"), retainedValue: retainedValue)
             }
         }
     }

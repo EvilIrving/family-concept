@@ -16,8 +16,8 @@ struct MenuDishImagePickerSection: View {
                 pickerButtons
             case .processing:
                 progressState("处理中…")
-            case .cropping:
-                progressState("裁剪中…")
+            case .extracting:
+                progressState("识别中…")
             case .ready(let previewImage, _):
                 imagePreview(previewImage)
             case .uploading:
@@ -72,13 +72,7 @@ struct MenuDishImagePickerSection: View {
     }
 
     private func progressState(_ title: String) -> some View {
-        HStack {
-            ProgressView()
-                .tint(AppSemanticColor.primary)
-            Text(title)
-                .font(AppTypography.caption)
-                .foregroundStyle(AppSemanticColor.textSecondary)
-        }
+        AppLoadingIndicator(label: title, tone: .primary, controlSize: .regular)
         .frame(maxWidth: .infinity, minHeight: AppDimension.progressBlockMinHeight)
         .background(AppSemanticColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
     }
