@@ -24,6 +24,11 @@ final class DishImageCoordinator: ObservableObject {
         imageState = .empty
     }
 
+    func seedRemoteImage(_ image: UIImage, remoteURL: URL) {
+        guard case .empty = imageState else { return }
+        imageState = .remote(previewImage: image, remoteURL: remoteURL)
+    }
+
     func cleanupAfterUpload(fileURL: URL) {
         try? FileManager.default.removeItem(at: fileURL)
         imageState = .empty
@@ -41,7 +46,7 @@ final class DishImageCoordinator: ObservableObject {
     /// 是否有可用图片（包括已准备就绪、上传中或上次上传失败但仍有文件可用）
     var hasImage: Bool {
         switch imageState {
-        case .ready, .uploadFailed, .uploading:
+        case .remote, .ready, .uploadFailed, .uploading:
             return true
         default:
             return false

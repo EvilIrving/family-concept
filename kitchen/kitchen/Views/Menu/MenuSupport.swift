@@ -71,12 +71,10 @@ struct AddDishDraft {
     }
 }
 
-enum MenuModalRoute: Identifiable {
+enum MenuModalRoute: Identifiable, Equatable {
     case addDish
     case editDish(String)
     case cart
-    case camera
-    case crop(CropPresentation)
 
     var id: String {
         switch self {
@@ -86,10 +84,6 @@ enum MenuModalRoute: Identifiable {
             return "edit-dish-\(dishID)"
         case .cart:
             return "cart"
-        case .camera:
-            return "camera"
-        case .crop(let presentation):
-            return "crop-\(presentation.id.uuidString)"
         }
     }
 }
@@ -97,10 +91,4 @@ enum MenuModalRoute: Identifiable {
 enum CropImageSource {
     case camera
     case photoLibrary
-}
-
-struct CropPresentation: Identifiable {
-    let id = UUID()
-    let image: UIImage
-    let source: CropImageSource
 }

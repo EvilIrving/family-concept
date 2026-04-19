@@ -2,37 +2,68 @@ import Foundation
 import Combine
 
 @MainActor
-final class ModalRouter<Route: Identifiable>: ObservableObject {
+final class ModalRouter<Route: Identifiable & Equatable>: ObservableObject {
     @Published private(set) var current: Route?
 
-    private var pending: Route?
+    private var queue: [Route] = []
+    private var isDismissing = false
 
     func present(_ route: Route) {
-        guard current == nil else {
-            pending = route
-            current = nil
+        if canPresentImmediately {
+            current = route
             return
         }
-        current = route
+
+        enqueueIfNeeded(route)
     }
 
-    func transition(to route: Route) {
-        pending = route
-        current = nil
+    func replace(with route: Route) {
+        queue = [route]
+
+        guard current != nil else {
+            guard !isDismissing else { return }
+            isDismissing = false
+            current = queue.removeFirst()
+            return
+        }
+
+        beginDismissalIfNeeded()
     }
 
     func dismiss() {
-        current = nil
+        guard current != nil else { return }
+        beginDismissalIfNeeded()
     }
 
-    func didDismissCurrent() {
-        guard let next = pending else { return }
-        pending = nil
-        current = next
+    func handleDismissedCurrent() {
+        isDismissing = false
+        current = nil
+        presentNextIfNeeded()
     }
 
     func reset() {
-        pending = nil
+        queue.removeAll()
+        isDismissing = false
         current = nil
+    }
+
+    private var canPresentImmediately: Bool {
+        current == nil && !isDismissing
+    }
+
+    private func enqueueIfNeeded(_ route: Route) {
+        guard queue.last != route else { return }
+        queue.append(route)
+    }
+
+    private func beginDismissalIfNeeded() {
+        guard !isDismissing else { return }
+        isDismissing = true
+        current = nil
+    }
+
+    private func presentNextIfNeeded() {
+        guard !queue.isEmpty else { return }
+        current = queue.removeFirst()
     }
 }

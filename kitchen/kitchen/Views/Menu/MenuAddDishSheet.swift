@@ -8,6 +8,7 @@ struct MenuAddDishSheet: View {
     @Binding var draft: AddDishDraft
     let quickCategories: [String]
     @Binding var selectedPhotoItem: PhotosPickerItem?
+    @Binding var isPhotoPickerPresented: Bool
     var focusedField: FocusState<MenuField?>.Binding
     @ObservedObject var imageCoordinator: DishImageCoordinator
     let onDismiss: () -> Void
@@ -26,12 +27,13 @@ struct MenuAddDishSheet: View {
         ) {
             ScrollView {
                 VStack(spacing: AppSpacing.sm) {
-                    MenuDishImagePickerSection(
-                        coordinator: imageCoordinator,
-                        selectedPhotoItem: $selectedPhotoItem,
-                        onCameraRequest: onCameraRequest,
-                        isInvalid: draft.invalidImage,
-                        validationTrigger: draft.validationTrigger,
+                        MenuDishImagePickerSection(
+                            coordinator: imageCoordinator,
+                            selectedPhotoItem: $selectedPhotoItem,
+                            isPhotoPickerPresented: $isPhotoPickerPresented,
+                            onCameraRequest: onCameraRequest,
+                            isInvalid: draft.invalidImage,
+                            validationTrigger: draft.validationTrigger,
                         errorMessage: draft.imageError
                     )
 

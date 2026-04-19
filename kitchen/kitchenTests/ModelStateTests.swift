@@ -107,10 +107,56 @@ struct ModelStateTests {
         #expect(DishDraftImageState.empty.statusSubtitle == "拍一张正面的菜品照，系统会自动去背景")
         #expect(DishDraftImageState.extracting(sampleImage).statusTitle == "正在识别主体")
         #expect(DishDraftImageState.processing.statusTitle == "正在优化菜品图")
+        #expect(DishDraftImageState.remote(previewImage: sampleImage, remoteURL: URL(string: "https://img.example.com/dish.png")!).statusSubtitle == "当前正在使用已上传图片")
         #expect(DishDraftImageState.ready(previewImage: sampleImage, fileURL: fileURL).statusTitle == "图片已就绪")
         #expect(DishDraftImageState.uploading.statusTitle == "正在上传")
         #expect(DishDraftImageState.uploadFailed(previewImage: sampleImage, fileURL: fileURL, message: "上传超时").statusSubtitle == "上传超时")
         #expect(DishDraftImageState.failed("处理异常").statusSubtitle == "处理异常")
+    }
+
+    @Test("DishImageCoordinator 将远端图片作为可展示但不可上传的初始状态")
+    func dishImageCoordinatorSeedsRemoteImage() {
+        let coordinator = DishImageCoordinator()
+        let sampleImage = UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8)).image { _ in
+            UIColor.blue.setFill()
+            UIBezierPath(rect: CGRect(x: 0, y: 0, width: 8, height: 8)).fill()
+        }
+        let remoteURL = URL(string: "https://img.example.com/seed.png")!
+
+        coordinator.seedRemoteImage(sampleImage, remoteURL: remoteURL)
+
+        #expect(coordinator.hasImage)
+        guard case .remote(let previewImage, let seededURL) = coordinator.imageState else {
+            Issue.record("Expected remote seeded state")
+            return
+        }
+        #expect(previewImage.pngData() == sampleImage.pngData())
+        #expect(seededURL == remoteURL)
+    }
+
+    @Test("DishImageCoordinator 仅在空态时接受远端设种")
+    func dishImageCoordinatorDoesNotOverrideLocalImage() {
+        let coordinator = DishImageCoordinator()
+        let localImage = UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8)).image { _ in
+            UIColor.green.setFill()
+            UIBezierPath(rect: CGRect(x: 0, y: 0, width: 8, height: 8)).fill()
+        }
+        let remoteImage = UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8)).image { _ in
+            UIColor.orange.setFill()
+            UIBezierPath(rect: CGRect(x: 0, y: 0, width: 8, height: 8)).fill()
+        }
+        let localURL = URL(fileURLWithPath: "/tmp/local-dish.png")
+        let remoteURL = URL(string: "https://img.example.com/seed.png")!
+        coordinator.imageState = .ready(previewImage: localImage, fileURL: localURL)
+
+        coordinator.seedRemoteImage(remoteImage, remoteURL: remoteURL)
+
+        guard case .ready(let previewImage, let fileURL) = coordinator.imageState else {
+            Issue.record("Expected local ready state to be preserved")
+            return
+        }
+        #expect(previewImage.pngData() == localImage.pngData())
+        #expect(fileURL == localURL)
     }
 
     @Test("LoadingPhase 支持首次加载与完成流转")

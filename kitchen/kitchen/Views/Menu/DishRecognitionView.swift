@@ -2,11 +2,11 @@ import SwiftUI
 import Vision
 import CoreImage
 
-/// 两阶段菜品图确认页：
+/// 两阶段菜品识别页：
 /// 1. 编辑态 — 用户在 1:1 取景框内拖动、缩放原图；
 /// 2. 识别态 — 对取景框内子图执行 Vision 前景抠图，生成主体最长边占画布 80%
 ///    的透明背景 1:1 PNG；`onConfirm` 返回的是该抠图成品。
-struct DishPhotoCropView: View {
+struct DishRecognitionView: View {
     enum Source { case album, camera }
 
     private let minimumScale: CGFloat = 0.5
@@ -61,9 +61,14 @@ struct DishPhotoCropView: View {
             ZStack {
                 AppComponentColor.Cropper.backdrop.ignoresSafeArea()
 
-                cropCanvas(vpWidth: vpWidth, vpHeight: vpHeight, viewportCenter: viewportCenter, containerSize: geo.size)
+                if isEditing {
+                    cropCanvas(vpWidth: vpWidth, vpHeight: vpHeight, viewportCenter: viewportCenter, containerSize: geo.size)
 
-                darkOverlay(geo: geo, viewportCenter: viewportCenter, vpWidth: vpWidth, vpHeight: vpHeight)
+                    darkOverlay(geo: geo, viewportCenter: viewportCenter, vpWidth: vpWidth, vpHeight: vpHeight)
+                } else {
+                    recognizedCanvas(vpWidth: vpWidth, vpHeight: vpHeight)
+                        .position(x: viewportCenter.x, y: viewportCenter.y)
+                }
 
                 viewportBorder(vpWidth: vpWidth, vpHeight: vpHeight)
                     .position(x: viewportCenter.x, y: viewportCenter.y)
@@ -94,6 +99,9 @@ struct DishPhotoCropView: View {
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
+            .overlay(alignment: .top) {
+                topBar
+            }
             .task(id: sourceImage) {
                 let img = await Task.detached(priority: .userInitiated) {
                     sourceImage.normalizedForCrop()
@@ -143,8 +151,8 @@ struct DishPhotoCropView: View {
 
     @ViewBuilder
     private func actionButtons(geo: GeometryProxy, vpWidth: CGFloat, vpY: CGFloat, vpHeight: CGFloat, viewportCenter: CGPoint) -> some View {
-        let spaceBelow = geo.size.height - geo.safeAreaInsets.bottom - (vpY + vpHeight)
-        let buttonRowY = vpY + vpHeight + spaceBelow / 2
+        let buttonBottomInset = max(geo.safeAreaInsets.bottom, 16) + 12
+        let buttonRowY = geo.size.height - buttonBottomInset - (AppDimension.minTouchTarget / 2)
         let buttonInset = (geo.size.width - vpWidth) / 2 + 8
 
         let leftLabel: String = {
@@ -163,30 +171,50 @@ struct DishPhotoCropView: View {
         HStack(spacing: 0) {
             Button(action: handleLeftTap) {
                 Text(leftLabel)
-                    .font(AppTypography.button)
-                    .foregroundStyle(AppComponentColor.Cropper.controlForeground)
-                    .frame(minHeight: AppDimension.minTouchTarget)
-                    .padding(.horizontal, AppSpacing.md)
-                    .contentShape(Rectangle())
+                    .cropActionLabel()
             }
+            .buttonStyle(.plain)
             .disabled(isRecognizing)
 
             Spacer()
 
             Button(action: { handleRightTap(viewportCenter: viewportCenter, vpY: vpY, vpWidth: vpWidth, vpHeight: vpHeight) }) {
                 Text(rightLabel)
-                    .font(AppTypography.button)
-                    .foregroundStyle(AppComponentColor.Cropper.confirmForeground)
-                    .frame(minHeight: AppDimension.minTouchTarget)
-                    .padding(.horizontal, AppSpacing.md)
-                    .contentShape(Rectangle())
+                    .cropActionLabel()
             }
+            .buttonStyle(.plain)
             .disabled(isRecognizing)
         }
         .padding(.horizontal, buttonInset)
         .frame(width: geo.size.width)
         .position(x: geo.size.width / 2, y: buttonRowY)
         .opacity(isRecognizing ? 0 : 1)
+    }
+
+    @ViewBuilder
+    private var topBar: some View {
+        HStack(spacing: AppSpacing.sm) {
+            Button(action: onCancel) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(AppComponentColor.Cropper.controlForeground)
+                    .frame(width: AppDimension.minTouchTarget, height: AppDimension.minTouchTarget)
+                    .background(AppComponentColor.Cropper.controlForeground.opacity(0.12), in: Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(AppComponentColor.Cropper.controlBorder, lineWidth: AppBorderWidth.hairline)
+                    )
+            }
+            .buttonStyle(.plain)
+            .disabled(isRecognizing)
+            .accessibilityLabel("返回")
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.bottom, AppSpacing.xs)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.clear)
     }
 
     private func handleLeftTap() {
@@ -256,6 +284,13 @@ struct DishPhotoCropView: View {
                         }
                 )
             )
+    }
+
+    private func recognizedCanvas(vpWidth: CGFloat, vpHeight: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius)
+            .fill(AppComponentColor.Cropper.backdrop)
+            .frame(width: vpWidth, height: vpHeight)
+            .allowsHitTesting(false)
     }
 
     // MARK: - Layout
@@ -453,6 +488,22 @@ struct DishPhotoCropView: View {
     }
 }
 
+private extension View {
+    func cropActionLabel() -> some View {
+        self
+            .font(AppTypography.button)
+            .foregroundStyle(AppComponentColor.Cropper.controlForeground)
+            .frame(minHeight: AppDimension.minTouchTarget)
+            .padding(.horizontal, AppSpacing.md)
+            .background(AppComponentColor.Cropper.controlForeground.opacity(0.12), in: Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(AppComponentColor.Cropper.controlBorder, lineWidth: AppBorderWidth.hairline)
+            )
+            .contentShape(Capsule())
+    }
+}
+
 // MARK: - UIImage helpers
 
 private extension UIImage {
@@ -509,7 +560,7 @@ private extension CGFloat {
 }
 
 #Preview {
-    DishPhotoCropView(
+    DishRecognitionView(
         sourceImage: {
             let size = CGSize(width: 1200, height: 900)
             let format = UIGraphicsImageRendererFormat()

@@ -11,7 +11,7 @@ enum DishImagePipelineError: LocalizedError {
 }
 
 struct DishImagePipeline {
-    /// Input: 透明背景的菜品成品图（由 DishPhotoCropView 的 Vision 抠图 + 80% 规格化合成输出）。
+    /// Input: 透明背景的菜品成品图（由 DishRecognitionView 的 Vision 抠图 + 80% 规格化合成输出）。
     /// Output: 写入 temp 目录的 PNG 文件 URL 与原始预览图。
     func process(_ image: UIImage) async throws -> (preview: UIImage, fileURL: URL) {
         guard let pngData = image.pngData() else {

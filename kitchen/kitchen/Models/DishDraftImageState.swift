@@ -4,6 +4,7 @@ enum DishDraftImageState {
     case empty
     case extracting(UIImage)
     case processing
+    case remote(previewImage: UIImage, remoteURL: URL)
     case ready(previewImage: UIImage, fileURL: URL)
     case uploading
     /// 上传失败但本地临时文件仍在，可再次点保存重试
@@ -20,6 +21,8 @@ extension DishDraftImageState {
             return "正在识别主体"
         case .processing:
             return "正在优化菜品图"
+        case .remote:
+            return "图片已就绪"
         case .ready:
             return "图片已就绪"
         case .uploading:
@@ -39,6 +42,8 @@ extension DishDraftImageState {
             return "Vision 正在提取菜品前景"
         case .processing:
             return "识别主体、去背景并生成成品图"
+        case .remote:
+            return "当前正在使用已上传图片"
         case .ready:
             return "菜品主体已经提取完成"
         case .uploading:
