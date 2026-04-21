@@ -21,7 +21,7 @@ struct KitchenInfoCard: View {
                                 .foregroundStyle(AppSemanticColor.textPrimary)
                         }
                         Spacer()
-                        if let kitchen {
+                        if kitchen != nil {
                             Text("共 \(store.members.count) 人")
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppSemanticColor.textSecondary)

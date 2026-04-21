@@ -27,13 +27,45 @@ struct DishConfirmDissolveView: View {
         let seed: CGFloat
         let driftX: CGFloat
         let driftY: CGFloat
+        let lifetime: Double
+        let curvatureX: CGFloat
+        let curvatureY: CGFloat
+        let sizeClass: SizeClass
+        let hasGlow: Bool
+    }
+
+    private enum SizeClass {
+        case small   // 1.1-1.8pt
+        case medium  // 2.0-3.0pt
+        case large   // 3.5-5.0pt
+
+        var radiusRange: ClosedRange<CGFloat> {
+            switch self {
+            case .small: return 1.1...1.8
+            case .medium: return 2.0...3.0
+            case .large: return 3.5...5.0
+            }
+        }
     }
 
     var body: some View {
         GeometryReader { geo in
             let stage = stageSize(in: geo.size)
             ZStack {
-                AppComponentColor.Cropper.backdrop
+                // T7: Radial gradient backdrop (warm dark center, cooler edges)
+                RadialGradient(
+                    gradient: Gradient(colors: [
+                        Color.clear,
+                        AppComponentColor.Cropper.backdropGradientCenter.opacity(0.3),
+                        AppComponentColor.Cropper.backdropGradientEdge
+                    ]),
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: max(geo.size.width, geo.size.height) * 0.7
+                )
+                .ignoresSafeArea()
+
+                Color(AppComponentColor.Cropper.backdrop)
                     .opacity(backdropOpacity)
                     .ignoresSafeArea()
 
@@ -98,8 +130,8 @@ struct DishConfirmDissolveView: View {
             backdropOpacity = 1.0
         }
 
-        async let visionResult: UIImage = produceFinal()
         async let sampled: [Particle] = Self.sampleParticles(from: sourceImage)
+        async let visionResult: UIImage = produceFinal()
         particles = await sampled
         startTime = .now
 
@@ -109,7 +141,8 @@ struct DishConfirmDissolveView: View {
         finalImage = extracted
 
         phase = .revealing
-        withAnimation(.easeIn(duration: 0.45)) {
+        // T9: reduced from 0.45s to 0.4s to stay within 0.2-0.4s range
+        withAnimation(.easeIn(duration: 0.4)) {
             bgOpacity = 0
         }
         withAnimation(.easeOut(duration: 0.5).delay(0.1)) {
@@ -127,37 +160,65 @@ struct DishConfirmDissolveView: View {
     // MARK: - Canvas
 
     private func drawDust(_ gctx: GraphicsContext, size: CGSize, elapsed: TimeInterval) {
-        let life: Double = 1.4
         let sx = size.width / CGFloat(Self.sampleGridSize.width)
         let sy = size.height / CGFloat(Self.sampleGridSize.height)
         let cx = size.width / 2
         let cy = size.height / 2
 
         for p in particles {
-            let delay = Double(p.seed) * 0.2
-            let age = elapsed - delay
+            // T6: Staggered fade-in — brief opacity ramp per particle
+            let fadeInDelay = Double(p.seed) * 0.25
+            let age = elapsed - fadeInDelay
             guard age > 0 else { continue }
-            if age > life { continue }
-            let n = age / life
+
+            // T6: Per-particle lifetime (0.8-1.8s)
+            guard age <= p.lifetime else { continue }
+
+            let n = age / p.lifetime
             let spread = n * n
-            let opacity = pow(1 - n, 2) * 0.9
+
+            // T6: Staggered fade-in — opacity ramps from 0 to 1 in first 10% of life
+            let fadeInProgress = min(n / 0.1, 1.0)
+            // T6: Staggered fade-out — opacity fades in last 20% of life
+            let fadeOutProgress = n > 0.8 ? (1.0 - n) / 0.2 : 1.0
+            let opacity = fadeInProgress * fadeOutProgress * 0.9
+
             let baseX = p.origin.x * sx
             let baseY = p.origin.y * sy
+
+            // T6: Curved trajectories — sine-based arc offset in addition to radial drift
+            let curveOffsetX = sin(n * .pi * 1.5) * p.curvatureX
+            let curveOffsetY = cos(n * .pi * 1.2) * p.curvatureY
             let radialX = (baseX - cx) / max(1, cx) * 52
             let radialY = (baseY - cy) / max(1, cy) * 52
-            let px = baseX + (radialX + p.driftX) * CGFloat(spread)
-            let py = baseY + (radialY + p.driftY - 44) * CGFloat(spread)
-            let r: CGFloat = 1.1 + (1 - CGFloat(n)) * 0.7
+            let px = baseX + (radialX + p.driftX) * CGFloat(spread) + curveOffsetX
+            let py = baseY + (radialY + p.driftY - 44) * CGFloat(spread) + curveOffsetY
+
+            // T5: Size variation from size class
+            let r: CGFloat = p.sizeClass.radiusRange.lowerBound
+                + (p.sizeClass.radiusRange.upperBound - p.sizeClass.radiusRange.lowerBound)
+                * (1 - CGFloat(n))
+
             let rect = CGRect(x: px - r, y: py - r, width: r * 2, height: r * 2)
+
+            // T5: Glow halo on ~15% of particles
+            if p.hasGlow {
+                let glowRect = CGRect(x: px - r * 2.5, y: py - r * 2.5, width: r * 5, height: r * 5)
+                gctx.fill(Path(ellipseIn: glowRect), with: .color(p.color.opacity(opacity * 0.2)))
+            }
+
             gctx.fill(Path(ellipseIn: rect), with: .color(p.color.opacity(opacity)))
         }
     }
 
     // MARK: - Data prep
 
-    nonisolated private static let sampleGridSize = (width: 72, height: 72)
+    // T5: Increased grid from 72x72 to 96x96
+    nonisolated private static let sampleGridSize = (width: 96, height: 96)
+    // T5: Hard cap at 4000 particles for performance on older devices
+    private static let maxParticles = 4000
 
-    private static func sampleParticles(from image: UIImage) async -> [Particle] {
+    nonisolated private static func sampleParticles(from image: UIImage) async -> [Particle] {
         await Task.detached(priority: .userInitiated) {
             let gw = sampleGridSize.width
             let gh = sampleGridSize.height
@@ -177,28 +238,62 @@ struct DishConfirmDissolveView: View {
             ctx.draw(cg, in: CGRect(x: 0, y: 0, width: gw, height: gh))
 
             var out: [Particle] = []
-            out.reserveCapacity(gw * gh)
+            out.reserveCapacity(min(gw * gh, maxParticles))
             for y in 0..<gh {
                 for x in 0..<gw {
                     let i = (y * gw + x) * 4
                     let r = Double(pixels[i]) / 255.0
                     let g = Double(pixels[i + 1]) / 255.0
                     let b = Double(pixels[i + 2]) / 255.0
+
+                    // Skip near-black background pixels
+                    let luminance = 0.299 * r + 0.587 * g + 0.114 * b
+                    guard luminance > 0.08 else { continue }
+
                     let id = y * gw + x
                     let jitterX = CGFloat.random(in: -6...6)
                     let jitterY = CGFloat.random(in: -10...2)
                     let seedSeq = CGFloat(x + y) / CGFloat(gw + gh)
                     let seed = seedSeq + CGFloat.random(in: 0...0.35)
+
+                    // T5: Random size class (small/medium/large)
+                    let sizeRoll = CGFloat.random(in: 0...1)
+                    let sizeClass: SizeClass = sizeRoll < 0.5 ? .small
+                        : sizeRoll < 0.8 ? .medium
+                        : .large
+
+                    // T5: ~15% glow
+                    let hasGlow = CGFloat.random(in: 0...1) < 0.15
+
+                    // T6: Random lifetime in 0.8-1.8s range
+                    let lifetime = Double.random(in: 0.8...1.8)
+
+                    // T6: Curvature for arc trajectories
+                    let curvatureX = CGFloat.random(in: -30...30)
+                    let curvatureY = CGFloat.random(in: -30...30)
+
                     out.append(Particle(
                         id: id,
                         origin: CGPoint(x: CGFloat(x) + 0.5, y: CGFloat(y) + 0.5),
                         color: Color(red: r, green: g, blue: b),
                         seed: seed,
                         driftX: jitterX,
-                        driftY: jitterY
+                        driftY: jitterY,
+                        lifetime: lifetime,
+                        curvatureX: curvatureX,
+                        curvatureY: curvatureY,
+                        sizeClass: sizeClass,
+                        hasGlow: hasGlow
                     ))
                 }
             }
+
+            // T5: Cap at maxParticles for performance
+            if out.count > maxParticles {
+                out.shuffle()
+                out = Array(out.prefix(maxParticles))
+            }
+
             return out
         }.value
     }

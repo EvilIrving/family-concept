@@ -110,16 +110,13 @@ struct DishRecognitionRecognizingOverlay: View {
     let vpWidth: CGFloat
     let vpHeight: CGFloat
     let viewportCenter: CGPoint
+    let onFinish: (UIImage) -> Void
 
     var body: some View {
         DishConfirmDissolveView(
             sourceImage: subimage,
             produceFinal: { await DishImageProcessor.composeFinalImage(from: subimage) },
-            onFinish: { finalImage in
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    // Handled by parent
-                }
-            }
+            onFinish: onFinish
         )
         .transition(.opacity)
     }

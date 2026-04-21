@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Vision
 import CoreImage
 
@@ -54,7 +55,18 @@ struct DishRecognitionView: View {
             let viewportCenter = CGPoint(x: geo.size.width / 2, y: vpY + vpHeight / 2)
 
             ZStack {
-                AppComponentColor.Cropper.backdrop.ignoresSafeArea()
+                // T7: Radial gradient backdrop (warm dark center, cooler edges)
+                RadialGradient(
+                    gradient: Gradient(colors: [
+                        Color.clear,
+                        AppComponentColor.Cropper.backdropGradientCenter.opacity(0.3),
+                        AppComponentColor.Cropper.backdropGradientEdge
+                    ]),
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: max(geo.size.width, geo.size.height) * 0.7
+                )
+                .ignoresSafeArea()
 
                 if isEditing {
                     DishRecognitionCanvas(
@@ -80,6 +92,20 @@ struct DishRecognitionView: View {
                         .position(x: viewportCenter.x, y: viewportCenter.y)
                 }
 
+                // T8: Vignette — dark edges, transparent center, applied to all phases
+                RadialGradient(
+                    gradient: Gradient(colors: [
+                        Color.clear,
+                        Color.black.opacity(0.25),
+                        Color.black
+                    ]),
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: max(geo.size.width, geo.size.height) * 0.7
+                )
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+
                 DishRecognitionViewportBorder(isEditing: isEditing, vpWidth: vpWidth, vpHeight: vpHeight)
                     .position(x: viewportCenter.x, y: viewportCenter.y)
 
@@ -92,7 +118,7 @@ struct DishRecognitionView: View {
                     vpY: vpY,
                     vpHeight: vpHeight,
                     viewportCenter: viewportCenter,
-                    onCancel: onCancel,
+                    onLeftTap: { handleLeftTap() },
                     onRecognize: { handleRightTap(viewportCenter: viewportCenter, vpY: vpY, vpWidth: vpWidth, vpHeight: vpHeight) },
                     onConfirm: { handleConfirm() }
                 )
@@ -102,7 +128,13 @@ struct DishRecognitionView: View {
                         subimage: subimage,
                         vpWidth: vpWidth,
                         vpHeight: vpHeight,
-                        viewportCenter: viewportCenter
+                        viewportCenter: viewportCenter,
+                        onFinish: { [phase = self._phase] finalImage in
+                            // T2: Advance phase to .recognized after dissolve completes
+                            phase.wrappedValue = .recognized(subimage: subimage, finalImage: finalImage)
+                            // T4: Haptic feedback on recognition complete
+                            HapticManager.shared.triggerMediumImpact()
+                        }
                     )
                     .transition(.opacity)
                 }
@@ -198,6 +230,8 @@ struct DishRecognitionView: View {
             vpWidth: vpWidth,
             vpHeight: vpHeight
         ) else { return }
+        // T3: Haptic feedback on recognition start
+        HapticManager.shared.triggerLightImpact()
         withAnimation(.easeInOut(duration: 0.2)) {
             phase = .recognizing(subimage: subimage)
         }
@@ -326,7 +360,7 @@ private struct DishRecognitionActionButtons: View {
     let vpY: CGFloat
     let vpHeight: CGFloat
     let viewportCenter: CGPoint
-    let onCancel: () -> Void
+    let onLeftTap: () -> Void
     let onRecognize: () -> Void
     let onConfirm: () -> Void
 
@@ -349,7 +383,7 @@ private struct DishRecognitionActionButtons: View {
         }()
 
         HStack(spacing: 0) {
-            Button(action: onCancel) {
+            Button(action: onLeftTap) {
                 Text(leftLabel)
                     .cropActionLabel()
             }

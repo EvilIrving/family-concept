@@ -60,6 +60,8 @@ enum AppSemanticColor {
     // MARK: - Camera / Crop
 
     static let cameraBackdrop = AppPalette.gray900
+    static let cropBackdropGradientCenter = AppPalette.green900
+    static let cropBackdropGradientEdge = AppPalette.gray900
     static let cropOverlay = AppPalette.gray900.opacity(0.55)
     static let cropViewportBorder = AppPalette.gray000.opacity(0.85)
     static let cropViewportShadow = AppPalette.gray900.opacity(0.45)

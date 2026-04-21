@@ -79,6 +79,8 @@ enum AppComponentColor {
 
     enum Cropper {
         static let backdrop = AppSemanticColor.cameraBackdrop
+        static let backdropGradientCenter = AppSemanticColor.cropBackdropGradientCenter
+        static let backdropGradientEdge = AppSemanticColor.cropBackdropGradientEdge
         static let overlay = AppSemanticColor.cropOverlay
         static let viewportBorder = AppSemanticColor.cropViewportBorder
         static let viewportShadow = AppSemanticColor.cropViewportShadow
