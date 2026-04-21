@@ -30,6 +30,10 @@ enum AppMotion {
 
     static let press = Animation.easeOut(duration: quick)
     static let standardEase = Animation.easeInOut(duration: standard)
+
+    // Launch screen animations
+    static let launchPulse = Animation.easeInOut(duration: 1.2).repeatForever(autoreverses: true)
+    static let launchRotate = Animation.easeInOut(duration: 2.0).repeatForever(autoreverses: true)
 }
 
 enum AppMaterial {

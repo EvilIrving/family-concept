@@ -6,7 +6,8 @@ struct ContentView: View {
     var body: some View {
         Group {
             if store.isBootstrapping {
-                Color.clear
+                LaunchScreenView()
+                    .transition(.opacity)
             } else if store.hasKitchen {
                 MainTabView()
             } else {

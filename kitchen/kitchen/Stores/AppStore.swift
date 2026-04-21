@@ -51,7 +51,7 @@ final class AppStore: ObservableObject {
     }
 
     private func consumeError(_ error: Error) {
-        self.error = error.userMessage
+        self.error = (error as? APIError)?.userMessage ?? error.localizedDescription
     }
 
     // MARK: - Computed

@@ -1,207 +1,126 @@
 import Foundation
 
-enum APIError: LocalizedError {
-    case network(Error)
-    case server(Int, String)
-    case decoding(Error)
-    case invalidResponse(String)
-    case unauthorized
+/// `Endpoint` 是纯请求描述符。
+/// 不包含重试、缓存、mock、解码策略或分析行为。
+struct Endpoint<Response: Decodable> {
+    let path: String
+    let method: String
+    let headers: [String: String]
+    let queryItems: [URLQueryItem]
+    let body: Encodable?
+    let requiresAuth: Bool
 
-    var userMessage: String {
-        switch self {
-        case .network:
-            return "网络连接失败，请检查网络"
-        case .server(_, let msg):
-            return msg
-        case .decoding:
-            return "数据解析失败"
-        case .invalidResponse(let message):
-            return message
-        case .unauthorized:
-            return "未授权，请重新登录"
-        }
-    }
-
-    var errorDescription: String? { userMessage }
-}
-
-extension Error {
-    var userMessage: String {
-        if let apiError = self as? APIError {
-            return apiError.userMessage
-        }
-        return localizedDescription
+    init(
+        path: String,
+        method: String = "GET",
+        headers: [String: String] = [:],
+        queryItems: [URLQueryItem] = [],
+        body: Encodable? = nil,
+        requiresAuth: Bool = false
+    ) {
+        self.path = path
+        self.method = method
+        self.headers = headers
+        self.queryItems = queryItems
+        self.body = body
+        self.requiresAuth = requiresAuth
     }
 }
 
-@MainActor
+/// API 命名空间
+enum APIEndpoints {}
+
+/// API 客户端核心类
+/// 负责请求执行、认证头注入、响应解码和错误处理
 final class APIClient {
     private let baseURL: String
-
-    private let decoder: JSONDecoder = {
-        let d = JSONDecoder()
-        d.keyDecodingStrategy = .convertFromSnakeCase
-        return d
+    private static let jsonDecoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return decoder
     }()
 
-    init() {
-        if let url = Bundle.main.infoDictionary?["APIBaseURL"] as? String, !url.isEmpty {
-            baseURL = url
-        } else {
-            baseURL = "https://api.kitchen.onecat.dev"
-        }
+    init(baseURL: String? = nil) {
+        self.baseURL = baseURL ?? Bundle.main.object(forInfoDictionaryKey: "APIBaseURL") as? String ?? "https://api.kitchen.onecat.dev"
     }
+
+    // MARK: - Request Core
 
     func request<T: Decodable>(_ endpoint: Endpoint<T>, authToken: String? = nil) async throws -> T {
-        let request = try makeURLRequest(for: endpoint, authToken: authToken)
-        let (data, response) = try await perform(request)
-        try validate(response: response, data: data, fallbackMessage: "请求失败")
-
-        do {
-            return try decoder.decode(T.self, from: data)
-        } catch {
-            throw decodeError(error, data: data)
-        }
+        let request = try buildRequest(endpoint, authToken: authToken)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        return try decodeResponse(T.self, from: data, response: response)
     }
 
-    func uploadBinary<T: Decodable>(
+    func requestMultipart<T: Decodable>(
         _ path: String,
-        data: Data,
-        contentType: String,
-        authToken: String? = nil
+        method: String,
+        fields: [String: String],
+        repeatedFields: [String: [String]],
+        fileField: String,
+        fileName: String,
+        fileData: Data,
+        fileContentType: String,
+        authToken: String
     ) async throws -> T {
-        let url: URL
-        if let absoluteURL = URL(string: path), absoluteURL.scheme != nil {
-            url = absoluteURL
-        } else {
-            url = URL(string: "\(baseURL)\(path)")!
-        }
-        var req = URLRequest(url: url)
-        req.httpMethod = "PUT"
-        req.setValue(contentType, forHTTPHeaderField: "Content-Type")
-        if let authToken, !authToken.isEmpty {
-            req.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-        }
-        req.httpBody = data
+        var request = URLRequest(url: URL(string: baseURL + path)!)
+        request.httpMethod = method
 
-        let (responseData, response) = try await perform(req)
-        try validate(response: response, data: responseData, fallbackMessage: "上传失败")
-        do {
-            return try decoder.decode(T.self, from: responseData)
-        } catch {
-            throw decodeError(error, data: responseData)
-        }
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+
+        request.httpBody = buildMultipartBody(
+            fields: fields,
+            repeatedFields: repeatedFields,
+            fileField: fileField,
+            fileName: fileName,
+            fileData: fileData,
+            fileContentType: fileContentType,
+            boundary: boundary
+        )
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        return try decodeResponse(T.self, from: data, response: response)
     }
 
     func uploadBinaryAllowingEmptyBody(
         _ path: String,
         data: Data,
         contentType: String,
-        authToken: String? = nil
+        authToken: String
     ) async throws -> Data? {
-        let url: URL
-        if let absoluteURL = URL(string: path), absoluteURL.scheme != nil {
-            url = absoluteURL
-        } else {
-            url = URL(string: "\(baseURL)\(path)")!
-        }
-        var req = URLRequest(url: url)
-        req.httpMethod = "PUT"
-        req.setValue(contentType, forHTTPHeaderField: "Content-Type")
-        if let authToken, !authToken.isEmpty {
-            req.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-        }
-        req.httpBody = data
+        var request = URLRequest(url: URL(string: baseURL + path)!)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        request.httpBody = data
 
-        let (responseData, response) = try await perform(req)
-        try validate(response: response, data: responseData, fallbackMessage: "上传失败")
+        let (data, response) = try await URLSession.shared.data(for: request)
 
-        return responseData.isEmpty ? nil : responseData
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 300 {
+            throw try decodeAPIError(from: data)
+        }
+
+        return data.isEmpty ? nil : data
     }
 
-    func requestMultipart<T: Decodable>(
-        _ path: String,
-        method: String = "POST",
-        fields: [String: String],
-        repeatedFields: [String: [String]] = [:],
-        fileField: String? = nil,
-        fileName: String? = nil,
-        fileData: Data? = nil,
-        fileContentType: String? = nil,
-        authToken: String? = nil
-    ) async throws -> T {
-        let boundary = "Boundary-\(UUID().uuidString)"
-        let url = URL(string: "\(baseURL)\(path)")!
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+    // MARK: - Private Helpers
 
-        if let authToken, !authToken.isEmpty {
-            request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-        }
-
-        var body = Data()
-        for (key, value) in fields {
-            body.append("--\(boundary)\r\n".utf8Data)
-            body.append("Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n".utf8Data)
-            body.append("\(value)\r\n".utf8Data)
-        }
-
-        for (key, values) in repeatedFields {
-            for value in values {
-                body.append("--\(boundary)\r\n".utf8Data)
-                body.append("Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n".utf8Data)
-                body.append("\(value)\r\n".utf8Data)
-            }
-        }
-
-        if let fileField, let fileName, let fileData, let fileContentType {
-            body.append("--\(boundary)\r\n".utf8Data)
-            body.append(
-                "Content-Disposition: form-data; name=\"\(fileField)\"; filename=\"\(fileName)\"\r\n".utf8Data
-            )
-            body.append("Content-Type: \(fileContentType)\r\n\r\n".utf8Data)
-            body.append(fileData)
-            body.append("\r\n".utf8Data)
-        }
-
-        body.append("--\(boundary)--\r\n".utf8Data)
-        request.httpBody = body
-
-        let (data, response) = try await perform(request)
-        try validate(response: response, data: data, fallbackMessage: "请求失败")
-
-        do {
-            return try decoder.decode(T.self, from: data)
-        } catch {
-            throw decodeError(error, data: data)
-        }
-    }
-
-    fileprivate func makeURLRequest<T: Decodable>(for endpoint: Endpoint<T>, authToken: String?) throws -> URLRequest {
-        var components = URLComponents(string: "\(baseURL)\(endpoint.path)")
-        if !endpoint.queryItems.isEmpty {
-            components?.queryItems = endpoint.queryItems
-        }
+    private func buildRequest<T>(_ endpoint: Endpoint<T>, authToken: String?) throws -> URLRequest {
+        var components = URLComponents(string: baseURL + endpoint.path)
+        components?.queryItems = endpoint.queryItems.isEmpty ? nil : endpoint.queryItems
 
         guard let url = components?.url else {
-            throw APIError.invalidResponse("接口地址无效")
+            throw APIError.invalidURL
         }
 
         var request = URLRequest(url: url)
         request.httpMethod = endpoint.method
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let needsJSONBody = endpoint.body != nil
-        if needsJSONBody {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
-
-        for (header, value) in endpoint.headers {
-            request.setValue(value, forHTTPHeaderField: header)
-        }
-
-        if endpoint.requiresAuth, let authToken, !authToken.isEmpty {
-            request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        if let token = authToken, endpoint.requiresAuth {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
         if let body = endpoint.body {
@@ -211,50 +130,101 @@ final class APIClient {
         return request
     }
 
-    fileprivate func perform(_ request: URLRequest) async throws -> (Data, URLResponse) {
+    private func buildMultipartBody(
+        fields: [String: String],
+        repeatedFields: [String: [String]],
+        fileField: String,
+        fileName: String,
+        fileData: Data,
+        fileContentType: String,
+        boundary: String
+    ) -> Data {
+        var body = Data()
+        let crlf = "\r\n"
+
+        for (key, value) in fields {
+            body.append("--\(boundary)\(crlf)".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"\(key)\"\(crlf)\(crlf)".data(using: .utf8)!)
+            body.append("\(value)\(crlf)".data(using: .utf8)!)
+        }
+
+        for (key, values) in repeatedFields {
+            for value in values {
+                body.append("--\(boundary)\(crlf)".data(using: .utf8)!)
+                body.append("Content-Disposition: form-data; name=\"\(key)\"\(crlf)\(crlf)".data(using: .utf8)!)
+                body.append("\(value)\(crlf)".data(using: .utf8)!)
+            }
+        }
+
+        body.append("--\(boundary)\(crlf)".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"\(fileField)\"; filename=\"\(fileName)\"\(crlf)".data(using: .utf8)!)
+        body.append("Content-Type: \(fileContentType)\(crlf)\(crlf)".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\(crlf)--\(boundary)--\(crlf)".data(using: .utf8)!)
+
+        return body
+    }
+
+    private func decodeResponse<T: Decodable>(_ type: T.Type, from data: Data, response: URLResponse) throws -> T {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.network
+        }
+
+        if httpResponse.statusCode >= 400 {
+            throw try decodeAPIError(from: data)
+        }
+
         do {
-            return try await URLSession.shared.data(for: request)
+            return try APIClient.jsonDecoder.decode(T.self, from: data)
         } catch {
-            throw APIError.network(error)
+            #if DEBUG
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("⚠️ 解码失败，原始响应：\(jsonString)")
+                print("⚠️ 期望类型：\(T.self)")
+                print("⚠️ 错误详情：\(error.localizedDescription)")
+            }
+            #endif
+            throw APIError.decoding(error)
         }
     }
 
-    fileprivate func validate(response: URLResponse, data: Data, fallbackMessage: String) throws {
-        guard let http = response as? HTTPURLResponse else {
-            throw APIError.network(URLError(.badServerResponse))
-        }
-
-        if http.statusCode == 401 || http.statusCode == 403 {
-            throw APIError.unauthorized
-        }
-
-        guard (200...299).contains(http.statusCode) else {
-            let msg = (try? decoder.decode(APIErrorMessage.self, from: data))?.message
-                ?? "\(fallbackMessage) (\(http.statusCode))"
-            throw APIError.server(http.statusCode, msg)
-        }
-    }
-
-    fileprivate func decodeError(_ error: Error, data: Data) -> APIError {
+    private func decodeAPIError(from data: Data) throws -> APIError {
         if data.isEmpty {
-            return .invalidResponse("接口返回为空")
+            return .invalidResponse("服务器返回为空")
         }
 
-        if let text = String(data: data, encoding: .utf8)?
+        if let message = String(data: data, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
-           !text.isEmpty {
-            let preview = String(text.prefix(120))
-            return .invalidResponse("接口返回格式异常：\(preview)")
+           !message.isEmpty {
+            return .serverMessage(message)
         }
 
-        return .decoding(error)
+        return .invalidResponse("错误响应格式异常")
     }
 }
 
-private struct APIErrorMessage: Decodable {
-    let message: String
-}
+// MARK: - APIError
 
-private extension String {
-    var utf8Data: Data { Data(utf8) }
+enum APIError: LocalizedError {
+    case invalidURL
+    case network
+    case unauthorized
+    case invalidResponse(String)
+    case serverMessage(String)
+    case decoding(Error)
+
+    var userMessage: String {
+        switch self {
+        case .invalidURL:
+            return "请求地址无效"
+        case .network:
+            return "网络错误，请检查连接"
+        case .unauthorized:
+            return "登录已过期，请重新登录"
+        case .invalidResponse(let msg), .serverMessage(let msg):
+            return msg
+        case .decoding(let error):
+            return "数据解析失败：\(error.localizedDescription)"
+        }
+    }
 }

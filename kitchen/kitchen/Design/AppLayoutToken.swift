@@ -73,6 +73,11 @@ enum AppDimension {
     static let progressBlockMinHeight: CGFloat = 80
     static let dishArtworkHeight: CGFloat = 112
 
+    // Launch screen
+    static let launchLogoSize: CGFloat = 120
+    static let launchIconSize: CGFloat = 56
+    static let launchDotSize: CGFloat = 8
+
     static let iconButtonSide: CGFloat = 32
     static let avatar: CGFloat = 44
     static let badgeMinSide: CGFloat = 20

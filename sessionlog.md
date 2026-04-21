@@ -1,3 +1,19 @@
+## 统一 JSON 解码策略并修复 Info.plist 读取 · 2026-04-21 14:30 · Claude
+
+修复登录时"数据解析失败"问题。后端 API 返回蛇形命名（`user_name`、`nick_name`、`created_at`），前端 Swift 模型使用驼峰命名，之前每个模型要手动写 `CodingKeys` 适配。
+
+**修复内容：**
+1. `APIClient.swift` 添加静态 `JSONDecoder` 实例，配置 `keyDecodingStrategy = .convertFromSnakeCase`，一次配置全局生效
+2. `Info.plist` 已配置 `APIBaseURL = https://api.kitchen.onecat.dev`，但 `APIClient` 默认值仍是 `api.example.com`，改为从 `Info.plist` 动态读取
+3. `LaunchScreenView.swift` 中 `pot.fill` 不是有效 SF Symbol，替换为 `fork.knife`
+
+**修改文件：**
+- `kitchen/kitchen/Services/APIClient.swift` — 添加统一解码器，从 Info.plist 读取 baseURL
+- `kitchen/kitchen/Views/LaunchScreenView.swift` — 修复缺失的 SF Symbol
+- `kitchen/kitchen/Models/Domain.swift` — 移除 `Account` 和 `Kitchen` 的手动 `CodingKeys`（已由解码器自动处理）
+
+现在新增模型无需额外处理，解码器自动完成蛇形到驼峰的转换。
+
 ## 修复菜品图片拍照/选图崩溃并重构图片预处理入口 · 2026-04-16 · Claude
 
 相机拍照或从相册选原图时概率性 OOM crash，根因是全分辨率图（12MP，~46MB）直接进裁图页，内存里同时存在原图、归一化图、Vision 缩图三份副本。另有一个裁切坐标 bug：`crop()` 里 X 轴偏移误用了 `vpY`（Y 轴值），导致水平方向裁切位置偏移。

@@ -1,0 +1,206 @@
+import SwiftUI
+import UIKit
+import LinkPresentation
+
+/// 采购清单 Sheet 组件
+struct ShoppingListSheet: View {
+    @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
+    @Environment(\.dismiss) private var dismiss
+    @State private var exportPayload: SharePayload?
+
+    var body: some View {
+        AppSheetContainer(
+            title: "采购清单",
+            dismissTitle: "关闭",
+            confirmTitle: "导出",
+            onDismiss: { dismiss() },
+            onConfirm: exportShoppingList
+        ) {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    ForEach(store.shoppingListItems) { item in
+                        HStack(spacing: AppSpacing.sm) {
+                            Text(item.ingredient)
+                                .font(AppTypography.bodyStrong)
+                                .foregroundStyle(AppSemanticColor.textPrimary)
+                            Spacer()
+                            AppPill(title: "\(item.dishCount) 道菜", tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                        if item.ingredient != store.shoppingListItems.last?.ingredient {
+                            Divider()
+                                .overlay(AppSemanticColor.border)
+                        }
+                    }
+                }
+                .padding(.horizontal, AppSpacing.sm)
+                .padding(.top, AppSpacing.xxs)
+                .padding(.bottom, AppSpacing.xxs)
+            }
+        }
+        .presentationBackground(.clear)
+        .sheet(item: $exportPayload) { payload in
+            ActivityShareSheet(items: payload.items)
+        }
+    }
+
+    private func exportShoppingList() {
+        guard let image = renderShoppingListImage() else {
+            feedbackRouter.show(
+                .low(
+                    message: "采购清单图片生成失败，请稍后重试。",
+                    systemImage: "xmark.octagon.fill"
+                ),
+                hint: .centerToast
+            )
+            return
+        }
+        exportPayload = SharePayload(items: [ShoppingListShareItemSource(image: image)])
+    }
+
+    private func renderShoppingListImage() -> UIImage? {
+        let content = ShoppingListExportCard(items: store.shoppingListItems)
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = UIScreen.main.scale
+        renderer.proposedSize = ProposedViewSize(width: 360, height: nil)
+        return renderer.uiImage
+    }
+}
+
+// MARK: - Supporting Types
+
+struct SharePayload: Identifiable {
+    let id = UUID()
+    let items: [Any]
+}
+
+struct ShoppingListExportCard: View {
+    let items: [ShoppingListItem]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.lg) {
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Text("采购清单")
+                    .font(AppTypography.pageTitle)
+                    .foregroundStyle(AppSemanticColor.textPrimary)
+                Text(exportDateText)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
+            }
+
+            VStack(spacing: 0) {
+                ForEach(items) { item in
+                    HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
+                        Text(item.ingredient)
+                            .font(AppTypography.bodyStrong)
+                            .foregroundStyle(AppSemanticColor.textPrimary)
+                        Text("* \(item.dishCount)")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, AppSpacing.md)
+
+                    if item.ingredient != items.last?.ingredient {
+                        Divider()
+                            .overlay(AppSemanticColor.border)
+                    }
+                }
+            }
+            .padding(.horizontal, AppSpacing.lg)
+            .background(AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
+
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Text("菜品 list")
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppSemanticColor.textTertiary)
+
+                Text(allDishNamesText)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.vertical, AppSpacing.md)
+            .background(AppSemanticColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+
+            Text("Kitchen")
+                .font(AppTypography.micro)
+                .foregroundStyle(AppSemanticColor.textTertiary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(AppSpacing.xl)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [AppSemanticColor.interactiveSecondary, AppSemanticColor.backgroundElevated],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+    }
+
+    private var exportDateText: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "M 月 d 日 HH:mm"
+        return "导出时间 \(formatter.string(from: Date()))"
+    }
+
+    private var allDishNamesText: String {
+        let names = items
+            .flatMap(\.dishNames)
+        let uniqueNames = Array(Set(names)).sorted()
+        return uniqueNames.isEmpty ? "暂无菜品" : uniqueNames.joined(separator: "、")
+    }
+}
+
+struct ActivityShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+final class ShoppingListShareItemSource: NSObject, UIActivityItemSource {
+    private let image: UIImage
+    private let title: String
+    private let subtitle: String
+
+    init(image: UIImage) {
+        self.image = image
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "M 月 d 日 HH:mm"
+        let timestamp = formatter.string(from: Date())
+
+        self.title = "采购清单"
+        self.subtitle = "导出时间 \(timestamp)"
+        super.init()
+    }
+
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        image
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+        image
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
+        title
+    }
+
+    func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
+        let metadata = LPLinkMetadata()
+        metadata.title = title
+        metadata.originalURL = URL(fileURLWithPath: subtitle)
+        metadata.imageProvider = NSItemProvider(object: image)
+        return metadata
+    }
+}
