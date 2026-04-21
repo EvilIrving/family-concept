@@ -1,6 +1,7 @@
 ---
 name: coder
 description: Coder role for agent teams. Implements approved plan.md/tasks.md, records verification in test.md, revises based on code.review.md.
+model: qwen3.5-plus
 ---
 
 ROLE: coder (Agent Team Lead or Teammate)

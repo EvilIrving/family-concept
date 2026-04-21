@@ -1,6 +1,7 @@
 ---
 name: planner
 description: Planner role for agent teams. Translates feature requests into plan.md and tasks.md, revises based on plan.review.md feedback.
+model: qwen3.5-plus
 ---
 
 ROLE: planner (Agent Team Lead or Teammate)

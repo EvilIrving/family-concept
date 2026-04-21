@@ -2,6 +2,7 @@
 name: plan-reviewer
 description: Reviews plan.md against tasks.md and appends diff-style findings to plan.review.md. Used as agent team teammate.
 tools: Read, Write, Edit, Grep, Glob
+model: qwen3.5-plus
 ---
 
 ROLE: plan-reviewer (Agent Team Teammate)

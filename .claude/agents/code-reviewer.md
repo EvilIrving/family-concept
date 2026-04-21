@@ -2,6 +2,7 @@
 name: code-reviewer
 description: Reviews diff and test.md against plan.md/tasks.md, appends findings to code.review.md, emits STATUS sentinel. Used as agent team teammate.
 tools: Read, Write, Edit, Grep, Glob, Bash
+model: qwen3.5-plus
 ---
 
 ROLE: code-reviewer (Agent Team Teammate)
