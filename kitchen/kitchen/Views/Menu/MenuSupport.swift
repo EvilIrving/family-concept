@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum MenuField {
+enum MenuField: Hashable {
     case name
     case customCategory
     case ingredient
@@ -69,26 +69,4 @@ struct AddDishDraft {
         }
         return draft
     }
-}
-
-enum MenuModalRoute: Identifiable, Equatable {
-    case addDish
-    case editDish(String)
-    case cart
-
-    var id: String {
-        switch self {
-        case .addDish:
-            return "add-dish"
-        case .editDish(let dishID):
-            return "edit-dish-\(dishID)"
-        case .cart:
-            return "cart"
-        }
-    }
-}
-
-enum CropImageSource {
-    case camera
-    case photoLibrary
 }
