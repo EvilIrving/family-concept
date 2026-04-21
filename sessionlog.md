@@ -1,3 +1,19 @@
+## 识别页返回按钮修复与粒子动画/背景/流程全面打磨 · 2026-04-22 12:00 · Claude
+
+识别页（菜品主体识别）存在三个层面的问题：返回按钮失效（critical bug）、粒子动画粗糙、背景色不搭。
+
+**Bug 根因（两个缺陷叠加）：**
+1. `DishRecognitionView` 中底部左侧按钮绑定到 `onCancel` 而非 `handleLeftTap`，导致识别完成后点击"重新识别"直接弹出导航而非返回编辑态
+2. `DishConfirmDissolveView.onFinish` 回调没有推进父组件的 `phase`，`.recognizing` 状态永远不切换，overlay 无法消失
+
+**动画增强：** 粒子系统从 72x72 均匀圆点 → 96x96 采样，每粒子随机大小（small/medium/large 三档）、随机寿命（0.8-1.8s）、正弦/余弦弧形轨迹、渐入渐出、~15% 粒子带光晕。总粒子数上限 4000。保留 `accessibilityReduceMotion` 逻辑。
+
+**背景改造：** 纯灰色 `gray900` → 径向渐变（中心 green900 30% → 边缘 gray900），外加暗角 vignette（中心透明 → 边缘黑 25%）聚焦视口区域。新增 `AppSemanticColor.cropBackdropGradientCenter/Edge` 颜色 token。
+
+**流程优化：** 识别开始和完成各加一次触觉反馈（`triggerLightImpact` / `triggerMediumImpact`），所有 `withAnimation` 时长统一审计至 0.2-0.4s。
+
+**修改文件：** DishRecognitionView.swift、DishConfirmDissolveView.swift、DishRecognitionCanvas.swift、AppSemanticColor.swift、AppComponentColor.swift
+
 ## 统一 JSON 解码策略并修复 Info.plist 读取 · 2026-04-21 14:30 · Claude
 
 修复登录时"数据解析失败"问题。后端 API 返回蛇形命名（`user_name`、`nick_name`、`created_at`），前端 Swift 模型使用驼峰命名，之前每个模型要手动写 `CodingKeys` 适配。
