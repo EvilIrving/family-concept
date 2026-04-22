@@ -8,12 +8,14 @@ private enum LaunchAnimationConstants {
     static let targetScale: CGFloat = 1.1
     static let targetOpacity: Double = 1.0
 
-    // 3D 颠勺动画
+    // 3D 旋转动画
     static let rotationStart: Double = 0
     static let rotationEnd: Double = 360
-    static let tossHeight: CGFloat = 15
-    static let tossDuration: Double = 0.6
     static let rotateDuration: Double = 1.2
+
+    // 叉子跟随外圈呼吸缩放
+    static let forkMinScale: CGFloat = 0.92
+    static let forkMaxScale: CGFloat = 1.08
 
     // 3D 透视
     static let perspective: CGFloat = 0.5
@@ -33,7 +35,6 @@ struct LaunchScreenView: View {
     @State private var scale: CGFloat = LaunchAnimationConstants.initialScale
     @State private var opacity: Double = LaunchAnimationConstants.initialOpacity
     @State private var rotate3D: Double = LaunchAnimationConstants.rotationStart
-    @State private var tossOffset: CGFloat = 0
 
     var body: some View {
         VStack(spacing: AppGap.block) {
@@ -66,16 +67,16 @@ struct LaunchScreenView: View {
                 .scaleEffect(scale)
                 .opacity(opacity)
 
-            // 白色锅图标，3D 旋转 + 上下浮动
+            // 白色叉子图标，3D 旋转 + 跟随外圈呼吸缩放
             Image(systemName: "fork.knife")
                 .font(.system(size: AppDimension.launchIconSize))
                 .foregroundStyle(AppSemanticColor.onPrimary)
+                .scaleEffect(forkScale)
                 .rotation3DEffect(
                     .degrees(rotate3D),
                     axis: (x: 0, y: 1, z: 0),
                     perspective: LaunchAnimationConstants.perspective
                 )
-                .offset(y: tossOffset)
         }
     }
 
@@ -113,6 +114,11 @@ struct LaunchScreenView: View {
         return LaunchAnimationConstants.dotBaseOpacity + (opacity - LaunchAnimationConstants.initialOpacity) * (1 + offset * LaunchAnimationConstants.opacityBlend)
     }
 
+    private var forkScale: CGFloat {
+        let progress = (scale - LaunchAnimationConstants.initialScale) / (LaunchAnimationConstants.targetScale - LaunchAnimationConstants.initialScale)
+        return LaunchAnimationConstants.forkMinScale + progress * (LaunchAnimationConstants.forkMaxScale - LaunchAnimationConstants.forkMinScale)
+    }
+
     private func startAnimations() {
         // 背景呼吸动画
         withAnimation(AppMotion.launchPulse) {
@@ -126,14 +132,6 @@ struct LaunchScreenView: View {
                 .repeatForever(autoreverses: false)
         ) {
             rotate3D = LaunchAnimationConstants.rotationEnd
-        }
-
-        // 上下浮动动画（颠勺抛起）- 模拟重力抛物线
-        withAnimation(
-            Animation.easeInOut(duration: LaunchAnimationConstants.tossDuration)
-                .repeatForever(autoreverses: true)
-        ) {
-            tossOffset = -LaunchAnimationConstants.tossHeight
         }
     }
 }
