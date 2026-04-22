@@ -198,9 +198,15 @@ struct AppSkeletonImage: View {
     var minHeight: CGFloat? = nil
 
     var body: some View {
-        SkeletonPrimitive()
-            .aspectRatio(aspectRatio, contentMode: .fit)
-            .frame(maxWidth: .infinity, minHeight: minHeight)
+        Group {
+            if let aspectRatio {
+                SkeletonPrimitive()
+                    .aspectRatio(aspectRatio, contentMode: .fit)
+            } else {
+                SkeletonPrimitive()
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: minHeight)
     }
 }
 
