@@ -18,7 +18,7 @@
   - `MenuAddDishSheet.swift`：新增菜品弹层
   - `MenuCartSheet.swift`：购物车弹层
   - `DishCameraCaptureView.swift`：拍照采集
-  - `DishRecognitionView.swift`：三阶段主体识别确认页（编辑 / 识别中 / 已识别），全部底部按钮均为纯文字无图标。编辑态左键根据来源显示「重新选图」或「重新拍照」并触发 `onCancel` 返回选图入口，右键「识别」对取景框内子图执行 Vision 抠图；识别完成切换到「重新识别」（回到编辑态保留构图） / 「确认」（回调 `onConfirm` 抠图成品）。最终输出主体最长边占画布 80% 的透明背景 PNG
+  - `DishRecognitionView.swift`：简化菜品识别页（框选 / 识别中 / 预览），用户仅调整取景框内画面；点击「识别」后只对框内子图执行 Vision 前景识别并直接生成预览，随后可「重新框选」或「确认使用」。最终输出主体最长边占画布 80% 的透明背景 PNG
   - `MenuDishImagePickerSection.swift`、`IngredientTagInput.swift`、`MenuSupport.swift`：菜单域支持视图与类型
 
 ## 导航与弹层约束

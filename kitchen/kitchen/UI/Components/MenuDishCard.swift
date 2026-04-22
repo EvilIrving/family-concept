@@ -72,13 +72,7 @@ struct MenuDishCard: View {
             topTrailingRadius: AppRadius.md,
             style: .continuous
         )
-        .fill(
-            LinearGradient(
-                colors: [AppSemanticColor.interactiveSecondaryPressed, AppSemanticColor.interactiveSecondary],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .fill(.clear)
         .frame(height: AppDimension.dishArtworkHeight)
         .overlay(alignment: .topTrailing) {
             AppPill(title: category)

@@ -65,4 +65,5 @@ struct CropRoute: Hashable {
 enum CropImageSource {
     case camera
     case photoLibrary
+    case existingCover
 }

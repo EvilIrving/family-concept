@@ -54,6 +54,9 @@ struct MenuDishFlowContainer: View {
                     currentCameraSessionID = UUID()
                     navigationPath.append(.camera(currentCameraSessionID))
                 },
+                onEditImageRequest: {
+                    reopenCurrentImageForEditing()
+                },
                 onDelete: item.isEdit ? {
                     archiveConfirmationPresented = true
                 } : nil
@@ -153,6 +156,8 @@ struct MenuDishFlowContainer: View {
             isPhotoPickerPresented = true
         case .camera:
             restartCameraRoute()
+        case .existingCover:
+            break
         }
     }
 
@@ -175,6 +180,28 @@ struct MenuDishFlowContainer: View {
         await Task.detached(priority: .userInitiated) {
             image.standardizedForCrop()
         }.value
+    }
+
+    private func reopenCurrentImageForEditing() {
+        let image: UIImage?
+        switch imageCoordinator.imageState {
+        case .ready(let previewImage, _), .uploadFailed(let previewImage, _, _), .remote(let previewImage, _):
+            image = previewImage
+        default:
+            image = nil
+        }
+
+        guard let image else { return }
+
+        navigationPath.append(
+            .crop(
+                CropRoute(
+                    id: UUID(),
+                    image: image,
+                    source: .existingCover
+                )
+            )
+        )
     }
 
     private func seedRemoteImageIfNeeded() async {

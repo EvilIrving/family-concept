@@ -16,10 +16,12 @@ Create an agent team with 4 teammates to implement this feature end-to-end:
 | code-reviewer | code-reviewer | Review code diff, append to `code.review.md` with STATUS |
 
 **Artifacts** (repo root):
+
 - `plan.md`, `tasks.md` — kept for history
 - `plan.review.md`, `test.md`, `code.review.md` — deleted on approval
 
 **Pipeline:**
+
 1. Planner writes plan + tasks
 2. Plan-reviewer reviews
    - APPROVED → auto-advance to coder, no human gate
@@ -29,6 +31,7 @@ Create an agent team with 4 teammates to implement this feature end-to-end:
 5. Final human approval → cleanup + `/sessionlog`
 
 **Team lead responsibilities:**
+
 - You (the user) are the team lead
 - Use `Shift+Down` to switch between teammates
 - Plan review: APPROVED skips your gate and auto-advances; CHANGES_REQUESTED pushes the review to your chat — you can approve, ask for revision, or defer items
@@ -44,10 +47,12 @@ Create an agent team with 4 teammates to implement this feature end-to-end:
 **Inputs:** feature description; `plan.review.md` (on revision rounds); existing `plan.md` / `tasks.md` (on revision rounds).
 
 **Outputs:**
+
 - `plan.md` — approach, design choices, files touched, risks, out-of-scope
 - `tasks.md` — ordered checklist, each task with an acceptance criterion
 
 **Rules:**
+
 - Round 1: create `plan.md` and `tasks.md` from scratch
 - Revision: read `plan.review.md`, apply accepted suggestions, update in place
 - Never delete review files — team lead handles that after approval
@@ -56,6 +61,7 @@ Create an agent team with 4 teammates to implement this feature end-to-end:
 - Flag unknowns explicitly; do not guess
 
 **plan.md structure:**
+
 ```md
 ## Goal
 one-paragraph statement of what done looks like
@@ -74,12 +80,14 @@ bullets on design direction and key decisions
 ```
 
 **tasks.md structure:**
+
 ```md
 - [ ] T1: <action> — acceptance: <observable criterion>
 - [ ] T2: ...
 ```
 
 **Revision protocol:**
+
 1. Read `plan.review.md` top-to-bottom
 2. Apply approved suggestions to plan.md / tasks.md
 3. Append `## Revision Notes` summarizing what changed
@@ -87,6 +95,7 @@ bullets on design direction and key decisions
 5. Message plan-reviewer "Revision complete, ready for re-review"
 
 **Communication:**
+
 - On startup: broadcast "Planner started, analyzing feature request..."
 - After initial plan: message plan-reviewer "Ready for review"
 - After revision: message plan-reviewer "Revision complete, ready for re-review"
@@ -103,6 +112,7 @@ bullets on design direction and key decisions
 **Output:** Append to `plan.review.md` (create if missing).
 
 **Rules:**
+
 - Only append to `plan.review.md`; never rewrite existing content
 - Never modify `plan.md` or `tasks.md`
 - Focus on: gaps, ambiguity, over-scoping, under-scoping, missing acceptance criteria, hidden dependencies
@@ -111,6 +121,7 @@ bullets on design direction and key decisions
 - End with a STATUS line (parsed by team lead)
 
 **Append format:**
+
 ```md
 ---
 ## Round 1 — YYYY-MM-DD HH:MM
@@ -130,6 +141,7 @@ bullets on design direction and key decisions
 ```
 
 STATUS: APPROVED | CHANGES_REQUESTED
+
 ```
 
 **Status rules:**
@@ -183,6 +195,7 @@ STATUS: APPROVED | CHANGES_REQUESTED
 ```
 
 **Revision protocol:**
+
 1. Read `code.review.md` from latest round
 2. Fix each Valid complaint (or user-adjudicated Valid item)
 3. Append `## Round <N>` to test.md with changes + verification
@@ -190,6 +203,7 @@ STATUS: APPROVED | CHANGES_REQUESTED
 5. Do not modify code.review.md
 
 **Testing discipline:**
+
 - Check if project has a test setup before writing code
 - If tests exist: write tests for new behavior, run them as part of verification
 - If no test setup: do NOT introduce one — note gap in test.md Notes, rely on build + manual
@@ -197,6 +211,7 @@ STATUS: APPROVED | CHANGES_REQUESTED
 - When fixing a reviewer-flagged bug, add a regression test if project already has tests for that area
 
 **Communication:**
+
 - On startup: broadcast "Coder started, waiting for approved plan..."
 - When plan approved: broadcast "Starting implementation"
 - After initial implementation: message code-reviewer "Ready for code review"
@@ -215,6 +230,7 @@ STATUS: APPROVED | CHANGES_REQUESTED
 **Output:** Append to `code.review.md` (create if missing).
 
 **Rules:**
+
 - Only append; never rewrite existing rounds
 - Never modify source code, plan.md, tasks.md, or test.md
 - Only flag issues grounded in plan.md / tasks.md acceptance criteria OR real correctness/security/robustness problems in the diff
@@ -223,6 +239,7 @@ STATUS: APPROVED | CHANGES_REQUESTED
 - Cap at 3 review rounds; on round 3, be strict about what is truly Blocking
 
 **Append format:**
+
 ```md
 ---
 ## Round 1 — YYYY-MM-DD HH:MM
@@ -241,16 +258,19 @@ STATUS: APPROVED | CHANGES_REQUESTED
 ```
 
 **Status rules:**
+
 - `APPROVED` iff `## Blocking` is empty
 - `CHANGES_REQUESTED` iff any blocking item exists
 - Nits and Out of Scope never block approval
 
 **Scope discipline:**
+
 - Only flag deviations from plan.md / tasks.md, or genuine correctness / security / crash / data-loss risks
 - Do NOT flag style preferences, naming opinions, or speculative refactors as Blocking
 - If you catch yourself writing "consider" or "might be nicer" — that belongs in Nits or Out of Scope
 
 **Communication:**
+
 - On "Ready for code review" from coder: start review
 - After review: message coder "Review complete" + STATUS
 - If round 3 and CHANGES_REQUESTED: message team-lead "Adjudication required" with numbered Blocking list

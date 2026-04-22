@@ -4,6 +4,7 @@ struct MenuDishFlowImagePickerSection: View {
     @ObservedObject var coordinator: DishImageCoordinator
     let onPhotoLibraryRequest: () -> Void
     let onCameraRequest: () -> Void
+    let onEditRequest: (() -> Void)?
     var isInvalid: Bool = false
     var validationTrigger: Int = 0
     var errorMessage: String?
@@ -18,14 +19,14 @@ struct MenuDishFlowImagePickerSection: View {
             case .extracting:
                 progressState("识别中…")
             case .remote(let previewImage, _):
-                imagePreview(previewImage, showsRemoveButton: false, showsPickerButtons: true)
+                imagePreview(previewImage, showsRemoveButton: false)
             case .ready(let previewImage, _):
-                imagePreview(previewImage, showsRemoveButton: true, showsPickerButtons: true)
+                imagePreview(previewImage, showsRemoveButton: true)
             case .uploading:
                 progressState("上传中…")
             case .uploadFailed(let previewImage, _, let message):
                 VStack(spacing: AppSpacing.xs) {
-                    imagePreview(previewImage, showsRemoveButton: true, showsPickerButtons: true)
+                    imagePreview(previewImage, showsRemoveButton: true)
                     Text(message)
                         .font(AppTypography.caption)
                         .foregroundStyle(AppSemanticColor.danger)
@@ -80,21 +81,35 @@ struct MenuDishFlowImagePickerSection: View {
 
     private func imagePreview(
         _ image: UIImage,
-        showsRemoveButton: Bool,
-        showsPickerButtons: Bool
+        showsRemoveButton: Bool
     ) -> some View {
         VStack(spacing: AppSpacing.xs) {
             ZStack(alignment: .topTrailing) {
                 RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                     .fill(AppSemanticColor.surfaceSecondary)
-                    .frame(maxWidth: .infinity, minHeight: AppDimension.imagePreviewMinHeight)
+                    .frame(maxWidth: .infinity, minHeight: 188)
                     .overlay {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .scaleEffect(0.7)
-                            .padding(AppSpacing.sm)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                                    Text("菜品封面")
+                                        .font(AppTypography.micro)
+                                        .foregroundStyle(AppSemanticColor.textSecondary)
+                                    Text("可继续调整取景与构图")
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(AppSemanticColor.textSecondary)
+                                }
+                                Spacer()
+                            }
+
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .padding(.horizontal, AppSpacing.xl)
+                                .padding(.vertical, AppSpacing.sm)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        }
+                        .padding(AppSpacing.md)
                     }
                     .clipped()
 
@@ -111,9 +126,20 @@ struct MenuDishFlowImagePickerSection: View {
                 }
             }
 
-            if showsPickerButtons {
-                pickerButtons
+            if let onEditRequest {
+                Button(action: onEditRequest) {
+                    Label("重新编辑封面", systemImage: "slider.horizontal.3")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppSemanticColor.primary)
+                        .frame(maxWidth: .infinity, minHeight: AppDimension.minTouchTarget)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, AppSpacing.xxs)
+                .padding(.vertical, AppSpacing.xxs)
+                .background(AppSemanticColor.interactiveSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
             }
+
+            pickerButtons
         }
     }
 }

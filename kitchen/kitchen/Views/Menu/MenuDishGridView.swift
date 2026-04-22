@@ -35,7 +35,7 @@ struct MenuDishGridView: View {
                 }
                 .padding(AppSpacing.md)
             }
-            .padding(.top, AppSpacing.sm)
+            .padding(.top, 0)
             .padding(.bottom, AppSpacing.md)
         }
         .scrollDismissesKeyboard(.interactively)

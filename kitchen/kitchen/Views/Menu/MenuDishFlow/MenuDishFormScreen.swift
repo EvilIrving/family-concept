@@ -13,6 +13,7 @@ struct MenuDishFormScreen: View {
     let onSave: () -> Void
     let onPhotoLibraryRequest: () -> Void
     let onCameraRequest: () -> Void
+    let onEditImageRequest: (() -> Void)?
     var onDelete: (() -> Void)? = nil
 
     var body: some View {
@@ -25,6 +26,7 @@ struct MenuDishFormScreen: View {
                         coordinator: imageCoordinator,
                         onPhotoLibraryRequest: onPhotoLibraryRequest,
                         onCameraRequest: onCameraRequest,
+                        onEditRequest: onEditImageRequest,
                         isInvalid: draft.invalidImage,
                         validationTrigger: draft.validationTrigger,
                         errorMessage: draft.imageError

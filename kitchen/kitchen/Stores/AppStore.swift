@@ -7,7 +7,12 @@ final class AppStore: ObservableObject {
     // MARK: - Published State
 
     @Published var currentAccount: Account?
-    @Published var kitchen: Kitchen?
+    @Published var kitchen: Kitchen? {
+        didSet {
+            guard oldValue?.id != kitchen?.id else { return }
+            hasLoadedKitchenData = false
+        }
+    }
     @Published var members: [Member] = []
     @Published var dishes: [Dish] = []
     @Published var currentOrder: Order?
@@ -19,6 +24,7 @@ final class AppStore: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var isBootstrapping: Bool = false
     @Published var isSubmittingCart: Bool = false
+    @Published private(set) var hasLoadedKitchenData: Bool = false
     @Published var error: String?
     @Published var colorScheme: ColorScheme?
 
@@ -123,7 +129,10 @@ final class AppStore: ObservableObject {
     func fetchAll() async {
         guard let kitchen else { return }
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            hasLoadedKitchenData = true
+        }
 
         do {
             async let membersReq: [Member] = apiClient.fetchMembers(kitchenID: kitchen.id, authToken: authToken)
@@ -181,6 +190,7 @@ final class AppStore: ObservableObject {
     }
 
     func clearKitchenState() {
+        hasLoadedKitchenData = false
         kitchen = nil
         members = []
         dishes = []

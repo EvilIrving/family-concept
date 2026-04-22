@@ -13,10 +13,6 @@ private enum LaunchAnimationConstants {
     static let rotationEnd: Double = 360
     static let rotateDuration: Double = 1.2
 
-    // 叉子跟随外圈呼吸缩放
-    static let forkMinScale: CGFloat = 0.92
-    static let forkMaxScale: CGFloat = 1.08
-
     // 3D 透视
     static let perspective: CGFloat = 0.5
 
@@ -71,7 +67,7 @@ struct LaunchScreenView: View {
             Image(systemName: "fork.knife")
                 .font(.system(size: AppDimension.launchIconSize))
                 .foregroundStyle(AppSemanticColor.onPrimary)
-                .scaleEffect(forkScale)
+                .scaleEffect(scale)
                 .rotation3DEffect(
                     .degrees(rotate3D),
                     axis: (x: 0, y: 1, z: 0),
@@ -112,11 +108,6 @@ struct LaunchScreenView: View {
     private func opacityValue(for index: Int) -> Double {
         let offset = Double(index) * LaunchAnimationConstants.dotOpacityOffset
         return LaunchAnimationConstants.dotBaseOpacity + (opacity - LaunchAnimationConstants.initialOpacity) * (1 + offset * LaunchAnimationConstants.opacityBlend)
-    }
-
-    private var forkScale: CGFloat {
-        let progress = (scale - LaunchAnimationConstants.initialScale) / (LaunchAnimationConstants.targetScale - LaunchAnimationConstants.initialScale)
-        return LaunchAnimationConstants.forkMinScale + progress * (LaunchAnimationConstants.forkMaxScale - LaunchAnimationConstants.forkMinScale)
     }
 
     private func startAnimations() {

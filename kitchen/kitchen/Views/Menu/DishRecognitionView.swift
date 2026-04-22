@@ -1,19 +1,18 @@
 import SwiftUI
 import UIKit
-import Vision
-import CoreImage
 
-/// 两阶段菜品识别页：
-/// 1. 编辑态 — 用户在 1:1 取景框内拖动、缩放原图；
-/// 2. 识别态 — 对取景框内子图执行 Vision 前景抠图，生成主体最长边占画布 80%
-///    的透明背景 1:1 PNG；`onConfirm` 返回的是该抠图成品。
 struct DishRecognitionView: View {
     enum Source { case album, camera }
 
     fileprivate enum Phase {
-        case editing
-        case recognizing(subimage: UIImage)
-        case recognized(subimage: UIImage, finalImage: UIImage)
+        case framing
+        case processing(UIImage)
+        case preview(PreviewResult)
+    }
+
+    fileprivate struct PreviewResult {
+        let previewImage: UIImage
+        let finalImage: UIImage
     }
 
     private let minimumScale: CGFloat = 0.5
@@ -23,314 +22,270 @@ struct DishRecognitionView: View {
     let onConfirm: (UIImage) -> Void
     let onCancel: () -> Void
 
-    @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
-    @State private var offset: CGSize = .zero
-    @State private var lastOffset: CGSize = .zero
-    @State private var suggestedScale: CGFloat = 1.0
+    @State private var framingScale: CGFloat = 1
+    @State private var lastFramingScale: CGFloat = 1
+    @State private var framingOffset: CGSize = .zero
+    @State private var lastFramingOffset: CGSize = .zero
     @State private var normalizedImage: UIImage?
-    @State private var phase: Phase = .editing
-
-    private var isEditing: Bool {
-        if case .editing = phase { return true }
-        return false
-    }
-
-    private var isRecognizing: Bool {
-        if case .recognizing = phase { return true }
-        return false
-    }
+    @State private var phase: Phase = .framing
 
     private var displayImage: UIImage { normalizedImage ?? sourceImage }
 
+    private var isFraming: Bool {
+        if case .framing = phase { return true }
+        return false
+    }
+
+    private var isProcessing: Bool {
+        if case .processing = phase { return true }
+        return false
+    }
+
+    private var currentPreview: PreviewResult? {
+        if case .preview(let result) = phase { return result }
+        return nil
+    }
+
+    private var currentProcessingImage: UIImage? {
+        if case .processing(let image) = phase { return image }
+        return nil
+    }
+
     var body: some View {
         GeometryReader { geo in
-            let vpSize = viewportSize(in: geo)
-            let vpWidth = vpSize.width
-            let vpHeight = vpSize.height
-            let topPad = max(geo.safeAreaInsets.top, 16) + 16
-            let bottomPad = max(geo.safeAreaInsets.bottom, 16) + 80
-            let availableH = geo.size.height - topPad - bottomPad
-            let vpY = topPad + max(0, (availableH - vpHeight) / 2)
-            let viewportCenter = CGPoint(x: geo.size.width / 2, y: vpY + vpHeight / 2)
+            let viewportSize = viewportSize(in: geo)
+            let viewportCenter = viewportCenter(in: geo, viewportSize: viewportSize)
 
             ZStack {
-                // T7: Radial gradient backdrop (warm dark center, cooler edges)
-                RadialGradient(
-                    gradient: Gradient(colors: [
-                        Color.clear,
-                        AppComponentColor.Cropper.backdropGradientCenter.opacity(0.3),
-                        AppComponentColor.Cropper.backdropGradientEdge
-                    ]),
-                    center: .center,
-                    startRadius: 0,
-                    endRadius: max(geo.size.width, geo.size.height) * 0.7
-                )
-                .ignoresSafeArea()
+                ZStack {
+                    Color(AppSemanticColor.surface)
+                        .ignoresSafeArea()
+                }
+                .overlay {
+                    if currentPreview != nil {
+                        RoundedRectangle(
+                            cornerRadius: DishImageSpec.viewportCornerRadius,
+                            style: .continuous
+                        )
+                        .frame(width: viewportSize.width, height: viewportSize.height)
+                        .position(x: viewportCenter.x, y: viewportCenter.y)
+                        .blendMode(.destinationOut)
+                    }
+                }
+                .compositingGroup()
 
-                if isEditing {
+                if isFraming {
                     DishRecognitionCanvas(
                         displayImage: displayImage,
-                        scale: scale,
-                        offset: offset,
-                        isEditing: isEditing,
-                        vpWidth: vpWidth,
-                        vpHeight: vpHeight,
+                        scale: framingScale,
+                        offset: framingOffset,
+                        viewportSize: viewportSize,
                         viewportCenter: viewportCenter,
                         containerSize: geo.size
                     )
-                    .gesture(gesture(vpWidth: vpWidth, vpHeight: vpHeight))
+                    .gesture(framingGesture(viewportSize: viewportSize))
 
                     DishRecognitionDarkOverlay(
-                        vpWidth: vpWidth,
-                        vpHeight: vpHeight,
+                        vpWidth: viewportSize.width,
+                        vpHeight: viewportSize.height,
                         viewportCenter: viewportCenter,
                         containerSize: geo.size
                     )
-                } else {
-                    DishRecognitionRecognizedView(vpWidth: vpWidth, vpHeight: vpHeight)
-                        .position(x: viewportCenter.x, y: viewportCenter.y)
                 }
 
-                // T8: Vignette — dark edges, transparent center, applied to all phases
-                RadialGradient(
-                    gradient: Gradient(colors: [
-                        Color.clear,
-                        Color.black.opacity(0.25),
-                        Color.black
-                    ]),
-                    center: .center,
-                    startRadius: 0,
-                    endRadius: max(geo.size.width, geo.size.height) * 0.7
+                DishRecognitionViewportFrame(
+                    vpWidth: viewportSize.width,
+                    vpHeight: viewportSize.height
                 )
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+                .position(x: viewportCenter.x, y: viewportCenter.y)
 
-                DishRecognitionViewportBorder(isEditing: isEditing, vpWidth: vpWidth, vpHeight: vpHeight)
+                if let preview = currentPreview {
+                    DishRecognitionPreviewCanvas(
+                        previewImage: preview.previewImage,
+                        viewportSize: viewportSize
+                    )
                     .position(x: viewportCenter.x, y: viewportCenter.y)
+                    .transition(.opacity)
+                } else if let processingImage = currentProcessingImage {
+                    DishRecognitionProcessingCanvas(
+                        image: processingImage,
+                        viewportSize: viewportSize
+                    )
+                    .position(x: viewportCenter.x, y: viewportCenter.y)
+                }
 
-                DishRecognitionActionButtons(
+                DishRecognitionBottomPanel(
                     phase: phase,
                     source: source,
-                    isRecognizing: isRecognizing,
-                    geo: geo,
-                    vpWidth: vpWidth,
-                    vpY: vpY,
-                    vpHeight: vpHeight,
-                    viewportCenter: viewportCenter,
-                    onLeftTap: { handleLeftTap() },
-                    onRecognize: { handleRightTap(viewportCenter: viewportCenter, vpY: vpY, vpWidth: vpWidth, vpHeight: vpHeight) },
-                    onConfirm: { handleConfirm() }
+                    onPrimaryTap: {
+                        handlePrimaryTap(viewportCenter: viewportCenter, viewportSize: viewportSize)
+                    },
+                    onSecondaryTap: handleSecondaryTap
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
 
-                if case .recognizing(let subimage) = phase {
-                    DishRecognitionRecognizingOverlay(
-                        subimage: subimage,
-                        vpWidth: vpWidth,
-                        vpHeight: vpHeight,
-                        viewportCenter: viewportCenter,
-                        onFinish: { [phase = self._phase] finalImage in
-                            // T2: Advance phase to .recognized after dissolve completes
-                            phase.wrappedValue = .recognized(subimage: subimage, finalImage: finalImage)
-                            // T4: Haptic feedback on recognition complete
-                            HapticManager.shared.triggerMediumImpact()
-                        }
-                    )
-                    .transition(.opacity)
-                }
-
-                if case let .recognized(_, finalImage) = phase {
-                    DishRecognitionFinalPreview(
-                        finalImage: finalImage,
-                        vpWidth: vpWidth,
-                        vpHeight: vpHeight,
-                        viewportCenter: viewportCenter
-                    )
-                }
+                DishRecognitionTopBar(
+                    onBack: handleBack,
+                    isProcessing: isProcessing
+                )
             }
             .frame(width: geo.size.width, height: geo.size.height)
-            .overlay(alignment: .top) {
-                DishRecognitionTopBar(onCancel: onCancel, isRecognizing: isRecognizing)
-            }
             .task(id: sourceImage) {
-                let img = await Task.detached(priority: .userInitiated) {
+                let image = await Task.detached(priority: .userInitiated) {
                     sourceImage.normalizedForCrop()
                 }.value
-                normalizedImage = img
-                await applySuggestedFraming(vpWidth: vpWidth, vpHeight: vpHeight)
+                normalizedImage = image
             }
         }
     }
 
-    // MARK: - Gesture
+    private func viewportCenter(in geo: GeometryProxy, viewportSize: CGSize) -> CGPoint {
+        let topInset = max(geo.safeAreaInsets.top, 16) + 64
+        let bottomInset = max(geo.safeAreaInsets.bottom, 16) + 178
+        let availableHeight = geo.size.height - topInset - bottomInset
+        let centerY = topInset + max(viewportSize.height / 2, availableHeight / 2)
+        return CGPoint(x: geo.size.width / 2, y: centerY)
+    }
 
-    private func gesture(vpWidth: CGFloat, vpHeight: CGFloat) -> some Gesture {
+    private func viewportSize(in geo: GeometryProxy) -> CGSize {
+        let topInset = max(geo.safeAreaInsets.top, 16) + 64
+        let bottomInset = max(geo.safeAreaInsets.bottom, 16) + 178
+        let maxWidth = max(220, geo.size.width - 32)
+        let maxHeight = max(220, geo.size.height - topInset - bottomInset)
+        let width = min(maxWidth, maxHeight * DishImageSpec.viewportAspectRatio)
+        return CGSize(width: width, height: width / DishImageSpec.viewportAspectRatio)
+    }
+
+    private func framingGesture(viewportSize: CGSize) -> some Gesture {
         SimultaneousGesture(
             MagnificationGesture()
                 .onChanged { value in
-                    guard isEditing else { return }
-                    scale = max(minimumScale, lastScale * value)
-                    offset = clamped(offset, vpWidth: vpWidth, vpHeight: vpHeight)
+                    guard isFraming else { return }
+                    framingScale = max(minimumScale, lastFramingScale * value)
+                    framingOffset = clampedFramingOffset(framingOffset, viewportSize: viewportSize)
                 }
                 .onEnded { _ in
-                    lastScale = scale
-                    lastOffset = offset
+                    lastFramingScale = framingScale
+                    lastFramingOffset = framingOffset
                 },
             DragGesture()
                 .onChanged { value in
-                    guard isEditing else { return }
+                    guard isFraming else { return }
                     let proposed = CGSize(
-                        width: lastOffset.width + value.translation.width,
-                        height: lastOffset.height + value.translation.height
+                        width: lastFramingOffset.width + value.translation.width,
+                        height: lastFramingOffset.height + value.translation.height
                     )
-                    offset = clamped(proposed, vpWidth: vpWidth, vpHeight: vpHeight)
+                    framingOffset = clampedFramingOffset(proposed, viewportSize: viewportSize)
                 }
                 .onEnded { _ in
-                    lastOffset = offset
+                    lastFramingOffset = framingOffset
                 }
         )
     }
 
-    // MARK: - Layout
+    private func clampedFramingOffset(_ proposed: CGSize, viewportSize: CGSize) -> CGSize {
+        let baseFrame = dishRecognitionAspectFillFrame(for: displayImage.size, viewportSize: viewportSize)
 
-    private func viewportSize(in geo: GeometryProxy) -> CGSize {
-        let topPad = max(geo.safeAreaInsets.top, 16) + 16
-        let bottomPad = max(geo.safeAreaInsets.bottom, 16) + 80
-        let maxWidth = max(160, geo.size.width - 32)
-        let maxHeight = max(160, geo.size.height - topPad - bottomPad)
-        let fittedWidth = min(maxWidth, maxHeight * DishImageSpec.viewportAspectRatio)
-        return CGSize(width: fittedWidth, height: fittedWidth / DishImageSpec.viewportAspectRatio)
-    }
-
-    private func clamped(_ proposed: CGSize, vpWidth: CGFloat, vpHeight: CGFloat) -> CGSize {
-        let baseFrame = aspectFillFrame(for: displayImage.size, vpWidth: vpWidth, vpHeight: vpHeight)
-        let maxX = max(0, (baseFrame.width * scale - vpWidth) / 2)
-        let maxY = max(0, (baseFrame.height * scale - vpHeight) / 2)
+        let maxX = max(0, (baseFrame.width * framingScale - viewportSize.width) / 2)
+        let maxY = max(0, (baseFrame.height * framingScale - viewportSize.height) / 2)
         return CGSize(
             width: proposed.width.clamped(to: -maxX...maxX),
             height: proposed.height.clamped(to: -maxY...maxY)
         )
     }
 
-    private func aspectFillFrame(for imageSize: CGSize, vpWidth: CGFloat, vpHeight: CGFloat) -> CGSize {
-        guard imageSize.width > 0, imageSize.height > 0 else {
-            return CGSize(width: vpWidth, height: vpHeight)
-        }
-        let fillScale = max(vpWidth / imageSize.width, vpHeight / imageSize.height)
-        return CGSize(width: imageSize.width * fillScale, height: imageSize.height * fillScale)
-    }
+    private func viewportSubimage(viewportCenter: CGPoint, viewportSize: CGSize) -> UIImage? {
+        let image = displayImage
+        guard let cgImage = image.cgImage, image.size.width > 0, image.size.height > 0 else { return nil }
 
-    // MARK: - Extraction entry
+        let baseFrame = dishRecognitionAspectFillFrame(for: image.size, viewportSize: viewportSize)
 
-    private func beginRecognition(viewportCenter: CGPoint, vpY: CGFloat, vpWidth: CGFloat, vpHeight: CGFloat) {
-        guard isEditing else { return }
-        guard let subimage = viewportSubimage(
-            viewportCenter: viewportCenter,
-            vpY: vpY,
-            vpWidth: vpWidth,
-            vpHeight: vpHeight
-        ) else { return }
-        // T3: Haptic feedback on recognition start
-        HapticManager.shared.triggerLightImpact()
-        withAnimation(.easeInOut(duration: 0.2)) {
-            phase = .recognizing(subimage: subimage)
-        }
-    }
+        let pixelsPerScreenPoint = image.size.width / (baseFrame.width * framingScale)
+        let imageLeft = viewportCenter.x + framingOffset.width - (baseFrame.width * framingScale) / 2
+        let imageTop = viewportCenter.y + framingOffset.height - (baseFrame.height * framingScale) / 2
+        let viewportLeft = viewportCenter.x - viewportSize.width / 2
+        let viewportTop = viewportCenter.y - viewportSize.height / 2
 
-    private func viewportSubimage(viewportCenter: CGPoint, vpY: CGFloat, vpWidth: CGFloat, vpHeight: CGFloat) -> UIImage? {
-        let img = displayImage
-        guard let cg = img.cgImage, img.size.width > 0, img.size.height > 0 else { return nil }
-
-        let baseFrame = aspectFillFrame(for: img.size, vpWidth: vpWidth, vpHeight: vpHeight)
-        let pxPerScreen = img.size.width / (baseFrame.width * scale)
-
-        let imageLeft = viewportCenter.x + offset.width - (baseFrame.width * scale) / 2
-        let imageTop = viewportCenter.y + offset.height - (baseFrame.height * scale) / 2
-        let vpLeft = viewportCenter.x - vpWidth / 2
-
-        var rectPx = CGRect(
-            x: (vpLeft - imageLeft) * pxPerScreen,
-            y: (vpY - imageTop) * pxPerScreen,
-            width: vpWidth * pxPerScreen,
-            height: vpHeight * pxPerScreen
+        var cropRect = CGRect(
+            x: (viewportLeft - imageLeft) * pixelsPerScreenPoint,
+            y: (viewportTop - imageTop) * pixelsPerScreenPoint,
+            width: viewportSize.width * pixelsPerScreenPoint,
+            height: viewportSize.height * pixelsPerScreenPoint
         )
-        rectPx = rectPx.integral.intersection(CGRect(origin: .zero, size: CGSize(width: cg.width, height: cg.height)))
-        guard rectPx.width >= 1, rectPx.height >= 1, let cropped = cg.cropping(to: rectPx) else { return nil }
+        cropRect = cropRect.integral.intersection(
+            CGRect(origin: .zero, size: CGSize(width: cgImage.width, height: cgImage.height))
+        )
+
+        guard cropRect.width >= 1,
+              cropRect.height >= 1,
+              let cropped = cgImage.cropping(to: cropRect)
+        else {
+            return nil
+        }
+
         return UIImage(cgImage: cropped, scale: 1, orientation: .up)
     }
 
-    // MARK: - Vision framing
-
-    @MainActor
-    private func applySuggestedFraming(vpWidth: CGFloat, vpHeight: CGFloat) async {
-        guard suggestedScale <= 1.0001 else { return }
-
-        guard let framing = await DishImageProcessor.visionFraming(for: displayImage, vpWidth: vpWidth, vpHeight: vpHeight) else {
-            setFraming(scale: 1.0, offset: .zero, vpWidth: vpWidth, vpHeight: vpHeight)
-            return
-        }
-        setFraming(scale: framing.scale, offset: framing.offset, vpWidth: vpWidth, vpHeight: vpHeight)
-    }
-
-    @MainActor
-    private func setFraming(scale: CGFloat, offset: CGSize, vpWidth: CGFloat, vpHeight: CGFloat) {
-        self.scale = max(minimumScale, scale)
-        self.lastScale = self.scale
-        let clampedOffset = clamped(offset, vpWidth: vpWidth, vpHeight: vpHeight)
-        self.offset = clampedOffset
-        self.lastOffset = clampedOffset
-        self.suggestedScale = self.scale
-    }
-
-    // MARK: - Actions
-
-    private func handleLeftTap() {
+    private func handlePrimaryTap(viewportCenter: CGPoint, viewportSize: CGSize) {
         switch phase {
-        case .editing:
-            onCancel()
-        case .recognizing:
+        case .framing:
+            guard let subimage = viewportSubimage(viewportCenter: viewportCenter, viewportSize: viewportSize) else { return }
+            HapticManager.shared.triggerLightImpact()
+            withAnimation(.easeInOut(duration: 0.18)) {
+                phase = .processing(subimage)
+            }
+            Task {
+                let composition = await DishImageProcessor.analyzeComposition(from: subimage)
+                let finalImage = DishImageProcessor.renderFinalImage(
+                    from: composition,
+                    transform: composition.suggestedTransform
+                )
+                let result = PreviewResult(
+                    previewImage: composition.foregroundImage,
+                    finalImage: finalImage
+                )
+                await MainActor.run {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        phase = .preview(result)
+                    }
+                    HapticManager.shared.triggerMediumImpact()
+                }
+            }
+        case .processing:
             break
-        case .recognized:
-            withAnimation(.easeInOut(duration: 0.2)) {
-                phase = .editing
+        case .preview(let result):
+            onConfirm(result.finalImage)
+        }
+    }
+
+    private func handleSecondaryTap() {
+        switch phase {
+        case .framing:
+            onCancel()
+        case .processing:
+            break
+        case .preview:
+            withAnimation(.easeInOut(duration: 0.18)) {
+                phase = .framing
             }
         }
     }
 
-    private func handleRightTap(viewportCenter: CGPoint, vpY: CGFloat, vpWidth: CGFloat, vpHeight: CGFloat) {
+    private func handleBack() {
         switch phase {
-        case .editing:
-            beginRecognition(viewportCenter: viewportCenter, vpY: vpY, vpWidth: vpWidth, vpHeight: vpHeight)
-        case .recognizing:
+        case .framing:
+            onCancel()
+        case .processing:
             break
-        case .recognized(_, let finalImage):
-            onConfirm(finalImage)
-        }
-    }
-
-    private func handleConfirm() {
-        if case let .recognized(_, finalImage) = phase {
-            onConfirm(finalImage)
+        case .preview:
+            withAnimation(.easeInOut(duration: 0.18)) {
+                phase = .framing
+            }
         }
     }
 }
 
-// MARK: - Supporting Views (local to this file)
-
-private struct DishRecognitionRecognizedView: View {
-    let vpWidth: CGFloat
-    let vpHeight: CGFloat
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius)
-            .fill(AppComponentColor.Cropper.backdrop)
-            .frame(width: vpWidth, height: vpHeight)
-            .allowsHitTesting(false)
-    }
-}
-
-private struct DishRecognitionViewportBorder: View {
-    let isEditing: Bool
+private struct DishRecognitionViewportFrame: View {
     let vpWidth: CGFloat
     let vpHeight: CGFloat
 
@@ -347,112 +302,187 @@ private struct DishRecognitionViewportBorder: View {
                 .clipShape(RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius))
         }
         .allowsHitTesting(false)
-        .opacity(isEditing ? 1 : 0)
     }
 }
 
-private struct DishRecognitionActionButtons: View {
-    let phase: DishRecognitionView.Phase
-    let source: DishRecognitionView.Source
-    let isRecognizing: Bool
-    let geo: GeometryProxy
-    let vpWidth: CGFloat
-    let vpY: CGFloat
-    let vpHeight: CGFloat
-    let viewportCenter: CGPoint
-    let onLeftTap: () -> Void
-    let onRecognize: () -> Void
-    let onConfirm: () -> Void
+private struct DishRecognitionProcessingCanvas: View {
+    let image: UIImage
+    let viewportSize: CGSize
 
     var body: some View {
-        let buttonBottomInset = max(geo.safeAreaInsets.bottom, 16) + 12
-        let buttonRowY = geo.size.height - buttonBottomInset - (AppDimension.minTouchTarget / 2)
-        let buttonInset = (geo.size.width - vpWidth) / 2 + 8
-
-        let leftLabel: String = {
-            switch phase {
-            case .editing, .recognizing:
-                return source == .album ? "重新选图" : "重新拍照"
-            case .recognized:
-                return "重新识别"
+        Image(uiImage: image)
+            .resizable()
+            .interpolation(.high)
+            .scaledToFill()
+            .frame(width: viewportSize.width, height: viewportSize.height)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DishImageSpec.viewportCornerRadius,
+                    style: .continuous
+                )
+            )
+            .overlay {
+                ZStack {
+                    Color.black.opacity(0.36)
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .tint(.white)
+                }
             }
-        }()
-        let rightLabel: String = {
-            if case .recognized = phase { return "确认" }
-            return "识别"
-        }()
+    }
+}
 
-        HStack(spacing: 0) {
-            Button(action: onLeftTap) {
-                Text(leftLabel)
-                    .cropActionLabel()
+private struct DishRecognitionBottomPanel: View {
+    let phase: DishRecognitionView.Phase
+    let source: DishRecognitionView.Source
+    let onPrimaryTap: () -> Void
+    let onSecondaryTap: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Text(title)
+                    .font(AppTypography.cardTitle)
+                    .foregroundStyle(.white)
+
+                Text(subtitle)
+                    .font(AppTypography.body)
+                    .foregroundStyle(Color.white.opacity(0.72))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .buttonStyle(.plain)
-            .disabled(isRecognizing)
 
-            Spacer()
+            HStack(spacing: AppSpacing.sm) {
+                Button(action: onSecondaryTap) {
+                    Text(secondaryTitle)
+                        .recognitionSecondaryButtonStyle()
+                }
+                .buttonStyle(.plain)
+                .disabled(isProcessing)
 
-            Button(action: onRecognize) {
-                Text(rightLabel)
-                    .cropActionLabel()
+                Button(action: onPrimaryTap) {
+                    if isProcessing {
+                        HStack(spacing: AppSpacing.xs) {
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                                .tint(AppComponentColor.Cropper.confirmForeground)
+                            Text(primaryTitle)
+                        }
+                        .recognitionPrimaryButtonStyle()
+                    } else {
+                        Text(primaryTitle)
+                            .recognitionPrimaryButtonStyle()
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isProcessing)
             }
-            .buttonStyle(.plain)
-            .disabled(isRecognizing)
         }
-        .padding(.horizontal, buttonInset)
-        .frame(width: geo.size.width)
-        .position(x: geo.size.width / 2, y: buttonRowY)
-        .opacity(isRecognizing ? 0 : 1)
+        .padding(.horizontal, AppSpacing.lg)
+        .padding(.top, AppSpacing.lg)
+        .padding(.bottom, 20)
+    }
+
+    private var isProcessing: Bool {
+        if case .processing = phase { return true }
+        return false
+    }
+
+    private var title: String {
+        switch phase {
+        case .framing:
+            return "框选菜品"
+        case .processing:
+            return "正在识别框内内容"
+        case .preview:
+            return "预览识别结果"
+        }
+    }
+
+    private var subtitle: String {
+        switch phase {
+        case .framing:
+            return "调整图片位置和大小，让要识别的菜品完整落在取景框内。"
+        case .processing:
+            return "系统正在对取景框内的图像执行 Vision 前景识别。"
+        case .preview:
+            return "这是根据取景框内容生成的预览图，不满意可以返回重新框选。"
+        }
+    }
+
+    private var primaryTitle: String {
+        switch phase {
+        case .framing:
+            return "识别"
+        case .processing:
+            return "处理中"
+        case .preview:
+            return "确认使用"
+        }
+    }
+
+    private var secondaryTitle: String {
+        switch phase {
+        case .framing, .processing:
+            return source == .album ? "重新选图" : "重新拍照"
+        case .preview:
+            return "重新框选"
+        }
     }
 }
 
 private struct DishRecognitionTopBar: View {
-    let onCancel: () -> Void
-    let isRecognizing: Bool
+    let onBack: () -> Void
+    let isProcessing: Bool
 
     var body: some View {
-        HStack(spacing: AppSpacing.sm) {
-            Button(action: onCancel) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(AppComponentColor.Cropper.controlForeground)
-                    .frame(width: AppDimension.minTouchTarget, height: AppDimension.minTouchTarget)
-                    .background(AppComponentColor.Cropper.controlForeground.opacity(0.12), in: Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(AppComponentColor.Cropper.controlBorder, lineWidth: AppBorderWidth.hairline)
-                    )
-            }
-            .buttonStyle(.plain)
-            .disabled(isRecognizing)
-            .accessibilityLabel("返回")
+        VStack {
+            HStack {
+                Button(action: onBack) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(AppComponentColor.Cropper.controlForeground)
+                        .frame(width: AppDimension.minTouchTarget, height: AppDimension.minTouchTarget)
+                        .background(AppComponentColor.Cropper.controlForeground.opacity(0.12), in: Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(AppComponentColor.Cropper.controlBorder, lineWidth: AppBorderWidth.hairline)
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(isProcessing)
+                .accessibilityLabel("返回")
 
-            Spacer(minLength: 0)
+                Spacer()
+            }
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.top, AppSpacing.md)
+
+            Spacer()
         }
-        .padding(.horizontal, AppSpacing.md)
-        .padding(.bottom, AppSpacing.xs)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.clear)
     }
 }
 
 private extension View {
-    func cropActionLabel() -> some View {
+    func recognitionPrimaryButtonStyle() -> some View {
+        self
+            .font(AppTypography.button)
+            .foregroundStyle(AppComponentColor.Cropper.confirmForeground)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(AppComponentColor.Cropper.confirmBackground, in: Capsule())
+    }
+
+    func recognitionSecondaryButtonStyle() -> some View {
         self
             .font(AppTypography.button)
             .foregroundStyle(AppComponentColor.Cropper.controlForeground)
-            .frame(minHeight: AppDimension.minTouchTarget)
-            .padding(.horizontal, AppSpacing.md)
+            .frame(maxWidth: .infinity, minHeight: 52)
             .background(AppComponentColor.Cropper.controlForeground.opacity(0.12), in: Capsule())
             .overlay(
                 Capsule()
                     .stroke(AppComponentColor.Cropper.controlBorder, lineWidth: AppBorderWidth.hairline)
             )
-            .contentShape(Capsule())
     }
 }
-
-// MARK: - UIImage helpers
 
 private extension UIImage {
     nonisolated func normalizedForCrop() -> UIImage {
@@ -468,36 +498,4 @@ private extension CGFloat {
     func clamped(to range: ClosedRange<CGFloat>) -> CGFloat {
         Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
     }
-}
-
-#Preview {
-    DishRecognitionView(
-        sourceImage: {
-            let size = CGSize(width: 1200, height: 900)
-            let format = UIGraphicsImageRendererFormat()
-            format.scale = 1
-            return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
-                let colors = [UIColor.systemOrange, UIColor.systemYellow, UIColor.systemPink]
-                let gradient = CGGradient(
-                    colorsSpace: CGColorSpaceCreateDeviceRGB(),
-                    colors: colors.map(\.cgColor) as CFArray,
-                    locations: [0, 0.5, 1]
-                )!
-                ctx.cgContext.drawLinearGradient(
-                    gradient,
-                    start: .zero,
-                    end: CGPoint(x: size.width, y: size.height),
-                    options: []
-                )
-                let label = "预览图" as NSString
-                label.draw(
-                    at: CGPoint(x: size.width / 2 - 40, y: size.height / 2 - 20),
-                    withAttributes: [.font: UIFont.systemFont(ofSize: 40, weight: .bold), .foregroundColor: UIColor.white]
-                )
-            }
-        }(),
-        source: .album,
-        onConfirm: { _ in },
-        onCancel: {}
-    )
 }

@@ -39,7 +39,7 @@ struct MenuView: View {
             .appShadow(AppShadow.card)
             .padding(.horizontal, AppSpacing.md)
             .padding(.top, AppSpacing.xxs)
-            .padding(.bottom, AppSpacing.lg)
+            .padding(.bottom, AppSpacing.xxs)
 
             menuContent
             if store.cartCount > 0 {
@@ -128,6 +128,9 @@ struct MenuView: View {
     }
 
     private var menuPhase: LoadingPhase<[Dish]> {
+        if !store.hasLoadedKitchenData && filteredDishes.isEmpty {
+            return .initialLoading(label: "加载菜单")
+        }
         if filteredDishes.isEmpty {
             let kind: AppEmptyKind = debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .noData : .noSearchResult
             return .failure(.empty(kind: kind, title: emptyMenuTitle, message: emptySearchHint), retainedValue: nil)

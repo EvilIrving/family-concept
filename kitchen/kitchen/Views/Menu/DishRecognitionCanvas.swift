@@ -1,123 +1,62 @@
 import SwiftUI
+import UIKit
 
 struct DishRecognitionCanvas: View {
     let displayImage: UIImage
     let scale: CGFloat
     let offset: CGSize
-    let isEditing: Bool
-    let vpWidth: CGFloat
-    let vpHeight: CGFloat
+    let viewportSize: CGSize
     let viewportCenter: CGPoint
     let containerSize: CGSize
 
     var body: some View {
-        let baseFrame = aspectFillFrame(for: displayImage.size, vpWidth: vpWidth, vpHeight: vpHeight)
+        let baseFrame = dishRecognitionAspectFillFrame(for: displayImage.size, viewportSize: viewportSize)
         let baseOffset = CGSize(
             width: viewportCenter.x - containerSize.width / 2,
             height: viewportCenter.y - containerSize.height / 2
         )
 
-        return Color.clear
+        Color.clear
             .frame(width: containerSize.width, height: containerSize.height)
-            .overlay(
+            .overlay {
                 Image(uiImage: displayImage)
                     .resizable()
+                    .interpolation(.high)
                     .frame(width: baseFrame.width * scale, height: baseFrame.height * scale)
                     .offset(x: baseOffset.width + offset.width, y: baseOffset.height + offset.height)
-            )
+            }
             .clipped()
             .contentShape(Rectangle())
     }
-
-    private func aspectFillFrame(for imageSize: CGSize, vpWidth: CGFloat, vpHeight: CGFloat) -> CGSize {
-        guard imageSize.width > 0, imageSize.height > 0 else {
-            return CGSize(width: vpWidth, height: vpHeight)
-        }
-        let fillScale = max(vpWidth / imageSize.width, vpHeight / imageSize.height)
-        return CGSize(width: imageSize.width * fillScale, height: imageSize.height * fillScale)
-    }
 }
 
-struct DishRecognitionViewportOverlay: View {
-    let isEditing: Bool
-    let vpWidth: CGFloat
-    let vpHeight: CGFloat
-    let viewportCenter: CGPoint
-    let containerSize: CGSize
+struct DishRecognitionPreviewCanvas: View {
+    let previewImage: UIImage
+    let viewportSize: CGSize
 
     var body: some View {
-        ZStack {
-            if isEditing {
-                darkOverlay
+        Color.clear
+            .frame(width: viewportSize.width, height: viewportSize.height)
+            .overlay {
+                Image(uiImage: previewImage)
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: viewportSize.width, height: viewportSize.height)
             }
-            viewportBorder
-        }
-    }
-
-    private var darkOverlay: some View {
-        Rectangle()
-            .fill(AppComponentColor.Cropper.overlay)
-            .ignoresSafeArea()
-            .overlay(
-                RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius)
-                    .frame(width: vpWidth, height: vpHeight)
-                    .offset(
-                        x: viewportCenter.x - containerSize.width / 2,
-                        y: viewportCenter.y - containerSize.height / 2
-                    )
-                    .blendMode(.destinationOut)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: DishImageSpec.viewportCornerRadius,
+                    style: .continuous
+                )
             )
-            .compositingGroup()
-            .allowsHitTesting(false)
-    }
-
-    private var viewportBorder: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius)
-                .strokeBorder(AppComponentColor.Cropper.viewportBorder, lineWidth: AppBorderWidth.strong + 0.5)
-                .frame(width: vpWidth, height: vpHeight)
-
-            RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius)
-                .strokeBorder(AppComponentColor.Cropper.viewportShadow, lineWidth: 18)
-                .blur(radius: 12)
-                .frame(width: vpWidth, height: vpHeight)
-                .clipShape(RoundedRectangle(cornerRadius: DishImageSpec.viewportCornerRadius))
-        }
-        .allowsHitTesting(false)
-        .opacity(isEditing ? 1 : 0)
     }
 }
 
-struct DishRecognitionFinalPreview: View {
-    let finalImage: UIImage
-    let vpWidth: CGFloat
-    let vpHeight: CGFloat
-    let viewportCenter: CGPoint
-
-    var body: some View {
-        Image(uiImage: finalImage)
-            .resizable()
-            .scaledToFit()
-            .padding(16)
-            .frame(width: vpWidth, height: vpHeight)
-            .position(x: viewportCenter.x, y: viewportCenter.y)
-            .transition(.opacity)
+func dishRecognitionAspectFillFrame(for imageSize: CGSize, viewportSize: CGSize) -> CGSize {
+    guard imageSize.width > 0, imageSize.height > 0 else {
+        return viewportSize
     }
-}
 
-struct DishRecognitionRecognizingOverlay: View {
-    let subimage: UIImage
-    let vpWidth: CGFloat
-    let vpHeight: CGFloat
-    let viewportCenter: CGPoint
-    let onFinish: (UIImage) -> Void
-
-    var body: some View {
-        DishConfirmDissolveView(
-            sourceImage: subimage,
-            produceFinal: { await DishImageProcessor.composeFinalImage(from: subimage) },
-            onFinish: onFinish
-        )
-        .transition(.opacity)
-    }
+    let fillScale = max(viewportSize.width / imageSize.width, viewportSize.height / imageSize.height)
+    return CGSize(width: imageSize.width * fillScale, height: imageSize.height * fillScale)
 }
