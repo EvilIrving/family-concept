@@ -68,6 +68,7 @@ struct OrdersView: View {
                         .padding(.horizontal, AppSpacing.md)
                         .padding(.top, AppSpacing.lg)
                         .padding(.bottom, AppSpacing.md)
+                        .scrollClipDisabled()
                     },
                     onRetry: { Task { await store.refreshOrderItems() } }
                 )

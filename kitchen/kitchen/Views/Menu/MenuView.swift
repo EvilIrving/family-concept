@@ -12,7 +12,6 @@ struct MenuView: View {
     @State private var visibleDishCount = 12
     @FocusState private var focusedField: MenuField?
 
-    private let quickCategories = ["自定义", "家常菜", "快手菜", "汤羹", "主食", "饮品", "甜点"]
     private let dishPageSize = 12
     private let preloadScreenCount = 12
 
@@ -93,6 +92,9 @@ struct MenuView: View {
                     feedback: feedback,
                     onTap: { focusedField = nil }
                 )
+            },
+            skeletonView: {
+                MenuDishGridSkeletonView()
             }
         ) { dishes in
             MenuDishGridView(
@@ -118,6 +120,10 @@ struct MenuView: View {
 
     private var filterCategories: [String] {
         ["全部"] + store.dishCategories
+    }
+
+    private var quickCategories: [String] {
+        ["自定义"] + store.dishCategories
     }
 
     private var filteredDishes: [Dish] {

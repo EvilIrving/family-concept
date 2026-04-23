@@ -6,13 +6,14 @@ struct LoadingBlockStrategy {
     var overlaysRetainedContentOnFailure: Bool = true
 }
 
-struct AppLoadingBlock<Value, Content: View, Empty: View>: View {
+struct AppLoadingBlock<Value, Content: View, Empty: View, Skeleton: View>: View {
     @Environment(\.loadingStyle) private var style
 
     let phase: LoadingPhase<Value>
     var strategy = LoadingBlockStrategy()
     var retryTitle: String = "重试"
     let emptyView: ((AppFeedback) -> Empty)?
+    let skeletonView: (() -> Skeleton)?
     let content: (Value) -> Content
     let onRetry: (() -> Void)?
 
@@ -21,6 +22,7 @@ struct AppLoadingBlock<Value, Content: View, Empty: View>: View {
         strategy: LoadingBlockStrategy = LoadingBlockStrategy(),
         retryTitle: String = "重试",
         emptyView: ((AppFeedback) -> Empty)? = nil,
+        skeletonView: (() -> Skeleton)? = nil,
         @ViewBuilder content: @escaping (Value) -> Content,
         onRetry: (() -> Void)? = nil
     ) {
@@ -28,6 +30,7 @@ struct AppLoadingBlock<Value, Content: View, Empty: View>: View {
         self.strategy = strategy
         self.retryTitle = retryTitle
         self.emptyView = emptyView
+        self.skeletonView = skeletonView
         self.content = content
         self.onRetry = onRetry
     }
@@ -61,6 +64,8 @@ struct AppLoadingBlock<Value, Content: View, Empty: View>: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(AppSpacing.md)
+        } else if let skeletonView, strategy.showsSkeletonOnInitialLoad {
+            skeletonView()
         } else if strategy.showsSkeletonOnInitialLoad {
             VStack(spacing: style.blockSpacing) {
                 AppSkeletonBlock(height: AppDimension.progressBlockMinHeight)
@@ -123,7 +128,7 @@ struct AppLoadingBlock<Value, Content: View, Empty: View>: View {
     }
 }
 
-extension AppLoadingBlock where Empty == EmptyView {
+extension AppLoadingBlock where Empty == EmptyView, Skeleton == EmptyView {
     init(
         phase: LoadingPhase<Value>,
         strategy: LoadingBlockStrategy = LoadingBlockStrategy(),
@@ -136,6 +141,7 @@ extension AppLoadingBlock where Empty == EmptyView {
             strategy: strategy,
             retryTitle: retryTitle,
             emptyView: nil,
+            skeletonView: nil,
             content: content,
             onRetry: onRetry
         )

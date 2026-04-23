@@ -10,7 +10,7 @@ enum MenuField: Hashable {
 struct AddDishDraft {
     var editingDishID: String?
     var name = ""
-    var selectedQuickCategory = "家常菜"
+    var selectedQuickCategory = "自定义"
     var customCategory = ""
     var ingredientTags: [String] = []
     var ingredientInput = ""

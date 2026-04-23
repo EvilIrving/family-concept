@@ -34,6 +34,13 @@ struct OrderItemRow: View {
 
                     Spacer()
 
+                    if canEditWaiting && item.status == .waiting {
+                        HStack(spacing: AppSpacing.xxs) {
+                            AppIconActionButton(systemImage: "minus", tone: .neutral, action: onReduce)
+                            AppIconActionButton(systemImage: "xmark", tone: .danger, action: onCancel)
+                        }
+                    }
+
                     AppPill(title: item.status.title, tint: statusColor, background: statusBackground)
                 }
                 .frame(minHeight: 52)
@@ -41,13 +48,6 @@ struct OrderItemRow: View {
             }
             .buttonStyle(.plain)
             .disabled(!canManage)
-
-            if canEditWaiting && item.status == .waiting {
-                HStack(spacing: AppSpacing.xxs) {
-                    AppIconActionButton(systemImage: "minus", tone: .neutral, action: onReduce)
-                    AppIconActionButton(systemImage: "xmark", tone: .danger, action: onCancel)
-                }
-            }
         }
     }
 

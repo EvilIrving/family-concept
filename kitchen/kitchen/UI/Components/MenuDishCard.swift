@@ -24,16 +24,6 @@ struct MenuDishCard: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     HStack {
-                        if let onManage {
-                            Button(action: onManage) {
-                                Image(systemName: "ellipsis.circle")
-                                    .font(.system(size: AppIconSize.md, weight: .semibold))
-                                    .foregroundStyle(AppSemanticColor.textSecondary)
-                                    .frame(width: AppDimension.iconButtonSide, height: AppDimension.iconButtonSide)
-                            }
-                            .buttonStyle(.plain)
-                        }
-
                         Spacer()
 
                         HStack(spacing: 2) {
@@ -62,6 +52,9 @@ struct MenuDishCard: View {
                 }
                 .padding(AppSpacing.sm)
             }
+        }
+        .onTapGesture(count: 2) {
+            onManage?()
         }
     }
 
