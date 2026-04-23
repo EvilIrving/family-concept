@@ -42,14 +42,13 @@ struct AppToastView: View {
             }
 
             Text(toast.text)
-                .font(AppTypography.bodyStrong)
+                .font(AppTypography.body)
                 .foregroundStyle(toast.foregroundColor)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.vertical, AppSpacing.md)
-        .frame(maxWidth: 280)
         .background(toast.backgroundColor, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
         .shadow(color: AppSemanticColor.shadowSubtle, radius: 16, y: 8)
     }

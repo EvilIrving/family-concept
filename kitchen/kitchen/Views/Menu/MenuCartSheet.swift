@@ -15,7 +15,7 @@ struct MenuCartSheet: View {
                 Task {
                     await store.submitCart()
                     guard store.error == nil else { return }
-                    feedbackRouter.show(.high(message: "已下单"))
+                    feedbackRouter.show(.low(message: "已下单"))
                     dismiss()
                 }
             },

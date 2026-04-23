@@ -193,9 +193,9 @@ struct MenuView: View {
     private func handleDishFlowResult(_ result: MenuDishFlowResult) {
         switch result {
         case .added(let name):
-            feedbackRouter.show(.high(message: "已新增 \(name)"))
+            feedbackRouter.show(.low(message: "已新增 \(name)"))
         case .updated(let name):
-            feedbackRouter.show(.high(message: "已更新 \(name)"))
+            feedbackRouter.show(.low(message: "已更新 \(name)"))
         case .deleted(let name):
             feedbackRouter.show(
                 .low(

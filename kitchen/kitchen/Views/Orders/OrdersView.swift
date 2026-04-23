@@ -33,14 +33,14 @@ struct OrdersView: View {
                                         onReduce: {
                                             Task {
                                                 if await store.reduceWaitingItemQuantity(for: item) {
-                                                    feedbackRouter.show(.high(message: "已减少 \(item.dishName) 1 份"))
+                                                    feedbackRouter.show(.low(message: "已减少 \(item.dishName) 1 份"))
                                                 }
                                             }
                                         },
                                         onCancel: {
                                             Task {
                                                 if await store.cancelWaitingItems(for: item) {
-                                                    feedbackRouter.show(.high(message: "已取消 \(item.dishName)"))
+                                                    feedbackRouter.show(.low(message: "已取消 \(item.dishName)"))
                                                 }
                                             }
                                         }
@@ -56,7 +56,7 @@ struct OrdersView: View {
                                     Task {
                                         let didFinish = await store.finishOrder()
                                         if didFinish {
-                                            feedbackRouter.show(.high(message: "这顿收好了"))
+                                            feedbackRouter.show(.low(message: "这顿收好了"))
                                         }
                                     }
                                 }
