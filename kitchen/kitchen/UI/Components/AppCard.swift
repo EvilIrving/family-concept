@@ -5,24 +5,23 @@ struct AppCard<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             content
         }
         .padding(padding)
-        .background {
-            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                .fill(AppComponentColor.Card.background)
-                .shadow(
-                    color: AppShadow.card.color,
-                    radius: AppShadow.card.radius,
-                    x: AppShadow.card.x,
-                    y: AppShadow.card.y
-                )
-        }
+        .background(AppComponentColor.Card.background, in: shape)
+        .clipShape(shape)
         .overlay {
-            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                .stroke(AppComponentColor.Card.border, lineWidth: 1)
+            shape.stroke(AppComponentColor.Card.border, lineWidth: 1)
         }
+        .shadow(
+            color: AppShadow.card.color,
+            radius: AppShadow.card.radius,
+            x: AppShadow.card.x,
+            y: AppShadow.card.y
+        )
     }
 }
 
