@@ -5,7 +5,6 @@ import Foundation
 struct Endpoint<Response: Decodable> {
     let path: String
     let method: String
-    let headers: [String: String]
     let queryItems: [URLQueryItem]
     let body: Encodable?
     let requiresAuth: Bool
@@ -13,14 +12,12 @@ struct Endpoint<Response: Decodable> {
     init(
         path: String,
         method: String = "GET",
-        headers: [String: String] = [:],
         queryItems: [URLQueryItem] = [],
         body: Encodable? = nil,
         requiresAuth: Bool = false
     ) {
         self.path = path
         self.method = method
-        self.headers = headers
         self.queryItems = queryItems
         self.body = body
         self.requiresAuth = requiresAuth
@@ -39,6 +36,10 @@ final class APIClient {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return decoder
     }()
+
+    static func decodeJSON<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
+        try jsonDecoder.decode(type, from: data)
+    }
 
     init(baseURL: String? = nil) {
         self.baseURL = baseURL ?? Bundle.main.object(forInfoDictionaryKey: "APIBaseURL") as? String ?? "https://api.kitchen.onecat.dev"
@@ -63,12 +64,13 @@ final class APIClient {
         fileContentType: String,
         authToken: String
     ) async throws -> T {
-        var request = URLRequest(url: URL(string: baseURL + path)!)
-        request.httpMethod = method
-
         let boundary = UUID().uuidString
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        var request = try buildURLRequest(
+            path: path,
+            method: method,
+            authToken: authToken,
+            contentType: "multipart/form-data; boundary=\(boundary)"
+        )
 
         request.httpBody = buildMultipartBody(
             fields: fields,
@@ -90,10 +92,12 @@ final class APIClient {
         contentType: String,
         authToken: String
     ) async throws -> Data? {
-        var request = URLRequest(url: URL(string: baseURL + path)!)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        var request = try buildURLRequest(
+            path: path,
+            method: "POST",
+            authToken: authToken,
+            contentType: contentType
+        )
         request.httpBody = data
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -108,23 +112,41 @@ final class APIClient {
     // MARK: - Private Helpers
 
     private func buildRequest<T>(_ endpoint: Endpoint<T>, authToken: String?) throws -> URLRequest {
-        var components = URLComponents(string: baseURL + endpoint.path)
-        components?.queryItems = endpoint.queryItems.isEmpty ? nil : endpoint.queryItems
+        var request = try buildURLRequest(
+            path: endpoint.path,
+            method: endpoint.method,
+            authToken: endpoint.requiresAuth ? authToken : nil,
+            contentType: "application/json",
+            queryItems: endpoint.queryItems
+        )
+
+        if let body = endpoint.body {
+            request.httpBody = try JSONEncoder().encode(body)
+        }
+
+        return request
+    }
+
+    private func buildURLRequest(
+        path: String,
+        method: String,
+        authToken: String?,
+        contentType: String,
+        queryItems: [URLQueryItem] = []
+    ) throws -> URLRequest {
+        var components = URLComponents(string: baseURL + path)
+        components?.queryItems = queryItems.isEmpty ? nil : queryItems
 
         guard let url = components?.url else {
             throw APIError.invalidURL
         }
 
         var request = URLRequest(url: url)
-        request.httpMethod = endpoint.method
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpMethod = method
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
 
-        if let token = authToken, endpoint.requiresAuth {
+        if let token = authToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-
-        if let body = endpoint.body {
-            request.httpBody = try JSONEncoder().encode(body)
         }
 
         return request
@@ -175,7 +197,7 @@ final class APIClient {
         }
 
         do {
-            return try APIClient.jsonDecoder.decode(T.self, from: data)
+            return try APIClient.decodeJSON(T.self, from: data)
         } catch {
             #if DEBUG
             if let jsonString = String(data: data, encoding: .utf8) {

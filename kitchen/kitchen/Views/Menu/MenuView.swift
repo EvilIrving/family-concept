@@ -187,8 +187,6 @@ struct MenuView: View {
                 .presentationBackground(.clear)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
-        case .addDish, .editDish:
-            EmptyView()
         }
     }
 

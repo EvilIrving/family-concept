@@ -15,11 +15,9 @@
   - `OrderHistorySheets.swift`：历史订单列表与历史订单详情弹层
 - `Menu/`：
   - `MenuView.swift`：菜单搜索、分类筛选、加菜入口、购物车入口
-  - `MenuAddDishSheet.swift`：新增菜品弹层
   - `MenuCartSheet.swift`：购物车弹层
-  - `DishCameraCaptureView.swift`：拍照采集
-  - `DishRecognitionView.swift`：简化菜品识别页（框选 / 识别中 / 预览），用户仅调整取景框内画面；点击「识别」后只对框内子图执行 Vision 前景识别并直接生成预览，随后可「重新框选」或「确认使用」。最终输出主体最长边占画布 80% 的透明背景 PNG
-  - `MenuDishImagePickerSection.swift`、`IngredientTagInput.swift`、`MenuSupport.swift`：菜单域支持视图与类型
+  - `AddDishFlow/`：新增/编辑菜品流程，包含表单页面、图片选择区、食材输入和流程状态类型
+  - `DishImageFlow/`：相机拍照、取景裁切及其画布/遮罩支持视图
 
 ## 导航与弹层约束
 

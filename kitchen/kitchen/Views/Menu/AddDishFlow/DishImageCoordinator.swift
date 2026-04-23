@@ -5,13 +5,11 @@ import Combine
 final class DishImageCoordinator: ObservableObject {
     @Published var imageState: DishDraftImageState = .empty
 
-    private let pipeline = DishImagePipeline()
-
     func processImage(_ image: UIImage) {
         imageState = .processing
         Task {
             do {
-                let (preview, fileURL) = try await pipeline.process(image)
+                let (preview, fileURL) = try await image.exportForDishUpload()
                 imageState = .ready(previewImage: preview, fileURL: fileURL)
             } catch {
                 imageState = .failed((error as? APIError)?.userMessage ?? error.localizedDescription)

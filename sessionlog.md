@@ -1,3 +1,15 @@
+## 菜品图片流程收口到固定 1:1 裁切链路 · 2026-04-23 10:33 · Codex
+
+这次把菜单里的菜品图片流程彻底收口到固定 `1:1` 取景框裁切方案。运行中的裁切页确认是 `DishFramingView.swift` 这条链路，因此围绕它继续精简，而不是保留旧的识别/预览分支。
+
+已删除旧链路和死代码，包括 `DishConfirmDissolveView.swift`、`DishImageProcessor.swift`、`DishRecognition*.swift`、`DishViewportOverlay.swift`、`MenuAddDishSheet.swift`、`MenuDishImagePickerSection.swift`，并去掉 `DishDraftImageState` 里的 `.extracting` 与对应 UI 分支。`MenuModalRoute.swift` 现在只保留 `.cart`，`MenuView.swift` 里的 `.addDish` / `.editDish` sheet 死分支也一起删掉。
+
+交互上，裁切页改成固定方形取景框，宽度约为屏宽 70%，不再做 Vision 主体识别、处理中、预览态切换，确认时直接使用框内图片。新增菜品表单中的图片预览也统一成与取景框一致的 `1:1` 方框，且移除了“重新编辑封面”和“框选菜品”等提示文案。
+
+模型与服务层也做了对应收口。`DishImageSpec.swift` 删除了旧 Vision 时代遗留但已不再使用的 `outputSize`、`subjectFillRatio`、`viewportHorizontalInset`，`DishImagePipeline.swift` 的注释改为描述当前“裁切后导出 PNG”的真实行为，不再提 Vision 抠图。
+
+需要注意的是，仓库里当前以 `git status` 看仍有一组较早删除后的新文件处于未跟踪状态，即 `DishFramingCanvas.swift`、`DishFramingOverlay.swift`、`DishFramingView.swift`；它们是当前运行链路的一部分，不应按旧文件误删。另有 `Views/Plan.md` 还保留历史规划文字，但只是文档，不影响运行。
+
 ## 菜品识别预览改为原地贴前景并隐藏原图 · 2026-04-22 18:20 · Codex
 
 这次把 `DishRecognitionView.swift` 和 `DishRecognitionCanvas.swift` 的识别预览逻辑继续收紧。前一版虽然已经简化为“框选 / 识别中 / 预览”，但预览态展示的是重新渲染后的成品图，所以从用户视角会看到主体在预览时发生位置或尺寸变化，和“只看框内识别结果”的预期不一致。

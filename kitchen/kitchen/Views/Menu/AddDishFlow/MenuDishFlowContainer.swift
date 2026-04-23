@@ -17,7 +17,6 @@ struct MenuDishFlowContainer: View {
     @State private var isPhotoPickerPresented = false
     @State private var archiveConfirmationPresented = false
     @State private var currentCameraSessionID = UUID()
-    @State private var isRestartingCamera = false
 
     init(
         item: MenuDishFlowItem,
@@ -54,9 +53,6 @@ struct MenuDishFlowContainer: View {
                     currentCameraSessionID = UUID()
                     navigationPath.append(.camera(currentCameraSessionID))
                 },
-                onEditImageRequest: {
-                    reopenCurrentImageForEditing()
-                },
                 onDelete: item.isEdit ? {
                     archiveConfirmationPresented = true
                 } : nil
@@ -64,47 +60,37 @@ struct MenuDishFlowContainer: View {
             .navigationDestination(for: MenuDishFlowRoute.self) { route in
                 switch route {
                 case .camera(let sessionID):
-                    ZStack {
-                        DishCameraCaptureView(
-                            onCapture: { image in
-                                Task {
-                                    let standardized = await standardizedCropImage(from: image)
-                                    await MainActor.run {
-                                        navigationPath.append(
-                                            .crop(
-                                                CropRoute(
-                                                    id: UUID(),
-                                                    image: standardized,
-                                                    source: .camera
-                                                )
+                    DishCameraCaptureView(
+                        onCapture: { image in
+                            Task {
+                                let standardized = await standardizedCropImage(from: image)
+                                await MainActor.run {
+                                    navigationPath.append(
+                                        .crop(
+                                            CropRoute(
+                                                id: UUID(),
+                                                image: standardized,
+                                                source: .camera
                                             )
                                         )
-                                    }
+                                    )
                                 }
-                            },
-                            onCancel: {
-                                popLastRoute()
                             }
-                        )
-                        .id(sessionID)
-                        .ignoresSafeArea()
-
-                        if isRestartingCamera {
-                            Color(AppSemanticColor.cameraBackdrop)
-                                .ignoresSafeArea()
-                                .overlay {
-                                    AppLoadingIndicator(label: "正在重启相机", tone: .inverse)
-                                }
+                        },
+                        onCancel: {
+                            popLastRoute()
                         }
-                    }
+                    )
+                    .id(sessionID)
+                    .ignoresSafeArea()
                     .toolbar(.hidden, for: .navigationBar)
                 case .crop(let route):
-                    DishRecognitionView(
+                    DishFramingView(
                         sourceImage: route.image,
-                        source: route.source == .camera ? .camera : .album,
+                        inputSource: route.source == .camera ? .camera : .album,
                         onConfirm: { cropped in
                             imageCoordinator.processImage(cropped)
-                            popLastRoute()
+                            handleCropConfirm(route)
                         },
                         onCancel: {
                             handleCropCancel(route)
@@ -156,22 +142,26 @@ struct MenuDishFlowContainer: View {
             isPhotoPickerPresented = true
         case .camera:
             restartCameraRoute()
-        case .existingCover:
-            break
         }
+    }
+
+    private func handleCropConfirm(_ route: CropRoute) {
+        popLastRoute()
+        guard route.source == .camera else { return }
+        guard case .camera = navigationPath.last else { return }
+        popLastRoute()
     }
 
     private func restartCameraRoute() {
         guard case .camera = navigationPath.last else { return }
-        isRestartingCamera = true
         Task {
             await MainActor.run {
-                currentCameraSessionID = UUID()
-                navigationPath[navigationPath.count - 1] = .camera(currentCameraSessionID)
+                popLastRoute()
             }
-            try? await Task.sleep(for: .milliseconds(900))
+            try? await Task.sleep(for: .milliseconds(150))
             await MainActor.run {
-                isRestartingCamera = false
+                currentCameraSessionID = UUID()
+                navigationPath.append(.camera(currentCameraSessionID))
             }
         }
     }
@@ -180,28 +170,6 @@ struct MenuDishFlowContainer: View {
         await Task.detached(priority: .userInitiated) {
             image.standardizedForCrop()
         }.value
-    }
-
-    private func reopenCurrentImageForEditing() {
-        let image: UIImage?
-        switch imageCoordinator.imageState {
-        case .ready(let previewImage, _), .uploadFailed(let previewImage, _, _), .remote(let previewImage, _):
-            image = previewImage
-        default:
-            image = nil
-        }
-
-        guard let image else { return }
-
-        navigationPath.append(
-            .crop(
-                CropRoute(
-                    id: UUID(),
-                    image: image,
-                    source: .existingCover
-                )
-            )
-        )
     }
 
     private func seedRemoteImageIfNeeded() async {

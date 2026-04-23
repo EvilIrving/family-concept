@@ -106,7 +106,7 @@ extension APIClient {
         }
 
         do {
-            return try uploadDecoder.decode(DishImageUploadResult.self, from: responseData)
+            return try APIClient.decodeJSON(DishImageUploadResult.self, from: responseData)
         } catch {
             if let text = String(data: responseData, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
@@ -115,12 +115,6 @@ extension APIClient {
             }
             throw uploadDecodeError(error, data: responseData)
         }
-    }
-
-    private var uploadDecoder: JSONDecoder {
-        let d = JSONDecoder()
-        d.keyDecodingStrategy = .convertFromSnakeCase
-        return d
     }
 
     private func uploadDecodeError(_ error: Error, data: Data) -> APIError {

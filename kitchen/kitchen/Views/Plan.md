@@ -422,7 +422,7 @@ struct OnboardingValidationHelper {
   - `MenuDishGridView`（~50 行）
   - `MenuEmptyStateView`（~30 行）
   - 支持类型：`MenuDishFlowItem`, `MenuDishFlowResult`, `MenuDishFlowRoute`, `CropRoute`
-  - `MenuModalRoute` 在 `MenuSupport.swift`
+  - `MenuModalRoute` 已独立到 `MenuModalRoute.swift`
 
 **已独立文件：**
 - `MenuCartSheet.swift`（已独立）
@@ -434,19 +434,25 @@ struct OnboardingValidationHelper {
 
 ```
 Views/Menu/
-├── MenuView.swift              # 入口，~100 行（编排层）
-├── MenuModalRoute.swift        # 从 MenuSupport 拆分
-├── MenuDishFlow/
-│   ├── MenuDishFlowContainer.swift   # ~250 行（流程容器）
-│   ├── MenuDishFormScreen.swift      # ~150 行（表单页）
-│   ├── MenuDishFlowImagePickerSection.swift  # ~100 行
-│   └── MenuDishFlowState.swift         # 支持类型
-├── MenuSearchBar.swift         # ~80 行
-├── MenuCartBar.swift           # ~40 行
-├── MenuDishGridView.swift      # ~60 行
-├── MenuEmptyStateView.swift    # ~40 行
-├── MenuCartSheet.swift         # 已存在
-└── MenuSupport.swift           # 保留基础类型
+├── MenuView.swift
+├── MenuModalRoute.swift
+├── AddDishFlow/
+│   ├── MenuDishFlowContainer.swift
+│   ├── MenuDishFormScreen.swift
+│   ├── MenuDishFlowImagePickerSection.swift
+│   ├── MenuDishFlowState.swift
+│   ├── IngredientTagInput.swift
+│   └── MenuSupport.swift
+├── DishImageFlow/
+│   ├── DishCameraCaptureView.swift
+│   ├── DishFramingView.swift
+│   ├── DishFramingCanvas.swift
+│   └── DishFramingOverlay.swift
+├── MenuSearchBar.swift
+├── MenuCartBar.swift
+├── MenuDishGridView.swift
+├── MenuEmptyStateView.swift
+└── MenuCartSheet.swift
 ```
 
 ### 文件职责
@@ -464,9 +470,9 @@ Views/Menu/
 - `dishFlowItem` fullScreenCover
 
 **迁出：**
-- `MenuDishFlowContainer` → `MenuDishFlow/MenuDishFlowContainer.swift`
-- `MenuDishFormScreen` → `MenuDishFlow/MenuDishFormScreen.swift`
-- `MenuDishFlowImagePickerSection` → `MenuDishFlow/`
+- `MenuDishFlowContainer` → `AddDishFlow/MenuDishFlowContainer.swift`
+- `MenuDishFormScreen` → `AddDishFlow/MenuDishFormScreen.swift`
+- `MenuDishFlowImagePickerSection` → `AddDishFlow/`
 - `searchBar` → `MenuSearchBar.swift`
 - `menuCartBar` → `MenuCartBar.swift`
 - `MenuDishGridView` → 独立文件

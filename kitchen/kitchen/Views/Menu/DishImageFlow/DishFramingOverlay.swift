@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct DishViewportOverlay: View {
+struct DishEditingViewportOverlay: View {
     let isEditing: Bool
     let isRecognizing: Bool
     let vpWidth: CGFloat
@@ -31,7 +31,7 @@ struct DishViewportOverlay: View {
     }
 }
 
-struct DishRecognitionDarkOverlay: View {
+struct DishFramingMaskOverlay: View {
     let vpWidth: CGFloat
     let vpHeight: CGFloat
     let viewportCenter: CGPoint
