@@ -84,8 +84,20 @@ struct AppSheetContainer<Content: View>: View {
             content
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.bottom, AppSpacing.lg)
+
+            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(AppSemanticColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppRadius.xxl, style: .continuous))
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: AppRadius.xxl,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: AppRadius.xxl,
+                style: .continuous
+            )
+        )
+        .ignoresSafeArea(edges: .bottom)
     }
 }

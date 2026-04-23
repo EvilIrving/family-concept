@@ -9,6 +9,7 @@ struct MenuDishFormScreen: View {
     var focusedField: FocusState<MenuField?>.Binding
     @ObservedObject var imageCoordinator: DishImageCoordinator
     @Binding var archiveConfirmationPresented: Bool
+    let isSaving: Bool
     let onDismiss: () -> Void
     let onSave: () -> Void
     let onPhotoLibraryRequest: () -> Void
@@ -96,7 +97,7 @@ struct MenuDishFormScreen: View {
     }
 
     private var isSaveDisabled: Bool {
-        draft.hasTriedSubmit && !formIsComplete
+        isSaving || (draft.hasTriedSubmit && !formIsComplete)
     }
 
     private var formIsComplete: Bool {

@@ -75,12 +75,33 @@ final class AppStore: ObservableObject {
         hasSeenOnboarding = true
     }
 
+    static let categoryPriority: [String] = ["主食", "凉菜", "家常菜", "汤"]
+
+    private static func categoryRank(_ category: String) -> Int {
+        categoryPriority.firstIndex(of: category) ?? Int.max
+    }
+
+    private static func compareCategory(_ lhs: String, _ rhs: String) -> Bool {
+        let lRank = categoryRank(lhs)
+        let rRank = categoryRank(rhs)
+        if lRank != rRank { return lRank < rRank }
+        return lhs.localizedCompare(rhs) == .orderedAscending
+    }
+
     var activeDishes: [Dish] {
-        dishes.filter { $0.archivedAt == nil }
+        dishes
+            .filter { $0.archivedAt == nil }
+            .sorted { lhs, rhs in
+                if lhs.category != rhs.category {
+                    return Self.compareCategory(lhs.category, rhs.category)
+                }
+                return lhs.name.localizedCompare(rhs.name) == .orderedAscending
+            }
     }
 
     var dishCategories: [String] {
-        Array(Set(activeDishes.map(\.category))).sorted()
+        Array(Set(activeDishes.map(\.category)))
+            .sorted { $0.localizedCompare($1) == .orderedAscending }
     }
 
     var cartCount: Int {

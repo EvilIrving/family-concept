@@ -19,6 +19,7 @@ struct MenuDishFlowContainer: View {
     @State private var isPhotoPickerPresented = false
     @State private var archiveConfirmationPresented = false
     @State private var currentCameraSessionID = UUID()
+    @State private var isSaving = false
 
     init(
         item: MenuDishFlowItem,
@@ -46,6 +47,7 @@ struct MenuDishFlowContainer: View {
                 focusedField: focusedField,
                 imageCoordinator: imageCoordinator,
                 archiveConfirmationPresented: $archiveConfirmationPresented,
+                isSaving: isSaving,
                 onDismiss: onDismiss,
                 onSave: saveDish,
                 onPhotoLibraryRequest: {
@@ -216,6 +218,7 @@ struct MenuDishFlowContainer: View {
     }
 
     private func saveDish() {
+        guard !isSaving else { return }
         draft.hasTriedSubmit = true
         draft.resetValidation()
         let pendingIngredient = draft.ingredientInput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -255,7 +258,9 @@ struct MenuDishFlowContainer: View {
             return
         }
 
-        Task {
+        isSaving = true
+        Task { @MainActor in
+            defer { isSaving = false }
             guard store.kitchen != nil else {
                 await MainActor.run {
                     feedbackRouter.show(.low(message: "当前还没有进入 kitchen"), hint: .centerToast)

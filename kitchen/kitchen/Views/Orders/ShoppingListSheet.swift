@@ -49,7 +49,6 @@ struct ShoppingListSheet: View {
                 }
             }
         }
-        .presentationBackground(.clear)
         .sheet(item: $exportPayload) { payload in
             ActivityShareSheet(items: payload.items)
         }

@@ -74,6 +74,13 @@ extension APIClient {
         let imageKey: String
         let method: String
         let contentType: String
+
+        enum CodingKeys: String, CodingKey {
+            case uploadURL = "uploadUrl"
+            case imageKey
+            case method
+            case contentType
+        }
     }
 
     struct DishImageUploadResult: Decodable {

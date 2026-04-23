@@ -16,23 +16,12 @@ struct MenuDishCard: View {
                 dishArtwork
 
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                    HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
-                        Text(title)
-                            .font(AppTypography.cardTitle)
-                            .foregroundStyle(AppSemanticColor.textPrimary)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(category)
-                            .font(AppTypography.micro)
-                            .foregroundStyle(AppSemanticColor.primary)
-                            .padding(.horizontal, AppSpacing.xs)
-                            .padding(.vertical, 4)
-                            .background(AppSemanticColor.interactiveSecondaryPressed, in: Capsule())
-                            .fixedSize()
-
-                        Spacer(minLength: 0)
-                    }
+                    Text(title)
+                        .font(AppTypography.cardTitle)
+                        .foregroundStyle(AppSemanticColor.textPrimary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     HStack {
                         if let onManage {
@@ -107,6 +96,15 @@ struct MenuDishCard: View {
                 style: .continuous
             )
         )
+        .overlay(alignment: .topTrailing) {
+            Text(category)
+                .font(AppTypography.micro)
+                .foregroundStyle(AppSemanticColor.primary)
+                .padding(.horizontal, AppSpacing.xs)
+                .padding(.vertical, 4)
+                .background(AppSemanticColor.interactiveSecondaryPressed, in: Capsule())
+                .padding(AppSpacing.xs)
+        }
     }
 
     private var placeholderIcon: some View {
