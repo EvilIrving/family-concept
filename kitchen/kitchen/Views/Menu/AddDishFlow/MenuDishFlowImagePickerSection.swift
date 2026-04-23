@@ -6,7 +6,6 @@ struct MenuDishFlowImagePickerSection: View {
     let onCameraRequest: () -> Void
     var isInvalid: Bool = false
     var validationTrigger: Int = 0
-    var errorMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
@@ -36,16 +35,18 @@ struct MenuDishFlowImagePickerSection: View {
                     pickerButtons
                 }
             }
-
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppSemanticColor.danger)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .overlay {
+            if isInvalid {
+                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
+                    .inset(by: -AppSpacing.xs)
+                    .stroke(AppSemanticColor.danger, lineWidth: 1)
+                    .allowsHitTesting(false)
             }
         }
         .modifier(AppShakeEffect(animatableData: CGFloat(validationTrigger)))
         .animation(.easeInOut(duration: 0.34), value: validationTrigger)
+        .animation(.easeInOut(duration: 0.16), value: isInvalid)
     }
 
     private var pickerButtons: some View {

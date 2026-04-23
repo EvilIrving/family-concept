@@ -20,10 +20,6 @@ struct AddDishDraft {
     var invalidCategory = false
     var invalidIngredients = false
     var invalidImage = false
-    var nameError: String?
-    var categoryError: String?
-    var ingredientError: String?
-    var imageError: String?
 
     var trimmedName: String {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -50,10 +46,6 @@ struct AddDishDraft {
         invalidCategory = false
         invalidIngredients = false
         invalidImage = false
-        nameError = nil
-        categoryError = nil
-        ingredientError = nil
-        imageError = nil
     }
 
     static func editing(_ dish: Dish, quickCategories: [String]) -> AddDishDraft {

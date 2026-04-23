@@ -6,7 +6,6 @@ struct IngredientTagInput: View {
     var focusedField: FocusState<MenuField?>.Binding
     var isInvalid: Bool = false
     var validationTrigger: Int = 0
-    var errorMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
@@ -55,13 +54,6 @@ struct IngredientTagInput: View {
                 if newValue.last == " " {
                     commitTag()
                 }
-            }
-
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppSemanticColor.danger)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

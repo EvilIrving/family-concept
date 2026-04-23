@@ -32,6 +32,7 @@ extension AppStore {
         let ticket = try await apiClient.requestDishImageUploadURL(dishID: dishID, authToken: authToken)
         let result = try await apiClient.uploadDishImage(
             uploadPath: ticket.uploadURL,
+            method: ticket.method,
             fileURL: fileURL,
             contentType: ticket.contentType,
             fallbackImageKey: ticket.imageKey,

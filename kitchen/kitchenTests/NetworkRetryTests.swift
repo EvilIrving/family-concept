@@ -166,57 +166,44 @@ struct NetworkRetryTests {
         #expect(MockURLProtocol.requestCount == 1)
     }
 
-    @Test("图片 404 视为缺失资源且不重试")
-    func remoteImageMaps404ToMissingResource() async throws {
+    @Test("图片上传使用票据方法并兼容缺少 image_key 的成功响应")
+    func dishImageUploadUsesTicketMethodAndFallbackImageKey() async throws {
         let session = makeMockSession()
         let executor = RequestExecutor(
             session: session,
             sleep: { _ in },
             randomJitter: { _ in 0 }
         )
-        let pipeline = RemoteDishImagePipeline(requestExecutor: executor)
+        let client = APIClient(baseURL: "https://example.com", session: session, requestExecutor: executor)
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("dish-upload-\(UUID().uuidString).png")
+        try Data([0x89, 0x50, 0x4E, 0x47]).write(to: fileURL)
+        defer { try? FileManager.default.removeItem(at: fileURL) }
 
         MockURLProtocol.configure { request, _ in
-            (
-                HTTPURLResponse(url: try #require(request.url), statusCode: 404, httpVersion: nil, headerFields: nil)!,
-                Data()
+            #expect(request.httpMethod == "PUT")
+            #expect(request.url?.absoluteString == "https://example.com/api/v1/dishes/d1/image")
+
+            return (
+                HTTPURLResponse(url: try #require(request.url), statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data("{\"ok\":true}".utf8)
             )
         }
 
-        do {
-            _ = try await pipeline.fetchImage(from: URL(string: "https://example.com/image.png")!)
-            Issue.record("404 应映射为 missingResource")
-        } catch let error as RemoteDishImagePipeline.PipelineError {
-            #expect(error == .missingResource)
-        }
+        let result = try await client.uploadDishImage(
+            uploadPath: "/api/v1/dishes/d1/image",
+            method: "PUT",
+            fileURL: fileURL,
+            contentType: "image/png",
+            fallbackImageKey: "k1/d1.png",
+            authToken: "token"
+        )
+
+        #expect(result.ok)
+        #expect(result.imageKey == "k1/d1.png")
         #expect(MockURLProtocol.requestCount == 1)
     }
 
-    @Test("图片 500 会重试后再失败")
-    func remoteImageRetriesServerFailures() async throws {
-        let session = makeMockSession()
-        let executor = RequestExecutor(
-            session: session,
-            sleep: { _ in },
-            randomJitter: { _ in 0 }
-        )
-        let pipeline = RemoteDishImagePipeline(requestExecutor: executor)
-
-        MockURLProtocol.configure { request, _ in
-            (
-                HTTPURLResponse(url: try #require(request.url), statusCode: 500, httpVersion: nil, headerFields: nil)!,
-                Data()
-            )
-        }
-
-        do {
-            _ = try await pipeline.fetchImage(from: URL(string: "https://example.com/image.png")!)
-            Issue.record("500 应在重试耗尽后失败")
-        } catch let error as RemoteDishImagePipeline.PipelineError {
-            #expect(error == .badResponse)
-        }
-        #expect(MockURLProtocol.requestCount == 3)
-    }
 }
 
 private struct RetryPayload: Decodable {

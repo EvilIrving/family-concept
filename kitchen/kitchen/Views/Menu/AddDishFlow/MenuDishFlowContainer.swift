@@ -4,6 +4,7 @@ import PhotosUI
 
 struct MenuDishFlowContainer: View {
     @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
 
     let item: MenuDishFlowItem
     let quickCategories: [String]
@@ -55,7 +56,7 @@ struct MenuDishFlowContainer: View {
                     navigationPath.append(.camera(currentCameraSessionID))
                 },
                 onDelete: item.isEdit ? {
-                    archiveConfirmationPresented = true
+                    deleteDish()
                 } : nil
             )
             .navigationDestination(for: MenuDishFlowRoute.self) { route in
@@ -229,28 +230,27 @@ struct MenuDishFlowContainer: View {
 
         guard imageCoordinator.hasImage || draft.editingDishID != nil else {
             draft.invalidImage = true
-            draft.imageError = "请添加菜品图片"
             draft.validationTrigger += 1
             return
         }
         guard !addedName.isEmpty else {
             draft.invalidName = true
-            draft.nameError = "请输入菜名"
             draft.validationTrigger += 1
+            feedbackRouter.show(.low(message: "请输入菜名"), hint: .centerToast)
             focusedField.wrappedValue = .name
             return
         }
         guard !finalCategory.isEmpty else {
             draft.invalidCategory = true
-            draft.categoryError = "请输入分类"
             draft.validationTrigger += 1
+            feedbackRouter.show(.low(message: "请输入分类"), hint: .centerToast)
             focusedField.wrappedValue = draft.selectedQuickCategory == "自定义" ? .customCategory : .name
             return
         }
         guard !draft.ingredientTags.isEmpty else {
             draft.invalidIngredients = true
-            draft.ingredientError = "请添加食材"
             draft.validationTrigger += 1
+            feedbackRouter.show(.low(message: "请添加食材"), hint: .centerToast)
             focusedField.wrappedValue = .ingredient
             return
         }
@@ -258,7 +258,7 @@ struct MenuDishFlowContainer: View {
         Task {
             guard store.kitchen != nil else {
                 await MainActor.run {
-                    draft.imageError = "当前还没有进入 kitchen"
+                    feedbackRouter.show(.low(message: "当前还没有进入 kitchen"), hint: .centerToast)
                 }
                 return
             }
@@ -296,12 +296,13 @@ struct MenuDishFlowContainer: View {
 
             guard let dish = result else {
                 await MainActor.run {
-                    draft.imageError = store.error ?? "保存失败"
+                    let errorMsg = store.error ?? "保存失败"
+                    feedbackRouter.show(.low(message: errorMsg), hint: .centerToast)
                     if let imageFileURL {
                         restoreUploadState(
                             previousState: previousImageState,
                             fileURL: imageFileURL,
-                            message: draft.imageError ?? "保存失败"
+                            message: errorMsg
                         )
                     }
                 }

@@ -40,6 +40,9 @@ final class AppStore: ObservableObject {
     // MARK: - Initialization
 
     init() {
+        if ProcessInfo.processInfo.arguments.contains("resetUITestSession") {
+            Self.clearPersistedSession()
+        }
         authToken = UserDefaults.standard.string(forKey: "authToken") ?? ""
         storedNickName = UserDefaults.standard.string(forKey: "nickName") ?? ""
         updateColorScheme()
@@ -189,6 +192,13 @@ final class AppStore: ObservableObject {
         default:
             colorScheme = nil
         }
+    }
+
+    private static func clearPersistedSession() {
+        UserDefaults.standard.removeObject(forKey: "authToken")
+        UserDefaults.standard.removeObject(forKey: "accountID")
+        UserDefaults.standard.removeObject(forKey: "nickName")
+        UserDefaults.standard.removeObject(forKey: "lastKitchenID")
     }
 
     // MARK: - Private Helpers

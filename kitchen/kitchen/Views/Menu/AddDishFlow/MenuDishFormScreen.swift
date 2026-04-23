@@ -39,31 +39,16 @@ struct MenuDishFormScreen: View {
                         if draft.selectedQuickCategory == "自定义" {
                             formTextField("自定义分类", text: $draft.customCategory, field: .customCategory)
                         }
-
-                        if let categoryError = draft.categoryError {
-                            Text(categoryError)
-                                .font(AppTypography.caption)
-                                .foregroundStyle(AppSemanticColor.danger)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
                     }
 
                     formTextField("菜名", text: $draft.name, field: .name)
-
-                    if let nameError = draft.nameError {
-                        Text(nameError)
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppSemanticColor.danger)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
 
                     IngredientTagInput(
                         tags: $draft.ingredientTags,
                         input: $draft.ingredientInput,
                         focusedField: focusedField,
                         isInvalid: draft.invalidIngredients,
-                        validationTrigger: draft.validationTrigger,
-                        errorMessage: draft.ingredientError
+                        validationTrigger: draft.validationTrigger
                     )
 
                     if let onDelete {

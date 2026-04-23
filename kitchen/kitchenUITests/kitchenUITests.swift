@@ -1,6 +1,9 @@
 import XCTest
 
 final class kitchenUITests: XCTestCase {
+    private let e2eUserName = "heyiwuyi"
+    private let e2ePassword = "heyiwuyi"
+    private let e2eInviteCode = "11F290"
 
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -11,7 +14,7 @@ final class kitchenUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let userNameField = app.textFields.matching(NSPredicate(format: "placeholderValue == '用户名或邮箱'")).firstMatch
+        let userNameField = app.textFields.matching(NSPredicate(format: "placeholderValue == '用户名'")).firstMatch
         let passwordField = app.secureTextFields.matching(NSPredicate(format: "placeholderValue == '密码'")).firstMatch
         let loginButton = app.buttons["登录"]
 
@@ -28,7 +31,7 @@ final class kitchenUITests: XCTestCase {
         let registerLink = app.buttons.matching(NSPredicate(format: "label CONTAINS '注册'")).firstMatch
         registerLink.tap()
 
-        let userNameField = app.textFields.matching(NSPredicate(format: "placeholderValue == '用户名或邮箱'")).firstMatch
+        let userNameField = app.textFields.matching(NSPredicate(format: "placeholderValue == '用户名'")).firstMatch
         let nickNameField = app.textFields.matching(NSPredicate(format: "placeholderValue == '昵称'")).firstMatch
         let passwordField = app.secureTextFields.matching(NSPredicate(format: "placeholderValue == '密码'")).firstMatch
         let registerButton = app.buttons["注册"]
@@ -55,6 +58,65 @@ final class kitchenUITests: XCTestCase {
 
         let joinButton = app.buttons.matching(NSPredicate(format: "label CONTAINS '输入邀请码加入'")).firstMatch
         XCTAssertTrue(joinButton.exists, "加入私厨按钮不存在")
+    }
+
+    @MainActor
+    func testE2E_LoginAndJoinKitchenWithInviteCode() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["isE2ETest", "resetUITestSession"]
+        app.launch()
+
+        if mainTabExists(in: app, timeout: 5) {
+            return
+        }
+
+        if joinKitchenIfNeeded(in: app) {
+            XCTAssertTrue(mainTabExists(in: app, timeout: 15), "加入私厨后未进入主界面")
+            return
+        }
+
+        let userNameField = app.textFields.matching(NSPredicate(format: "placeholderValue == '用户名'")).firstMatch
+        let passwordField = app.secureTextFields.matching(NSPredicate(format: "placeholderValue == '密码'")).firstMatch
+        let loginButton = app.buttons["登录"]
+
+        XCTAssertTrue(userNameField.waitForExistence(timeout: 8), "用户名输入框不存在")
+        userNameField.tap()
+        userNameField.typeText(e2eUserName)
+
+        XCTAssertTrue(passwordField.exists, "密码输入框不存在")
+        passwordField.tap()
+        passwordField.typeText(e2ePassword)
+
+        XCTAssertTrue(loginButton.exists, "登录按钮不存在")
+        loginButton.tap()
+
+        if mainTabExists(in: app, timeout: 10) {
+            return
+        }
+
+        XCTAssertTrue(joinKitchenIfNeeded(in: app), "登录后未出现邀请码加入入口")
+        XCTAssertTrue(mainTabExists(in: app, timeout: 15), "登录并加入私厨后未进入主界面")
+    }
+
+    private func joinKitchenIfNeeded(in app: XCUIApplication) -> Bool {
+        let joinModeButton = app.buttons.matching(NSPredicate(format: "label CONTAINS '输入邀请码加入'")).firstMatch
+        if joinModeButton.waitForExistence(timeout: 8) {
+            joinModeButton.tap()
+        }
+
+        let inviteField = app.textFields.matching(NSPredicate(format: "placeholderValue == '邀请码'")).firstMatch
+        guard inviteField.waitForExistence(timeout: 3) else {
+            return false
+        }
+        inviteField.tap()
+        inviteField.typeText(e2eInviteCode)
+
+        let joinSubmitButton = app.buttons["加入"]
+        guard joinSubmitButton.waitForExistence(timeout: 5) else {
+            return false
+        }
+        joinSubmitButton.tap()
+        return true
     }
 
     @MainActor
@@ -86,5 +148,15 @@ final class kitchenUITests: XCTestCase {
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()
         }
+    }
+
+    private func mainTabExists(in app: XCUIApplication, timeout: TimeInterval) -> Bool {
+        let menuTab = app.buttons.matching(NSPredicate(format: "label CONTAINS '菜单'")).firstMatch
+        let ordersTab = app.buttons.matching(NSPredicate(format: "label CONTAINS '订单'")).firstMatch
+        let settingsTab = app.buttons.matching(NSPredicate(format: "label CONTAINS '设置'")).firstMatch
+
+        return menuTab.waitForExistence(timeout: timeout)
+            || ordersTab.waitForExistence(timeout: 1)
+            || settingsTab.waitForExistence(timeout: 1)
     }
 }

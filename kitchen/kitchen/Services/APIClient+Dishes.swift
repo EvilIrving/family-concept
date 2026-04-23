@@ -92,6 +92,7 @@ extension APIClient {
     @discardableResult
     func uploadDishImage(
         uploadPath: String,
+        method: String = "POST",
         fileURL: URL,
         contentType: String,
         fallbackImageKey: String,
@@ -100,6 +101,7 @@ extension APIClient {
         let data = try Data(contentsOf: fileURL)
         let responseData = try await uploadBinaryAllowingEmptyBody(
             uploadPath,
+            method: method,
             data: data,
             contentType: contentType,
             authToken: authToken
@@ -110,7 +112,8 @@ extension APIClient {
         }
 
         do {
-            return try APIClient.decodeJSON(DishImageUploadResult.self, from: responseData)
+            return try APIClient.decodeJSON(DishImageUploadResponse.self, from: responseData)
+                .resolved(fallbackImageKey: fallbackImageKey)
         } catch {
             if let text = String(data: responseData, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
@@ -133,5 +136,14 @@ extension APIClient {
         }
 
         return .decoding(error)
+    }
+}
+
+private struct DishImageUploadResponse: Decodable {
+    let ok: Bool
+    let imageKey: String?
+
+    func resolved(fallbackImageKey: String) -> APIClient.DishImageUploadResult {
+        APIClient.DishImageUploadResult(ok: ok, imageKey: imageKey ?? fallbackImageKey)
     }
 }
