@@ -12,6 +12,7 @@ import SwiftUI
 struct kitchenApp: App {
     @StateObject private var store = AppStore()
     @StateObject private var feedbackRouter = AppFeedbackRouter.shared
+    @StateObject private var purchaseManager = PurchaseManager()
 
     init() {
         Self.configureImagePipeline()
@@ -22,7 +23,19 @@ struct kitchenApp: App {
             ContentView()
                 .environmentObject(store)
                 .environmentObject(feedbackRouter)
+                .environmentObject(purchaseManager)
                 .preferredColorScheme(store.colorScheme)
+                .task {
+                    store.purchaseManager = purchaseManager
+                    purchaseManager.onTransactionVerified = { [weak store] productID, txID, token in
+                        await store?.applyVerifiedTransaction(
+                            productID: productID,
+                            originalTransactionID: txID,
+                            appAccountToken: token
+                        )
+                    }
+                    await purchaseManager.loadProducts()
+                }
         }
     }
 

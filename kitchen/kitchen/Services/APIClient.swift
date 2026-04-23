@@ -217,6 +217,13 @@ final class APIClient {
             return .invalidResponse("服务器返回为空")
         }
 
+        if let payload = try? APIClient.decodeJSON(ServerErrorPayload.self, from: data) {
+            let message = payload.message.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !message.isEmpty {
+                return .serverMessage(message)
+            }
+        }
+
         if let message = String(data: data, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
            !message.isEmpty {
@@ -274,6 +281,10 @@ final class APIClient {
 
         return body
     }
+}
+
+private struct ServerErrorPayload: Decodable {
+    let message: String
 }
 
 // MARK: - APIError

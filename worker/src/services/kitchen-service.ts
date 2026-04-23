@@ -1,6 +1,6 @@
 import type { KitchenRow, MemberRow } from '../types';
 import { findByInviteCode } from '../db/kitchens';
-import { insertMember, findByKitchenAndAccount } from '../db/members';
+import { insertMember, findByKitchenAndAccount, findMemberRecord, reactivateMember } from '../db/members';
 
 function generateInviteCode(): string {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 6).toUpperCase();
@@ -44,6 +44,15 @@ export async function joinByInviteCode(
   const existing = await findByKitchenAndAccount(db, kitchen.id, accountId);
   if (existing) {
     return { kitchen, member: existing };
+  }
+
+  const existingRecord = await findMemberRecord(db, kitchen.id, accountId);
+  if (existingRecord) {
+    const member = await reactivateMember(db, kitchen.id, accountId, 'member');
+    if (!member) {
+      throw new Error('重新加入私厨失败');
+    }
+    return { kitchen, member };
   }
 
   const member = await insertMember(db, crypto.randomUUID(), kitchen.id, accountId, 'member');

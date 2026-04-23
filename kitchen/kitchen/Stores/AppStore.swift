@@ -31,8 +31,12 @@ final class AppStore: ObservableObject {
     @Published var historyFeedback: AppFeedback?
     @Published var isLoadingOrderHistory: Bool = false
     @Published var colorScheme: ColorScheme?
+    @Published var entitlement: KitchenEntitlement = .free()
+    @Published var pendingEntitlementUpgrade: PendingEntitlementUpgrade?
 
     let apiClient = APIClient()
+    /// StoreKit 交互层。App 入口注入，避免单测环境构造 StoreKit 会话。
+    var purchaseManager: PurchaseManager?
 
     var authToken: String = ""
     var storedNickName: String = ""
@@ -175,6 +179,7 @@ final class AppStore: ObservableObject {
             let (fetchedMembers, fetchedDishes, fetchedOrder) = try await (membersReq, dishesReq, orderReq)
             self.members = fetchedMembers
             self.dishes = fetchedDishes
+            Task { await refreshEntitlement() }
 
             if let order = fetchedOrder {
                 self.currentOrder = Order(
@@ -256,6 +261,8 @@ final class AppStore: ObservableObject {
         selectedOrderDetail = nil
         cartItems = []
         currentOrder = nil
+        entitlement = .free()
+        pendingEntitlementUpgrade = nil
         UserDefaults.standard.removeObject(forKey: "lastKitchenID")
     }
 

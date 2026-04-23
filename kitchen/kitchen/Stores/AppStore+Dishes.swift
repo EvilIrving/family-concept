@@ -21,11 +21,25 @@ extension AppStore {
                 authToken: authToken
             )
             dishes.insert(dish, at: 0)
+            Task { await refreshEntitlement() }
             return dish
         } catch {
-            consumeError(error)
+            if isDishLimitServerError(error) {
+                menuFeedback = .generic(message: "已达菜品上限，请升级套餐")
+                await refreshEntitlement()
+            } else {
+                consumeError(error)
+            }
             return nil
         }
+    }
+
+    private func isDishLimitServerError(_ error: Error) -> Bool {
+        guard let apiError = error as? APIError else { return false }
+        if case .serverMessage(let msg) = apiError {
+            return msg.contains("dish_limit_exceeded") || msg.contains("菜品上限")
+        }
+        return false
     }
 
     func uploadDishImage(dishID: String, fileURL: URL) async throws {
@@ -68,6 +82,7 @@ extension AppStore {
         do {
             _ = try await apiClient.archiveDish(id: id, authToken: authToken)
             dishes.removeAll { $0.id == id }
+            Task { await refreshEntitlement() }
         } catch {
             consumeError(error)
         }

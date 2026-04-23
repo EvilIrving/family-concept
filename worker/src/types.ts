@@ -75,6 +75,23 @@ export interface OrderItemRow {
   updated_at: string;
 }
 
+export interface EntitlementRow {
+  id: string;
+  kitchen_id: string;
+  plan_code: PlanCode;
+  dish_limit: number | null;
+  store_product_id: string | null;
+  original_transaction_id: string | null;
+  app_account_token_hash: string | null;
+  source: 'app_store' | 'offer_code' | 'admin';
+  activated_at: string;
+  revoked_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PlanCode = 'free' | 'dishes_fifty' | 'dishes_unlimited';
+
 // ─── Enum-like Types ─────────────────────────────────────────────────────────
 
 export type Role = 'owner' | 'admin' | 'member';

@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
+    @EnvironmentObject private var purchaseManager: PurchaseManager
     @State private var notificationsEnabled = true
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
     @AppStorage("themeMode") private var themeMode = "system"
@@ -27,6 +29,18 @@ struct SettingsView: View {
                 )
             }
 
+            if store.hasKitchen {
+                SettingsSection(title: "套餐") {
+                    SettingsMenuCard {
+                        UpgradeMenuRow(
+                            entitlement: store.entitlement,
+                            canUpgrade: store.canUpgradeEntitlement,
+                            onTap: { modalRouter.present(.upgrade) }
+                        )
+                    }
+                }
+            }
+
             SettingsSection(title: "支持与建议") {
                 SettingsMenuCard {
                     SettingsMenuRow(title: "联系我们提交需求")
@@ -37,7 +51,10 @@ struct SettingsView: View {
 
             SettingsSection(title: "其他") {
                 SettingsMenuCard {
-                    SettingsMenuRow(title: "恢复购买")
+                    SettingsMenuRow(
+                        title: "恢复购买",
+                        onTap: { Task { await purchaseManager.restore() } }
+                    )
                     SettingsMenuRow(title: "隐私政策", showsDivider: false)
                 }
             }
@@ -47,11 +64,20 @@ struct SettingsView: View {
             }
         }
         .sheet(item: modalRouteBinding, onDismiss: { modalRouter.handleDismissedCurrent() }) { route in
-            MemberRoleSheet(memberAccountID: route.token.accountID)
-                .environmentObject(store)
-                .presentationBackground(.clear)
-                .presentationDetents([.fraction(0.25)])
-                .presentationDragIndicator(.hidden)
+            switch route {
+            case .member(let token):
+                MemberRoleSheet(memberAccountID: token.accountID)
+                    .environmentObject(store)
+                    .environmentObject(feedbackRouter)
+                    .presentationBackground(.clear)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.hidden)
+            case .upgrade:
+                UpgradeSheet()
+                    .environmentObject(store)
+                    .environmentObject(purchaseManager)
+                    .presentationDetents([.medium, .large])
+            }
         }
     }
 
@@ -72,6 +98,8 @@ struct SettingsView: View {
 #Preview {
     SettingsView()
         .environmentObject(AppStore())
+        .environmentObject(AppFeedbackRouter.shared)
+        .environmentObject(PurchaseManager())
 }
 
 private struct SettingsSection<Content: View>: View {
@@ -103,18 +131,30 @@ private struct SettingsMenuCard<Content: View>: View {
     }
 }
 
-private struct SettingsMenuRow: View {
-    let title: String
-    var showsDivider: Bool = true
+private struct UpgradeMenuRow: View {
+    let entitlement: KitchenEntitlement
+    let canUpgrade: Bool
+    let onTap: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
+        Button(action: onTap) {
             HStack(spacing: AppSpacing.sm) {
-                Text(title)
-                    .font(AppTypography.bodyStrong)
-                    .foregroundStyle(AppSemanticColor.textPrimary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entitlement.planCode.displayName)
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppSemanticColor.textPrimary)
+                    if !entitlement.isUnlimited, let limit = entitlement.dishLimit {
+                        Text("已用 \(entitlement.activeDishCount) / \(limit) 道菜")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
+                    } else {
+                        Text("菜品数量无上限")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
+                    }
+                }
                 Spacer()
-                Text("即将上线")
+                Text(canUpgrade ? "升级" : "查看")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.textSecondary)
                 Image(systemName: "chevron.right")
@@ -123,11 +163,40 @@ private struct SettingsMenuRow: View {
             }
             .frame(minHeight: 52)
         }
-        .overlay(alignment: .bottom) {
-            if showsDivider {
-                Divider()
-                    .overlay(AppSemanticColor.border)
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SettingsMenuRow: View {
+    let title: String
+    var showsDivider: Bool = true
+    var onTap: (() -> Void)? = nil
+
+    var body: some View {
+        Button(action: { onTap?() }) {
+            HStack(spacing: AppSpacing.sm) {
+                Text(title)
+                    .font(AppTypography.bodyStrong)
+                    .foregroundStyle(AppSemanticColor.textPrimary)
+                Spacer()
+                if onTap == nil {
+                    Text("即将上线")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppSemanticColor.textSecondary)
+                }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: AppIconSize.xs, weight: .semibold))
+                    .foregroundStyle(AppSemanticColor.textTertiary)
+            }
+            .frame(minHeight: 52)
+            .overlay(alignment: .bottom) {
+                if showsDivider {
+                    Divider()
+                        .overlay(AppSemanticColor.border)
+                }
             }
         }
+        .buttonStyle(.plain)
+        .disabled(onTap == nil)
     }
 }

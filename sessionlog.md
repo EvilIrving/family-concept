@@ -1,3 +1,20 @@
+## 内购方案骨架：
+
+后端 (worker/)
+- migrations/0004_kitchen_entitlements.sql — 权益表，含 original_transaction_id 唯一索引
+- db/entitlements.ts + services/entitlement-service.ts — 计划/额度解析、交易绑定、防降级、同交易不可跨厨房
+- routes/iap.ts — GET /kitchens/:id/entitlement、POST /kitchens/:id/iap/sync
+- services/dish-service.ts + db/dishes.ts — 原子条件 INSERT，并发下严格执行额度；超限返回 402 dish_limit_exceeded
+
+客户端 (kitchen/)
+- Models/Entitlement.swift、Services/PurchaseManager.swift（StoreKit 2 + appAccountToken）
+- APIEndpoints+IAP.swift / APIClient+IAP.swift
+- AppStore+Entitlement.swift — 拉取权益、pendingEntitlementUpgrade 过渡态、乐观放行
+- 加菜流程捕获 402 后刷新权益；归档后同步计数
+- SettingsView 套餐入口 + UpgradeSheet + 恢复购买；kitchenApp 注入并订阅 Transaction.updates
+
+未实现/TODO：Apple signedTransaction JWS 服务端验签（entitlement-service.ts 有标注）、offer code 分支、撤销/退款后的自动降级策略。产品 ID：kitchen.dishes.fifty、kitchen.dishes.unlimited，需在 App Store Connect 配置。
+
 ## 菜品图片流程收口到固定 1:1 裁切链路 · 2026-04-23 10:33 · Codex
 
 这次把菜单里的菜品图片流程彻底收口到固定 `1:1` 取景框裁切方案。运行中的裁切页确认是 `DishFramingView.swift` 这条链路，因此围绕它继续精简，而不是保留旧的识别/预览分支。

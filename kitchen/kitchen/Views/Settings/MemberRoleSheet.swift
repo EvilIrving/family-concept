@@ -4,7 +4,10 @@ import SwiftUI
 struct MemberRoleSheet: View {
     let memberAccountID: String
     @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
     @Environment(\.dismiss) private var dismiss
+    @State private var isUpdatingRole = false
+    @State private var isRemovingMember = false
 
     private var member: Member? {
         store.members.first { $0.accountId == memberAccountID }
@@ -74,12 +77,31 @@ struct MemberRoleSheet: View {
                 if canEditRole, let member {
                     Button {
                         Task {
-                            await store.updateMemberRole(accountID: member.accountId, role: roleActionTarget)
+                            isUpdatingRole = true
+                            let actionTitle = roleActionTitle
+                            let success = await store.updateMemberRole(accountID: member.accountId, role: roleActionTarget)
+                            isUpdatingRole = false
+
+                            if success {
+                                feedbackRouter.show(.high(message: "已\(actionTitle)"), hint: .centerToast)
+                            } else {
+                                feedbackRouter.show(
+                                    .low(
+                                        message: store.error ?? "\(actionTitle)失败，请稍后重试",
+                                        systemImage: "xmark.octagon.fill"
+                                    ),
+                                    hint: .centerToast
+                                )
+                            }
                         }
                     } label: {
                         HStack(spacing: AppSpacing.xs) {
-                            Image(systemName: member.role == .admin ? "person.badge.key" : "person.badge.shield.checkmark")
-                                .font(.system(size: AppIconSize.sm, weight: .semibold))
+                            if isUpdatingRole {
+                                AppLoadingIndicator(tone: .primary, controlSize: .small)
+                            } else {
+                                Image(systemName: member.role == .admin ? "person.badge.key" : "person.badge.shield.checkmark")
+                                    .font(.system(size: AppIconSize.sm, weight: .semibold))
+                            }
                             Text(roleActionTitle)
                         }
                         .font(AppTypography.button)
@@ -90,18 +112,37 @@ struct MemberRoleSheet: View {
                     .buttonStyle(.borderedProminent)
                     .tint(AppSemanticColor.interactiveSecondaryPressed)
                     .padding(.top, AppSpacing.xs)
+                    .disabled(isUpdatingRole || isRemovingMember)
                 }
 
                 if store.isOwner && !isSelf, let member {
                     Button {
                         Task {
-                            await store.removeMember(accountID: member.accountId)
-                            dismiss()
+                            isRemovingMember = true
+                            let success = await store.removeMember(accountID: member.accountId)
+                            isRemovingMember = false
+
+                            if success {
+                                feedbackRouter.show(.high(message: "已移除成员"), hint: .centerToast)
+                                dismiss()
+                            } else {
+                                feedbackRouter.show(
+                                    .low(
+                                        message: store.error ?? "移除成员失败，请稍后重试",
+                                        systemImage: "xmark.octagon.fill"
+                                    ),
+                                    hint: .centerToast
+                                )
+                            }
                         }
                     } label: {
                         HStack(spacing: AppSpacing.xs) {
-                            Image(systemName: "person.badge.minus")
-                                .font(.system(size: AppIconSize.sm, weight: .semibold))
+                            if isRemovingMember {
+                                AppLoadingIndicator(tone: .primary, controlSize: .small)
+                            } else {
+                                Image(systemName: "person.badge.minus")
+                                    .font(.system(size: AppIconSize.sm, weight: .semibold))
+                            }
                             Text("移除成员")
                         }
                         .font(AppTypography.button)
@@ -112,6 +153,7 @@ struct MemberRoleSheet: View {
                     .buttonStyle(.borderedProminent)
                     .tint(AppSemanticColor.dangerBackground)
                     .padding(.top, AppSpacing.xs)
+                    .disabled(isUpdatingRole || isRemovingMember)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)

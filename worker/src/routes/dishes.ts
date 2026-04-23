@@ -2,7 +2,15 @@ import type { Route } from '../types';
 import { json, badRequest, conflict } from '../router';
 import { withAuth } from '../middleware/auth';
 import { withRole } from '../middleware/role';
-import { createDish, getDishForKitchen, updateDish, archiveDish, listByKitchen, findById } from '../services/dish-service';
+import {
+  createDish,
+  getDishForKitchen,
+  updateDish,
+  archiveDish,
+  listByKitchen,
+  findById,
+  DishLimitExceededError,
+} from '../services/dish-service';
 
 export const dishRoutes: Route[] = [
   // GET /kitchens/:id/dishes
@@ -85,6 +93,17 @@ export const dishRoutes: Route[] = [
             try {
               await env.ASSETS.delete(imageKey);
             } catch {}
+          }
+          if (error instanceof DishLimitExceededError) {
+            return json(
+              {
+                code: 'dish_limit_exceeded',
+                message: `已达菜品上限（${error.limit}）`,
+                limit: error.limit,
+                plan_code: error.planCode,
+              },
+              { status: 402 }
+            );
           }
           const message = error instanceof Error ? error.message : String(error);
           if (message.includes('UNIQUE constraint failed: dishes.kitchen_id, dishes.name')) {

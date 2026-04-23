@@ -19,6 +19,54 @@ export async function insertDish(
   return findById(db, id) as Promise<DishRow>;
 }
 
+/**
+ * 原子 INSERT：仅当 kitchen 未归档菜品数 < dishLimit 时写入成功。
+ * 返回值 true 表示成功，false 表示被额度拦截。
+ * 条件 SELECT 与 INSERT 合并为一条语句，规避并发下的 TOCTOU。
+ */
+export async function insertDishIfUnderLimit(
+  db: D1Database,
+  id: string,
+  kitchenId: string,
+  name: string,
+  category: string,
+  createdByAccountId: string,
+  ingredientsJson: string,
+  imageKey: string | null,
+  dishLimit: number
+): Promise<boolean> {
+  const result = await db
+    .prepare(
+      `INSERT INTO dishes (id, kitchen_id, name, category, image_key, created_by_account_id, ingredients_json)
+       SELECT ?, ?, ?, ?, ?, ?, ?
+       WHERE (SELECT COUNT(*) FROM dishes WHERE kitchen_id = ? AND archived_at IS NULL) < ?`
+    )
+    .bind(
+      id,
+      kitchenId,
+      name,
+      category,
+      imageKey,
+      createdByAccountId,
+      ingredientsJson,
+      kitchenId,
+      dishLimit
+    )
+    .run();
+  return (result.meta?.changes ?? 0) > 0;
+}
+
+export async function countActiveByKitchen(
+  db: D1Database,
+  kitchenId: string
+): Promise<number> {
+  const row = await db
+    .prepare('SELECT COUNT(*) as c FROM dishes WHERE kitchen_id = ? AND archived_at IS NULL')
+    .bind(kitchenId)
+    .first<{ c: number }>();
+  return row?.c ?? 0;
+}
+
 export async function findById(db: D1Database, id: string): Promise<DishRow | null> {
   return db.prepare('SELECT * FROM dishes WHERE id = ?').bind(id).first<DishRow>();
 }

@@ -29,6 +29,17 @@ export async function findByKitchenAndAccount(
     .first<MemberRow>();
 }
 
+export async function findMemberRecord(
+  db: D1Database,
+  kitchenId: string,
+  accountId: string
+): Promise<MemberRow | null> {
+  return db
+    .prepare('SELECT * FROM members WHERE kitchen_id = ? AND account_id = ?')
+    .bind(kitchenId, accountId)
+    .first<MemberRow>();
+}
+
 export async function listByKitchen(
   db: D1Database,
   kitchenId: string
@@ -61,6 +72,22 @@ export async function removeMember(
     )
     .bind(kitchenId, accountId)
     .run();
+}
+
+export async function reactivateMember(
+  db: D1Database,
+  kitchenId: string,
+  accountId: string,
+  role: Role = 'member'
+): Promise<MemberRow | null> {
+  await db
+    .prepare(
+      "UPDATE members SET role = ?, status = 'active', joined_at = datetime('now'), removed_at = NULL WHERE kitchen_id = ? AND account_id = ?"
+    )
+    .bind(role, kitchenId, accountId)
+    .run();
+
+  return findByKitchenAndAccount(db, kitchenId, accountId);
 }
 
 export async function updateRole(
