@@ -82,7 +82,11 @@ extension APIClient {
     }
 
     func requestDishImageUploadURL(dishID: String, authToken: String) async throws -> DishImageUploadTicket {
-        try await request(APIEndpoints.DishImages.requestUploadURL(dishID: dishID), authToken: authToken)
+        try await request(
+            APIEndpoints.DishImages.requestUploadURL(dishID: dishID),
+            authToken: authToken,
+            retryPolicy: .standard
+        )
     }
 
     @discardableResult

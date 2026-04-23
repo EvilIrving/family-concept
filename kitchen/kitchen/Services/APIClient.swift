@@ -27,10 +27,154 @@ struct Endpoint<Response: Decodable> {
 /// API 命名空间
 enum APIEndpoints {}
 
+struct RetryContext {
+    let attempt: Int
+    let request: URLRequest
+    let response: URLResponse?
+    let error: Error?
+}
+
+enum RetryDecision {
+    case stop
+    case retry(after: TimeInterval)
+}
+
+struct RetryPolicy {
+    let maxAttempts: Int
+    let baseDelay: TimeInterval
+    let jitterRatioRange: ClosedRange<Double>
+    let retryableStatusCodes: Set<Int>
+    let retryableStatusCodeRanges: [ClosedRange<Int>]
+    let retryableURLErrorCodes: Set<URLError.Code>
+
+    nonisolated static let none = RetryPolicy(maxAttempts: 1)
+    nonisolated static let standard = RetryPolicy(
+        maxAttempts: 3,
+        baseDelay: 0.4,
+        jitterRatioRange: 0...0.2,
+        retryableStatusCodes: [429],
+        retryableStatusCodeRanges: [500...599],
+        retryableURLErrorCodes: [
+            .timedOut,
+            .networkConnectionLost,
+            .notConnectedToInternet,
+            .cannotConnectToHost,
+            .cannotFindHost,
+            .dnsLookupFailed
+        ]
+    )
+
+    nonisolated init(
+        maxAttempts: Int,
+        baseDelay: TimeInterval = 0.4,
+        jitterRatioRange: ClosedRange<Double> = 0...0.2,
+        retryableStatusCodes: Set<Int> = [],
+        retryableStatusCodeRanges: [ClosedRange<Int>] = [],
+        retryableURLErrorCodes: Set<URLError.Code> = []
+    ) {
+        self.maxAttempts = max(1, maxAttempts)
+        self.baseDelay = max(0, baseDelay)
+        self.jitterRatioRange = jitterRatioRange
+        self.retryableStatusCodes = retryableStatusCodes
+        self.retryableStatusCodeRanges = retryableStatusCodeRanges
+        self.retryableURLErrorCodes = retryableURLErrorCodes
+    }
+
+    nonisolated func decision(for context: RetryContext, randomJitter: Double) -> RetryDecision {
+        guard context.attempt < maxAttempts else {
+            return .stop
+        }
+
+        if let error = context.error {
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+                return .stop
+            }
+            guard let urlError = error as? URLError, retryableURLErrorCodes.contains(urlError.code) else {
+                return .stop
+            }
+            return .retry(after: delay(for: context.attempt, randomJitter: randomJitter))
+        }
+
+        guard let httpResponse = context.response as? HTTPURLResponse else {
+            return .stop
+        }
+
+        let statusCode = httpResponse.statusCode
+        guard retryableStatusCodes.contains(statusCode) || retryableStatusCodeRanges.contains(where: { $0.contains(statusCode) }) else {
+            return .stop
+        }
+
+        return .retry(after: delay(for: context.attempt, randomJitter: randomJitter))
+    }
+
+    nonisolated private func delay(for attempt: Int, randomJitter: Double) -> TimeInterval {
+        let exponent = max(0, attempt - 1)
+        let base = baseDelay * pow(2, Double(exponent))
+        let clampedJitter = min(max(randomJitter, jitterRatioRange.lowerBound), jitterRatioRange.upperBound)
+        return base * (1 + clampedJitter)
+    }
+}
+
+final class RequestExecutor {
+    typealias Sleep = @Sendable (TimeInterval) async throws -> Void
+    typealias RandomJitter = @Sendable (ClosedRange<Double>) -> Double
+
+    private let session: URLSession
+    private let sleep: Sleep
+    private let randomJitter: RandomJitter
+
+    nonisolated init(
+        session: URLSession = .shared,
+        sleep: @escaping Sleep = RequestExecutor.defaultSleep,
+        randomJitter: @escaping RandomJitter = { Double.random(in: $0) }
+    ) {
+        self.session = session
+        self.sleep = sleep
+        self.randomJitter = randomJitter
+    }
+
+    nonisolated func perform(_ request: URLRequest, policy: RetryPolicy = .none) async throws -> (Data, URLResponse) {
+        var attempt = 1
+
+        while true {
+            try Task.checkCancellation()
+
+            do {
+                let result = try await session.data(for: request)
+                let context = RetryContext(attempt: attempt, request: request, response: result.1, error: nil)
+
+                switch policy.decision(for: context, randomJitter: randomJitter(policy.jitterRatioRange)) {
+                case .stop:
+                    return result
+                case .retry(let delay):
+                    try await sleep(delay)
+                    attempt += 1
+                }
+            } catch {
+                let context = RetryContext(attempt: attempt, request: request, response: nil, error: error)
+
+                switch policy.decision(for: context, randomJitter: randomJitter(policy.jitterRatioRange)) {
+                case .stop:
+                    throw error
+                case .retry(let delay):
+                    try await sleep(delay)
+                    attempt += 1
+                }
+            }
+        }
+    }
+
+    nonisolated private static func defaultSleep(_ delay: TimeInterval) async throws {
+        let nanoseconds = UInt64(max(0, delay) * 1_000_000_000)
+        try await Task.sleep(nanoseconds: nanoseconds)
+    }
+}
+
 /// API 客户端核心类
 /// 负责请求执行、认证头注入、响应解码和错误处理
 final class APIClient {
     private let baseURL: String
+    private let requestExecutor: RequestExecutor
     private static let jsonDecoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -41,15 +185,24 @@ final class APIClient {
         try jsonDecoder.decode(type, from: data)
     }
 
-    init(baseURL: String? = nil) {
+    init(
+        baseURL: String? = nil,
+        session: URLSession = .shared,
+        requestExecutor: RequestExecutor? = nil
+    ) {
         self.baseURL = baseURL ?? Bundle.main.object(forInfoDictionaryKey: "APIBaseURL") as? String ?? "https://api.kitchen.onecat.dev"
+        self.requestExecutor = requestExecutor ?? RequestExecutor(session: session)
     }
 
     // MARK: - Request Core
 
-    func request<T: Decodable>(_ endpoint: Endpoint<T>, authToken: String? = nil) async throws -> T {
+    func request<T: Decodable>(
+        _ endpoint: Endpoint<T>,
+        authToken: String? = nil,
+        retryPolicy: RetryPolicy? = nil
+    ) async throws -> T {
         let request = try buildRequest(endpoint, authToken: authToken)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await performRequest(request, retryPolicy: retryPolicy ?? defaultRetryPolicy(for: endpoint.method))
         return try decodeResponse(T.self, from: data, response: response)
     }
 
@@ -62,7 +215,8 @@ final class APIClient {
         fileName: String,
         fileData: Data,
         fileContentType: String,
-        authToken: String
+        authToken: String,
+        retryPolicy: RetryPolicy? = nil
     ) async throws -> T {
         let boundary = UUID().uuidString
         var request = try buildURLRequest(
@@ -82,7 +236,7 @@ final class APIClient {
             boundary: boundary
         )
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await performRequest(request, retryPolicy: retryPolicy ?? defaultRetryPolicy(for: method))
         return try decodeResponse(T.self, from: data, response: response)
     }
 
@@ -90,7 +244,8 @@ final class APIClient {
         _ path: String,
         data: Data,
         contentType: String,
-        authToken: String
+        authToken: String,
+        retryPolicy: RetryPolicy? = nil
     ) async throws -> Data? {
         var request = try buildURLRequest(
             path: path,
@@ -100,16 +255,32 @@ final class APIClient {
         )
         request.httpBody = data
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await performRequest(request, retryPolicy: retryPolicy ?? .none)
 
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 300 {
-            throw try decodeAPIError(from: data)
+            throw try decodeAPIError(statusCode: httpResponse.statusCode, from: data)
         }
 
         return data.isEmpty ? nil : data
     }
 
     // MARK: - Private Helpers
+
+    private func performRequest(_ request: URLRequest, retryPolicy: RetryPolicy) async throws -> (Data, URLResponse) {
+        do {
+            return try await requestExecutor.perform(request, policy: retryPolicy)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as URLError where error.code != .cancelled {
+            throw APIError.network
+        } catch {
+            throw error
+        }
+    }
+
+    private func defaultRetryPolicy(for method: String) -> RetryPolicy {
+        method.uppercased() == "GET" ? .standard : .none
+    }
 
     private func buildRequest<T>(_ endpoint: Endpoint<T>, authToken: String?) throws -> URLRequest {
         var request = try buildURLRequest(
@@ -192,8 +363,12 @@ final class APIClient {
             throw APIError.network
         }
 
+        if httpResponse.statusCode == 401 {
+            throw APIError.unauthorized
+        }
+
         if httpResponse.statusCode >= 400 {
-            throw try decodeAPIError(from: data)
+            throw try decodeAPIError(statusCode: httpResponse.statusCode, from: data)
         }
 
         do {
@@ -210,7 +385,11 @@ final class APIClient {
         }
     }
 
-    private func decodeAPIError(from data: Data) throws -> APIError {
+    private func decodeAPIError(statusCode: Int, from data: Data) throws -> APIError {
+        if statusCode == 401 {
+            return .unauthorized
+        }
+
         if data.isEmpty {
             return .invalidResponse("服务器返回为空")
         }
@@ -247,6 +426,23 @@ enum APIError: LocalizedError {
             return msg
         case .decoding(let error):
             return "数据解析失败：\(error.localizedDescription)"
+        }
+    }
+}
+
+extension APIError: Equatable {
+    static func == (lhs: APIError, rhs: APIError) -> Bool {
+        switch (lhs, rhs) {
+        case (.invalidURL, .invalidURL), (.network, .network), (.unauthorized, .unauthorized):
+            return true
+        case (.invalidResponse(let lhsMessage), .invalidResponse(let rhsMessage)):
+            return lhsMessage == rhsMessage
+        case (.serverMessage(let lhsMessage), .serverMessage(let rhsMessage)):
+            return lhsMessage == rhsMessage
+        case (.decoding, .decoding):
+            return true
+        default:
+            return false
         }
     }
 }

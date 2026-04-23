@@ -23,7 +23,7 @@ enum AppComponentColor {
     }
 
     enum Card {
-        static let background = AppSemanticColor.background
+        static let background = AppSemanticColor.surface
         static let border = AppSemanticColor.border
         static let eyebrow = AppSemanticColor.brandAccent
     }

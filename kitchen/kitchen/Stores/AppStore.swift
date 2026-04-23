@@ -26,6 +26,10 @@ final class AppStore: ObservableObject {
     @Published var isSubmittingCart: Bool = false
     @Published private(set) var hasLoadedKitchenData: Bool = false
     @Published var error: String?
+    @Published var menuFeedback: AppFeedback?
+    @Published var ordersFeedback: AppFeedback?
+    @Published var historyFeedback: AppFeedback?
+    @Published var isLoadingOrderHistory: Bool = false
     @Published var colorScheme: ColorScheme?
 
     let apiClient = APIClient()
@@ -129,6 +133,8 @@ final class AppStore: ObservableObject {
     func fetchAll() async {
         guard let kitchen else { return }
         isLoading = true
+        menuFeedback = nil
+        ordersFeedback = nil
         defer {
             isLoading = false
             hasLoadedKitchenData = true
@@ -160,6 +166,8 @@ final class AppStore: ObservableObject {
         } catch APIError.unauthorized {
             clearSession()
         } catch {
+            menuFeedback = feedback(for: error)
+            ordersFeedback = feedback(for: error)
             consumeError(error)
         }
     }
@@ -189,11 +197,26 @@ final class AppStore: ObservableObject {
         self.error = (error as? APIError)?.userMessage ?? error.localizedDescription
     }
 
+    func feedback(for error: Error) -> AppFeedback {
+        guard let apiError = error as? APIError else {
+            return .generic(message: error.localizedDescription)
+        }
+        switch apiError {
+        case .network:
+            return .network()
+        case .unauthorized:
+            return .auth()
+        case .invalidURL, .invalidResponse, .serverMessage, .decoding:
+            return .generic(message: apiError.userMessage)
+        }
+    }
+
     func clearKitchenState() {
         hasLoadedKitchenData = false
         kitchen = nil
         members = []
         dishes = []
+        menuFeedback = nil
         orderItems = []
         orderHistory = []
         selectedOrderDetail = nil

@@ -111,6 +111,8 @@ struct MenuView: View {
                 onDishAppear: handleDishAppear,
                 onTapBackground: { focusedField = nil }
             )
+        } onRetry: {
+            Task { await store.fetchAll() }
         }
     }
 
@@ -128,6 +130,12 @@ struct MenuView: View {
     }
 
     private var menuPhase: LoadingPhase<[Dish]> {
+        if store.isLoading && !filteredDishes.isEmpty {
+            return .refreshing(visibleDishes, label: "刷新菜单")
+        }
+        if let feedback = store.menuFeedback {
+            return .failure(feedback, retainedValue: filteredDishes.isEmpty ? nil : visibleDishes)
+        }
         if !store.hasLoadedKitchenData && filteredDishes.isEmpty {
             return .initialLoading(label: "加载菜单")
         }
@@ -199,8 +207,8 @@ struct MenuView: View {
         case .deleted(let name):
             feedbackRouter.show(
                 .low(
-                    message: "\(name) 已移入归档，可在后续补充撤销能力。",
-                    systemImage: "exclamationmark.triangle.fill"
+                    message: "\(name) 已移入归档",
+                    systemImage: "checkmark.circle.fill"
                 ),
                 hint: .centerToast
             )

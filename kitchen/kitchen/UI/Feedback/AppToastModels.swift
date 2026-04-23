@@ -48,7 +48,7 @@ struct AppToastView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, AppSpacing.lg)
-        .padding(.vertical, AppSpacing.md)
+        .padding(.vertical, AppSpacing.sm)
         .background(toast.backgroundColor, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
         .shadow(color: AppSemanticColor.shadowSubtle, radius: 16, y: 8)
     }

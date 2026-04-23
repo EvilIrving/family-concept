@@ -5,6 +5,7 @@ import Foundation
 extension AppStore {
     func refreshOrderItems() async {
         guard let kitchen else { return }
+        ordersFeedback = nil
         do {
             let result = try await apiClient.fetchOpenOrder(kitchenID: kitchen.id, authToken: authToken)
             if let order = result {
@@ -22,6 +23,7 @@ extension AppStore {
                 self.orderItems = []
             }
         } catch {
+            ordersFeedback = feedback(for: error)
             consumeError(error)
         }
     }
@@ -59,7 +61,12 @@ extension AppStore {
             .first else { return false }
 
         do {
-            let updated = try await apiClient.updateOrderItem(id: target.id, quantity: target.quantity - 1, authToken: authToken)
+            let updated: OrderItem
+            if target.quantity <= 1 {
+                updated = try await apiClient.updateOrderItem(id: target.id, status: .cancelled, authToken: authToken)
+            } else {
+                updated = try await apiClient.updateOrderItem(id: target.id, quantity: target.quantity - 1, authToken: authToken)
+            }
             applyOrderItemUpdate(updated)
             return true
         } catch {
@@ -107,10 +114,14 @@ extension AppStore {
 
     func fetchOrderHistory() async {
         guard let kitchen else { return }
+        isLoadingOrderHistory = true
+        historyFeedback = nil
+        defer { isLoadingOrderHistory = false }
         do {
             let fetchedHistory = try await apiClient.fetchOrderHistory(kitchenID: kitchen.id, authToken: authToken)
             orderHistory = fetchedHistory.filter { $0.status == .finished && $0.finishedAt != nil }
         } catch {
+            historyFeedback = feedback(for: error)
             consumeError(error)
         }
     }

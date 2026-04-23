@@ -53,6 +53,7 @@ struct MenuCartSheet: View {
                                             store.removeFromCart(itemID: item.id)
                                         }
                                     }
+                                    .disabled(store.isSubmittingCart)
                                 }
                                 if item.id != store.cartItems.last?.id {
                                     Divider().overlay(AppSemanticColor.border)

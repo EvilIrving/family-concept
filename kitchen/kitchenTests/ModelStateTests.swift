@@ -104,8 +104,7 @@ struct ModelStateTests {
         let fileURL = URL(fileURLWithPath: "/tmp/dish.png")
 
         #expect(DishDraftImageState.empty.statusTitle == "待添加图片")
-        #expect(DishDraftImageState.empty.statusSubtitle == "拍一张正面的菜品照，系统会自动去背景")
-        #expect(DishDraftImageState.extracting(sampleImage).statusTitle == "正在识别主体")
+        #expect(DishDraftImageState.empty.statusSubtitle == "拍照或选图后，可在方形取景框内调整菜品构图")
         #expect(DishDraftImageState.processing.statusTitle == "正在优化菜品图")
         #expect(DishDraftImageState.remote(previewImage: sampleImage, remoteURL: URL(string: "https://img.example.com/dish.png")!).statusSubtitle == "当前正在使用已上传图片")
         #expect(DishDraftImageState.ready(previewImage: sampleImage, fileURL: fileURL).statusTitle == "图片已就绪")

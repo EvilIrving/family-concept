@@ -17,9 +17,18 @@ struct ShoppingListSheet: View {
             onDismiss: { dismiss() },
             onConfirm: exportShoppingList
         ) {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    ForEach(store.shoppingListItems) { item in
+            if store.shoppingListItems.isEmpty {
+                AppErrorPlaceholder(
+                    feedback: .empty(
+                        kind: .noData,
+                        title: "采购清单还没有内容",
+                        message: "先到菜单页下单，这里会按食材自动聚合。"
+                    )
+                )
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        ForEach(store.shoppingListItems) { item in
                         HStack(spacing: AppSpacing.sm) {
                             Text(item.ingredient)
                                 .font(AppTypography.bodyStrong)
@@ -37,6 +46,7 @@ struct ShoppingListSheet: View {
                 .padding(.horizontal, AppSpacing.sm)
                 .padding(.top, AppSpacing.xxs)
                 .padding(.bottom, AppSpacing.xxs)
+                }
             }
         }
         .presentationBackground(.clear)
@@ -112,7 +122,7 @@ struct ShoppingListExportCard: View {
             .background(AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
 
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text("菜品 list")
+                Text("所需菜品")
                     .font(AppTypography.micro)
                     .foregroundStyle(AppSemanticColor.textTertiary)
 
@@ -125,7 +135,7 @@ struct ShoppingListExportCard: View {
             .padding(.vertical, AppSpacing.md)
             .background(AppSemanticColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
 
-            Text("Kitchen")
+            Text("私厨 • 采购清单")
                 .font(AppTypography.micro)
                 .foregroundStyle(AppSemanticColor.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .trailing)

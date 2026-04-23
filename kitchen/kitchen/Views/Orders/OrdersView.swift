@@ -20,53 +20,57 @@ struct OrdersView: View {
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.top, AppSpacing.xs)
 
-                AppLoadingBlock(phase: ordersPhase) { groupedItems in
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: AppSpacing.lg) {
-                            AppCard {
-                                ForEach(groupedItems) { item in
-                                    OrderItemRow(
-                                        item: item,
-                                        canManage: store.canManageOrders,
-                                        canEditWaiting: store.canEditWaitingOrderItems,
-                                        onTap: { Task { await store.cycleStatuses(for: item.itemIDs) } },
-                                        onReduce: {
-                                            Task {
-                                                if await store.reduceWaitingItemQuantity(for: item) {
-                                                    feedbackRouter.show(.low(message: "已减少 \(item.dishName) 1 份"))
+                AppLoadingBlock(
+                    phase: ordersPhase,
+                    content: { groupedItems in
+                        ScrollView(showsIndicators: false) {
+                            VStack(spacing: AppSpacing.lg) {
+                                AppCard {
+                                    ForEach(groupedItems) { item in
+                                        OrderItemRow(
+                                            item: item,
+                                            canManage: store.canManageOrders,
+                                            canEditWaiting: store.canEditWaitingOrderItems,
+                                            onTap: { Task { await store.cycleStatuses(for: item.itemIDs) } },
+                                            onReduce: {
+                                                Task {
+                                                    if await store.reduceWaitingItemQuantity(for: item) {
+                                                        feedbackRouter.show(.low(message: "已减少 \(item.dishName) 1 份"))
+                                                    }
+                                                }
+                                            },
+                                            onCancel: {
+                                                Task {
+                                                    if await store.cancelWaitingItems(for: item) {
+                                                        feedbackRouter.show(.low(message: "已取消 \(item.dishName)"))
+                                                    }
                                                 }
                                             }
-                                        },
-                                        onCancel: {
-                                            Task {
-                                                if await store.cancelWaitingItems(for: item) {
-                                                    feedbackRouter.show(.low(message: "已取消 \(item.dishName)"))
-                                                }
-                                            }
+                                        )
+                                        if item.id != groupedItems.last?.id {
+                                            Divider().overlay(AppSemanticColor.border)
                                         }
-                                    )
-                                    if item.id != groupedItems.last?.id {
-                                        Divider().overlay(AppSemanticColor.border)
                                     }
                                 }
-                            }
 
-                            if shouldShowFinishButton {
-                                AppButton(title: "这顿好了", style: .primary) {
-                                    Task {
-                                        let didFinish = await store.finishOrder()
-                                        if didFinish {
-                                            feedbackRouter.show(.low(message: "这顿收好了"))
+                                if shouldShowFinishButton {
+                                    AppButton(title: "这顿好了", style: .primary) {
+                                        Task {
+                                            let didFinish = await store.finishOrder()
+                                            if didFinish {
+                                                feedbackRouter.show(.low(message: "这顿收好了"))
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                    .padding(.horizontal, AppSpacing.md)
-                    .padding(.top, AppSpacing.lg)
-                    .padding(.bottom, AppSpacing.md)
-                }
+                        .padding(.horizontal, AppSpacing.md)
+                        .padding(.top, AppSpacing.lg)
+                        .padding(.bottom, AppSpacing.md)
+                    },
+                    onRetry: { Task { await store.refreshOrderItems() } }
+                )
 
                 if store.orderItems.contains(where: { $0.status != .cancelled }) {
                     ordersShoppingListBar
@@ -101,6 +105,15 @@ struct OrdersView: View {
     }
 
     private var ordersPhase: LoadingPhase<[GroupedOrderItem]> {
+        if store.isLoading && !store.groupedOrderItems.isEmpty {
+            return .refreshing(store.groupedOrderItems, label: "刷新订单")
+        }
+        if let feedback = store.ordersFeedback {
+            return .failure(feedback, retainedValue: store.orderItems.isEmpty ? nil : store.groupedOrderItems)
+        }
+        if store.isLoading && store.orderItems.isEmpty {
+            return .initialLoading(label: "加载订单")
+        }
         if store.groupedOrderItems.isEmpty {
             return .failure(
                 .empty(kind: .noData, title: "还没有出餐内容", message: "菜单页提交后，这里会直接显示当前订单。"),

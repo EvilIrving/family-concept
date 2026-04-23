@@ -15,8 +15,6 @@ struct PreferencesSection: View {
                 rowDivider
                 toggleRow(title: "震动反馈", isOn: $hapticsEnabled)
                 rowDivider
-                placeholderRow(title: "多语言", value: "简体中文")
-                rowDivider
                 ThemeSelectionRow(themeMode: $themeMode)
             }
         }
@@ -35,22 +33,6 @@ struct PreferencesSection: View {
             Toggle("", isOn: isOn)
                 .tint(AppSemanticColor.brandAccent)
                 .labelsHidden()
-        }
-        .frame(minHeight: 44)
-    }
-
-    private func placeholderRow(title: String, value: String) -> some View {
-        HStack(spacing: AppSpacing.sm) {
-            Text(title)
-                .font(AppTypography.bodyStrong)
-                .foregroundStyle(AppSemanticColor.textPrimary)
-            Spacer()
-            Text(value)
-                .font(AppTypography.body)
-                .foregroundStyle(AppSemanticColor.textSecondary)
-            Image(systemName: "chevron.right")
-                .font(.system(size: AppIconSize.xs, weight: .semibold))
-                .foregroundStyle(AppSemanticColor.textTertiary)
         }
         .frame(minHeight: 44)
     }

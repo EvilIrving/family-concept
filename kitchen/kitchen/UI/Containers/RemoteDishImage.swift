@@ -4,7 +4,6 @@ import UIKit
 
 struct RemoteDishImage<Content: View>: View {
     let url: URL
-    var retryTitle: String = "重试"
     let content: (Image) -> Content
 
     @StateObject private var loader = Loader()
@@ -20,9 +19,9 @@ struct RemoteDishImage<Content: View>: View {
                 content(image)
                     .transition(.opacity)
             case .failure(let feedback, _):
-                AppErrorPlaceholder(feedback: feedback, retryTitle: retryTitle) {
+                AppErrorPlaceholder(feedback: feedback, retryTitle: "重试") {
                     Task {
-                        await loader.load(from: url)
+                        await loader.retry()
                     }
                 }
             }
@@ -52,7 +51,12 @@ extension RemoteDishImage {
     @MainActor
     final class Loader: ObservableObject {
         @Published var phase: LoadingPhase<Image> = .idle
+        private let pipeline: RemoteDishImagePipeline
         private var lastURL: URL?
+
+        init(pipeline: RemoteDishImagePipeline = .shared) {
+            self.pipeline = pipeline
+        }
 
         func load(from url: URL) async {
             if lastURL == url, case .success = phase {
@@ -62,7 +66,7 @@ extension RemoteDishImage {
             let retainedValue = phase.retainedValue
             lastURL = url
 
-            if let cached = await RemoteDishImagePipeline.shared.cachedImage(for: url) {
+            if let cached = await pipeline.cachedImage(for: url) {
                 phase = .success(Image(uiImage: cached))
                 return
             }
@@ -74,7 +78,7 @@ extension RemoteDishImage {
             }
 
             do {
-                let uiImage = try await RemoteDishImagePipeline.shared.fetchImage(from: url)
+                let uiImage = try await pipeline.fetchImage(from: url)
                 phase = .success(Image(uiImage: uiImage))
             } catch RemoteDishImagePipeline.PipelineError.missingResource {
                 phase = .failure(.empty(kind: .missingResource), retainedValue: retainedValue)
@@ -88,6 +92,11 @@ extension RemoteDishImage {
                 phase = .failure(.network(message: "图片加载失败"), retainedValue: retainedValue)
             }
         }
+
+        func retry() async {
+            guard let lastURL else { return }
+            await load(from: lastURL)
+        }
     }
 }
 
@@ -100,11 +109,13 @@ actor RemoteDishImagePipeline {
     }
 
     private let cache = NSCache<NSURL, UIImage>()
+    private let requestExecutor: RequestExecutor
     private let maxConcurrentLoads = 6
     private var activeLoads = 0
     private var waitingContinuations: [CheckedContinuation<Void, Never>] = []
 
-    private init() {
+    init(requestExecutor: RequestExecutor = RequestExecutor()) {
+        self.requestExecutor = requestExecutor
         cache.countLimit = 240
         cache.totalCostLimit = 120 * 1024 * 1024
     }
@@ -126,7 +137,7 @@ actor RemoteDishImagePipeline {
         }
 
         let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await requestExecutor.perform(request, policy: .standard)
 
         guard let http = response as? HTTPURLResponse else {
             throw PipelineError.badResponse

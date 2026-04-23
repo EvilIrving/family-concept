@@ -16,11 +16,23 @@ struct MenuDishCard: View {
                 dishArtwork
 
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                    Text(title)
-                        .font(AppTypography.cardTitle)
-                        .foregroundStyle(AppSemanticColor.textPrimary)
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
+                        Text(title)
+                            .font(AppTypography.cardTitle)
+                            .foregroundStyle(AppSemanticColor.textPrimary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(category)
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppSemanticColor.primary)
+                            .padding(.horizontal, AppSpacing.xs)
+                            .padding(.vertical, 4)
+                            .background(AppSemanticColor.interactiveSecondaryPressed, in: Capsule())
+                            .fixedSize()
+
+                        Spacer(minLength: 0)
+                    }
 
                     HStack {
                         if let onManage {
@@ -74,22 +86,18 @@ struct MenuDishCard: View {
         )
         .fill(.clear)
         .frame(height: AppDimension.dishArtworkHeight)
-        .overlay(alignment: .topTrailing) {
-            AppPill(title: category)
-                .padding(AppSpacing.sm)
-        }
-            .overlay {
-                if let imageURL {
-                    RemoteDishImage(url: imageURL) { image in
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .padding(AppSpacing.xs)
-                    }
-                } else {
-                    placeholderIcon
+        .overlay {
+            if let imageURL {
+                RemoteDishImage(url: imageURL) { image in
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .padding(AppSpacing.xs)
                 }
+            } else {
+                placeholderIcon
             }
+        }
         .clipShape(
             UnevenRoundedRectangle(
                 topLeadingRadius: AppRadius.md,

@@ -113,9 +113,11 @@ extension AppStore {
 
     func refreshDishes() async {
         guard let kitchen else { return }
+        menuFeedback = nil
         do {
             dishes = try await apiClient.fetchDishes(kitchenID: kitchen.id, authToken: authToken)
         } catch {
+            menuFeedback = feedback(for: error)
             consumeError(error)
         }
     }
