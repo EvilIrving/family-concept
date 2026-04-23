@@ -1,3 +1,4 @@
+import Nuke
 import SwiftUI
 import PhotosUI
 
@@ -183,7 +184,7 @@ struct MenuDishFlowContainer: View {
 
         guard case .empty = imageCoordinator.imageState else { return }
 
-        if let cached = await RemoteDishImagePipeline.shared.cachedImage(for: remoteURL) {
+        if let cached = ImagePipeline.shared.cache[remoteURL]?.image {
             await MainActor.run {
                 imageCoordinator.seedRemoteImage(cached, remoteURL: remoteURL)
             }
@@ -191,7 +192,7 @@ struct MenuDishFlowContainer: View {
         }
 
         do {
-            let image = try await RemoteDishImagePipeline.shared.fetchImage(from: remoteURL)
+            let image = try await ImagePipeline.shared.image(for: remoteURL)
             await MainActor.run {
                 imageCoordinator.seedRemoteImage(image, remoteURL: remoteURL)
             }

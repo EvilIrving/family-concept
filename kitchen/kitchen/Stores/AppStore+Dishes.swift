@@ -1,4 +1,5 @@
 import Foundation
+import Nuke
 
 // MARK: - AppStore: Dishes Management Extension
 
@@ -38,7 +39,7 @@ extension AppStore {
         )
         if let idx = dishes.firstIndex(where: { $0.id == dishID }) {
             let d = dishes[idx]
-            dishes[idx] = Dish(
+            let updated = Dish(
                 id: d.id,
                 kitchenId: d.kitchenId,
                 name: d.name,
@@ -50,7 +51,16 @@ extension AppStore {
                 updatedAt: d.updatedAt,
                 archivedAt: d.archivedAt
             )
+            dishes[idx] = updated
+            invalidateCachedImage(for: updated)
         }
+    }
+
+    private func invalidateCachedImage(for dish: Dish) {
+        guard let url = dish.publicImageURL(baseURL: DishImageSpec.r2PublicBaseURL) else { return }
+        let request = ImageRequest(url: url)
+        ImagePipeline.shared.cache.removeCachedImage(for: request)
+        ImagePipeline.shared.cache.removeCachedData(for: request)
     }
 
     func archiveDish(id: String) async {

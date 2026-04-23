@@ -95,6 +95,32 @@
 				<string>CA92.1</string>
 			</array>
 		</dict>
+
+		<!--
+			File Timestamp：Nuke DataCache 读取容器内缓存图片的访问时间做 LRU。
+			理由代码 C617.1 = Access files inside the app's container
+		-->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+
+		<!--
+			Disk Space：Nuke DataCache 依据磁盘容量修剪缓存文件。
+			理由代码 E174.1 = Free disk space reasoning for the user's app
+		-->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>E174.1</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

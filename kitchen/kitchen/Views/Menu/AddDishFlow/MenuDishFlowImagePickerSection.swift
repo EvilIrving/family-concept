@@ -44,7 +44,8 @@ struct MenuDishFlowImagePickerSection: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .appValidationFeedback(isInvalid: isInvalid, trigger: validationTrigger)
+        .modifier(AppShakeEffect(animatableData: CGFloat(validationTrigger)))
+        .animation(.easeInOut(duration: 0.34), value: validationTrigger)
     }
 
     private var pickerButtons: some View {
@@ -54,6 +55,10 @@ struct MenuDishFlowImagePickerSection: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.primary)
                     .frame(maxWidth: .infinity, minHeight: AppDimension.minTouchTarget)
+                    .background(
+                        AppSemanticColor.interactiveSecondary,
+                        in: RoundedRectangle(cornerRadius: AppRadius.sm)
+                    )
             }
             .buttonStyle(.plain)
 
@@ -62,12 +67,13 @@ struct MenuDishFlowImagePickerSection: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.primary)
                     .frame(maxWidth: .infinity, minHeight: AppDimension.minTouchTarget)
+                    .background(
+                        AppSemanticColor.interactiveSecondary,
+                        in: RoundedRectangle(cornerRadius: AppRadius.sm)
+                    )
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, AppSpacing.xxs)
-        .padding(.vertical, AppSpacing.xxs)
-        .background(AppSemanticColor.interactiveSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
     }
 
     private func progressState(_ title: String) -> some View {

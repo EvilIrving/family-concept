@@ -26,8 +26,7 @@ struct MenuDishFormScreen: View {
                         onPhotoLibraryRequest: onPhotoLibraryRequest,
                         onCameraRequest: onCameraRequest,
                         isInvalid: draft.invalidImage,
-                        validationTrigger: draft.validationTrigger,
-                        errorMessage: draft.imageError
+                        validationTrigger: draft.validationTrigger
                     )
 
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
