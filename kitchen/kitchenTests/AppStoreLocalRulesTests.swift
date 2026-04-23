@@ -97,6 +97,21 @@ struct AppStoreLocalRulesTests {
         #expect(store.canManageOrders)
     }
 
+    @Test("当前账号对应 admin member 时具备管理能力但不是 owner")
+    func rolePropertiesReflectAdminMember() {
+        let store = AppStore()
+        store.currentAccount = Account(id: "a1", userName: "admin", nickName: "副管理员", createdAt: "")
+        store.members = [
+            Member(id: "m1", kitchenId: "k1", accountId: "a1", role: .admin, nickName: "副管理员")
+        ]
+
+        #expect(store.currentRole == .admin)
+        #expect(store.isOwner == false)
+        #expect(store.isAdmin)
+        #expect(store.canManageDishes)
+        #expect(store.canManageOrders)
+    }
+
     @Test("activeDishes 过滤已归档菜品并生成去重排序后的分类")
     func activeDishesAndCategoriesExcludeArchived() {
         let store = AppStore()

@@ -21,4 +21,20 @@ extension AppStore {
             consumeError(error)
         }
     }
+
+    func updateMemberRole(accountID: String, role: KitchenRole) async {
+        guard let kitchen else { return }
+        do {
+            let updatedMember = try await apiClient.updateMemberRole(
+                kitchenID: kitchen.id,
+                accountID: accountID,
+                role: role,
+                authToken: authToken
+            )
+            guard let index = members.firstIndex(where: { $0.accountId == accountID }) else { return }
+            members[index] = updatedMember
+        } catch {
+            consumeError(error)
+        }
+    }
 }

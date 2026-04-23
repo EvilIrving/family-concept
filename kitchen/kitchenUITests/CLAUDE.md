@@ -6,7 +6,7 @@
 
 ## 框架
 
-使用 Swift Testing + XCUIApplication（UI 测试必须用 XCUITest 能力，但测试组织用 Swift Testing）。
+使用 Swift Testing + XCUIApplication（UI 测试必须用 XCUITest 能力，但测试组织用 Swift Testing）。测试执行命令统一走 `xcodebuild`，禁止使用 `swift test`。
 
 ## 覆盖范围
 

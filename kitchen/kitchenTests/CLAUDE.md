@@ -2,7 +2,7 @@
 
 ## 概述
 
-Model 和 Store 的单元测试。使用 Swift Testing 框架。遵循父目录所有约束。
+Model 和 Store 的单元测试。测试代码使用 Swift Testing 框架，测试执行命令统一走 `xcodebuild`，禁止使用 `swift test`。
 
 ## 框架
 

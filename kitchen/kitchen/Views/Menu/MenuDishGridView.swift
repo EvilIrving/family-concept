@@ -14,26 +14,50 @@ struct MenuDishGridView: View {
         GridItem(.flexible(), spacing: AppSpacing.md)
     ]
 
+    private var groupedDishes: [(category: String, dishes: [Dish])] {
+        var grouped: [(category: String, dishes: [Dish])] = []
+
+        for dish in dishes {
+            if let index = grouped.firstIndex(where: { $0.category == dish.category }) {
+                grouped[index].dishes.append(dish)
+            } else {
+                grouped.append((category: dish.category, dishes: [dish]))
+            }
+        }
+
+        return grouped
+    }
+
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: 0) {
-                LazyVGrid(columns: gridColumns, spacing: AppSpacing.md) {
-                    ForEach(dishes) { dish in
-                        MenuDishCard(
-                            title: dish.name,
-                            category: dish.category,
-                            quantity: quantityForDish(dish.id),
-                            imageURL: dish.publicImageURL(baseURL: DishImageSpec.r2PublicBaseURL),
-                            onManage: onManage.map { handler in { handler(dish) } },
-                            onDecrease: { onDecrease(dish) },
-                            onIncrease: { onIncrease(dish) }
-                        )
-                        .onAppear {
-                            onDishAppear(dish)
+            VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                ForEach(groupedDishes, id: \.category) { group in
+                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                        Text(group.category)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
+                            .padding(.leading, AppSpacing.lg)
+                            .padding(.trailing, AppSpacing.md)
+
+                        LazyVGrid(columns: gridColumns, spacing: AppSpacing.md) {
+                            ForEach(group.dishes) { dish in
+                                MenuDishCard(
+                                    title: dish.name,
+                                    category: dish.category,
+                                    quantity: quantityForDish(dish.id),
+                                    imageURL: dish.publicImageURL(baseURL: DishImageSpec.r2PublicBaseURL),
+                                    onManage: onManage.map { handler in { handler(dish) } },
+                                    onDecrease: { onDecrease(dish) },
+                                    onIncrease: { onIncrease(dish) }
+                                )
+                                .onAppear {
+                                    onDishAppear(dish)
+                                }
+                            }
                         }
+                        .padding(.horizontal, AppSpacing.md)
                     }
                 }
-                .padding(AppSpacing.md)
             }
             .padding(.top, 0)
             .padding(.bottom, AppSpacing.md)

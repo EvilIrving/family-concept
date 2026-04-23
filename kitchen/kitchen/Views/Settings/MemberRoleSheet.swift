@@ -14,6 +14,18 @@ struct MemberRoleSheet: View {
         memberAccountID == store.currentAccount?.id
     }
 
+    private var canEditRole: Bool {
+        store.isOwner && !isSelf && member?.role != .owner
+    }
+
+    private var roleActionTitle: String {
+        member?.role == .admin ? "改为成员" : "设为副管理员"
+    }
+
+    private var roleActionTarget: KitchenRole {
+        member?.role == .admin ? .member : .admin
+    }
+
     var body: some View {
         AppSheetContainer(title: "成员", dismissTitle: "关闭", onDismiss: { dismiss() }) {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -57,6 +69,27 @@ struct MemberRoleSheet: View {
                     Text("成员已不在列表中")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppSemanticColor.textSecondary)
+                }
+
+                if canEditRole, let member {
+                    Button {
+                        Task {
+                            await store.updateMemberRole(accountID: member.accountId, role: roleActionTarget)
+                        }
+                    } label: {
+                        HStack(spacing: AppSpacing.xs) {
+                            Image(systemName: member.role == .admin ? "person.badge.key" : "person.badge.shield.checkmark")
+                                .font(.system(size: AppIconSize.sm, weight: .semibold))
+                            Text(roleActionTitle)
+                        }
+                        .font(AppTypography.button)
+                        .foregroundStyle(AppSemanticColor.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.sm)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppSemanticColor.interactiveSecondaryPressed)
+                    .padding(.top, AppSpacing.xs)
                 }
 
                 if store.isOwner && !isSelf, let member {

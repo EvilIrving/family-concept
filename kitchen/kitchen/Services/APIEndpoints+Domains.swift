@@ -98,6 +98,15 @@ extension APIEndpoints {
             )
         }
 
+        static func updateRole(kitchenID: String, accountID: String, role: KitchenRole) -> Endpoint<Member> {
+            Endpoint(
+                path: "/api/v1/kitchens/\(kitchenID)/members/\(accountID)",
+                method: "PATCH",
+                body: ["role": role.rawValue],
+                requiresAuth: true
+            )
+        }
+
         static func leave(kitchenID: String) -> Endpoint<OKResult> {
             Endpoint(
                 path: "/api/v1/kitchens/\(kitchenID)/leave",

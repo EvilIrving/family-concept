@@ -76,6 +76,18 @@ extension APIClient {
         )
     }
 
+    func updateMemberRole(
+        kitchenID: String,
+        accountID: String,
+        role: KitchenRole,
+        authToken: String
+    ) async throws -> Member {
+        try await request(
+            APIEndpoints.Members.updateRole(kitchenID: kitchenID, accountID: accountID, role: role),
+            authToken: authToken
+        )
+    }
+
     func leaveKitchen(kitchenID: String, authToken: String) async throws -> OKResult {
         try await request(APIEndpoints.Members.leave(kitchenID: kitchenID), authToken: authToken)
     }

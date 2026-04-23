@@ -11,7 +11,6 @@
 - UI 框架：SwiftUI，不引入 UIKit 除非 SwiftUI 能力明确不足
 - 状态管理：`@Observable` / `ObservableObject` Store，不使用 Redux、TCA 等外部架构
 - 持久化：当前为内存 + 种子数据，方向为 SwiftData；不使用 Core Data，不用 UserDefaults 存储领域数据
-- 测试：Swift Testing 框架（`import Testing`），不使用 XCTest
 - 最低部署目标：iOS 17.6
 
 ## 目录职责
@@ -19,8 +18,8 @@
 ```
 kitchen/
 ├── kitchen/          # App 源码（Models、Stores、Views、UI）
-├── kitchenTests/     # 单元测试（Model + Store 逻辑）
-└── kitchenUITests/   # UI 测试（关键用户流程）
+├── kitchenTests/     # 测试目录
+└── kitchenUITests/   # 测试目录
 ```
 
 ## 命名规范
@@ -96,7 +95,7 @@ kitchen/
 
 ## 质量要求
 
-- 新增 Model / Store 必须在 `kitchenTests/` 配套单元测试
+- 业务逻辑和 UI 都需要配套测试代码
 - View 不强制单测，但必须能正常编译和 Preview
 - 执行 iOS `build`、`test`、运行或安装时，默认目标设备为真机 `“xujinghui”的 iPhone`，`destination id=00008150-0019546A2100401C`
 - 除非用户明确要求 simulator，否则不要默认选择 `iphonesimulator`、`simulatorId` 或任何模拟器目标
