@@ -6,13 +6,23 @@
 	<key>NSPrivacyTracking</key>
 	<false/>
 
-	<!-- 追踪域名：无 -->
-	<key>NSPrivacyTrackingDomains</key>
-	<array/>
-
 	<!-- 收集的数据类型 -->
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
+		<!-- 账号名称与昵称 -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeName</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
 		<!-- 用户照片（菜品封面图） -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
@@ -55,7 +65,7 @@
 			</array>
 		</dict>
 
-		<!-- 认证凭据（token、用户名） -->
+		<!-- 会话令牌等未单独归类的数据 -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeOtherDataTypes</string>
