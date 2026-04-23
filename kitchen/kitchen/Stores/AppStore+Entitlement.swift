@@ -11,8 +11,7 @@ extension AppStore {
     }
 
     var isDishLimitReached: Bool {
-        // 购买完成但同步未回来时，乐观放行
-        if pendingEntitlementUpgrade != nil { return false }
+        if shouldTrustPendingEntitlementUpgrade { return false }
         return entitlement.isAtLimit
     }
 
@@ -26,19 +25,8 @@ extension AppStore {
         guard let kitchen else { return }
         do {
             let resp = try await apiClient.fetchEntitlement(kitchenID: kitchen.id, authToken: authToken)
-            self.entitlement = KitchenEntitlement(
-                planCode: resp.planCode,
-                dishLimit: resp.dishLimit,
-                isUnlimited: resp.isUnlimited,
-                activeDishCount: resp.activeDishCount,
-                storeProductId: resp.storeProductId,
-                activatedAt: resp.activatedAt
-            )
-            // 同步后清除过渡态（如果服务端已反映升级）
-            if let pending = pendingEntitlementUpgrade,
-               resp.storeProductId == pending.productID {
-                self.pendingEntitlementUpgrade = nil
-            }
+            self.entitlement = entitlement(from: resp)
+            clearPendingUpgradeIfSettled()
         } catch APIError.unauthorized {
             clearSession()
         } catch {
@@ -49,28 +37,79 @@ extension AppStore {
     // MARK: Sync after purchase
 
     /// 购买成功后调用。保留 pending 过渡态直到服务端确认。
-    func applyVerifiedTransaction(
-        productID: String,
-        originalTransactionID: String,
-        appAccountToken: String?
-    ) async {
+    func applyVerifiedTransaction(signedTransaction: String, productID: String) async {
         guard let kitchen else { return }
         pendingEntitlementUpgrade = PendingEntitlementUpgrade(
             productID: productID,
             startedAt: Date()
         )
         do {
-            _ = try await apiClient.syncIAPTransaction(
+            let response = try await apiClient.syncIAPTransaction(
                 kitchenID: kitchen.id,
-                productID: productID,
-                originalTransactionID: originalTransactionID,
-                appAccountToken: appAccountToken,
+                signedTransaction: signedTransaction,
                 authToken: authToken
             )
-            await refreshEntitlement()
+            entitlement = entitlement(from: response)
+            clearPendingUpgradeIfSettled()
         } catch {
-            // 保留 pending 状态，用户可手动重试（恢复购买）
             consumeError(error)
         }
+    }
+
+    private var shouldTrustPendingEntitlementUpgrade: Bool {
+        guard let pendingEntitlementUpgrade else { return false }
+        if entitlement.status == .revoked { return false }
+        if entitlement.status == .active && entitlement.storeProductId == pendingEntitlementUpgrade.productID {
+            return false
+        }
+        return Date().timeIntervalSince(pendingEntitlementUpgrade.startedAt) < 120
+    }
+
+    private func clearPendingUpgradeIfSettled() {
+        guard let pending = pendingEntitlementUpgrade else { return }
+        if entitlement.status == .active, entitlement.storeProductId == pending.productID {
+            pendingEntitlementUpgrade = nil
+            return
+        }
+        if entitlement.status == .revoked {
+            pendingEntitlementUpgrade = nil
+            return
+        }
+        if entitlement.status == .notFound,
+           Date().timeIntervalSince(pending.startedAt) >= 120 {
+            pendingEntitlementUpgrade = nil
+        }
+    }
+
+    private func entitlement(from response: EntitlementResponse) -> KitchenEntitlement {
+        KitchenEntitlement(
+            status: response.status,
+            planCode: response.planCode,
+            dishLimit: response.dishLimit,
+            isUnlimited: response.isUnlimited,
+            activeDishCount: response.activeDishCount,
+            storeProductId: response.storeProductId,
+            activatedAt: response.activatedAt,
+            originalTransactionId: response.originalTransactionId,
+            revokedAt: response.revokedAt,
+            revocationReason: response.revocationReason,
+            lastVerifiedAt: response.lastVerifiedAt
+        )
+    }
+
+    private func entitlement(from response: EntitlementSyncResponse) -> KitchenEntitlement {
+        KitchenEntitlement(
+            status: response.status,
+            planCode: response.planCode,
+            dishLimit: response.dishLimit,
+            isUnlimited: response.isUnlimited,
+            activeDishCount: response.activeDishCount,
+            storeProductId: response.storeProductId,
+            activatedAt: response.activatedAt,
+            originalTransactionId: response.originalTransactionId,
+            revokedAt: response.revokedAt,
+            revocationReason: response.revocationReason,
+            lastVerifiedAt: response.lastVerifiedAt
+        )
     }
 }

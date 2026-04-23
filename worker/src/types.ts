@@ -83,14 +83,22 @@ export interface EntitlementRow {
   store_product_id: string | null;
   original_transaction_id: string | null;
   app_account_token_hash: string | null;
+  verification_environment: VerificationEnvironment | null;
   source: 'app_store' | 'offer_code' | 'admin';
   activated_at: string;
   revoked_at: string | null;
+  revocation_reason: string | null;
+  last_verified_at: string | null;
+  last_seen_at: string | null;
+  status_version: number;
+  signed_transaction: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export type PlanCode = 'free' | 'dishes_fifty' | 'dishes_unlimited';
+export type EntitlementStatus = 'active' | 'revoked' | 'pending_verification_failed' | 'not_found';
+export type VerificationEnvironment = 'sandbox' | 'production';
 
 // ─── Enum-like Types ─────────────────────────────────────────────────────────
 

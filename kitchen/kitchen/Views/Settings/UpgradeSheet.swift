@@ -54,6 +54,16 @@ struct UpgradeSheet: View {
                         .font(AppTypography.caption)
                         .foregroundStyle(AppSemanticColor.textSecondary)
                 }
+                if store.entitlement.status == .pendingVerificationFailed {
+                    Text("同步失败，当前展示的是上次已确认的权益，可稍后重试恢复购买")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppSemanticColor.textSecondary)
+                }
+                if store.entitlement.status == .revoked {
+                    Text("该权益已被撤销，当前不可用")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppSemanticColor.textSecondary)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -109,15 +119,17 @@ struct UpgradeSheet: View {
         defer { isPurchasing = false }
         localError = nil
         do {
-            let token = UUID()
+            guard let accountID = store.currentAccount?.id,
+                  let kitchenID = store.kitchen?.id,
+                  let token = AppAccountTokenBuilder.build(accountID: accountID, kitchenID: kitchenID)
+            else {
+                localError = "账户信息不完整，无法发起购买"
+                return
+            }
             let outcome = try await purchaseManager.purchase(product, appAccountToken: token)
             switch outcome {
-            case .success(let productID, let txID, let accountToken):
-                await store.applyVerifiedTransaction(
-                    productID: productID,
-                    originalTransactionID: txID,
-                    appAccountToken: accountToken
-                )
+            case .success(let signedTransaction):
+                await store.applyVerifiedTransaction(signedTransaction: signedTransaction, productID: product.id)
                 dismiss()
             case .userCancelled:
                 break

@@ -16,8 +16,7 @@ final class PurchaseManager: ObservableObject {
     // MARK: - Callbacks
 
     /// 当任何已验证交易到达（购买成功、恢复、跨设备同步），通知上层去同步服务端。
-    /// 参数为 (productID, originalTransactionID, appAccountToken?)
-    var onTransactionVerified: ((String, String, String?) async -> Void)?
+    var onTransactionVerified: ((String, String) async -> Void)?
 
     // MARK: - Lifecycle
 
@@ -56,7 +55,7 @@ final class PurchaseManager: ObservableObject {
     // MARK: - Purchase
 
     enum PurchaseOutcome {
-        case success(productID: String, originalTransactionID: String, appAccountToken: String?)
+        case success(signedTransaction: String)
         case userCancelled
         case pending
         case verificationFailed
@@ -76,11 +75,7 @@ final class PurchaseManager: ObservableObject {
             guard case .verified(let transaction) = verification else {
                 return .verificationFailed
             }
-            let payload = PurchaseOutcome.success(
-                productID: transaction.productID,
-                originalTransactionID: String(transaction.originalID),
-                appAccountToken: transaction.appAccountToken?.uuidString
-            )
+            let payload = PurchaseOutcome.success(signedTransaction: verification.jwsRepresentation)
             await transaction.finish()
             return payload
         case .userCancelled:
@@ -98,11 +93,7 @@ final class PurchaseManager: ObservableObject {
         // StoreKit 2 的推荐做法：遍历 Transaction.currentEntitlements
         for await result in Transaction.currentEntitlements {
             if case .verified(let tx) = result {
-                await onTransactionVerified?(
-                    tx.productID,
-                    String(tx.originalID),
-                    tx.appAccountToken?.uuidString
-                )
+                await onTransactionVerified?(tx.productID, result.jwsRepresentation)
             }
         }
     }
@@ -113,11 +104,7 @@ final class PurchaseManager: ObservableObject {
         updatesTask = Task.detached { [weak self] in
             for await result in Transaction.updates {
                 if case .verified(let tx) = result {
-                    await self?.onTransactionVerified?(
-                        tx.productID,
-                        String(tx.originalID),
-                        tx.appAccountToken?.uuidString
-                    )
+                    await self?.onTransactionVerified?(tx.productID, result.jwsRepresentation)
                     await tx.finish()
                 }
             }

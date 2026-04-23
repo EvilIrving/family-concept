@@ -4,18 +4,10 @@ import { withAuth } from '../middleware/auth';
 import { withRole } from '../middleware/role';
 import {
   getEntitlementView,
-  bindTransaction,
+  syncSignedTransaction,
   EntitlementError,
 } from '../services/entitlement-service';
 import { countActiveByKitchen } from '../db/dishes';
-
-async function hashToken(value: string): Promise<string> {
-  const data = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(digest))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
 
 export const iapRoutes: Route[] = [
   // GET /kitchens/:id/entitlement — 当前厨房权益 + 使用量
@@ -27,12 +19,17 @@ export const iapRoutes: Route[] = [
         const view = await getEntitlementView(env.DB, ctx.kitchen!.id);
         const activeDishCount = await countActiveByKitchen(env.DB, ctx.kitchen!.id);
         return json({
+          status: view.status,
           plan_code: view.planCode,
           dish_limit: view.isUnlimited ? null : view.dishLimit,
           is_unlimited: view.isUnlimited,
           active_dish_count: activeDishCount,
           store_product_id: view.storeProductId,
           activated_at: view.activatedAt,
+          original_transaction_id: view.originalTransactionId,
+          revoked_at: view.revokedAt,
+          revocation_reason: view.revocationReason,
+          last_verified_at: view.lastVerifiedAt,
         });
       })
     ),
@@ -46,34 +43,34 @@ export const iapRoutes: Route[] = [
     handler: withAuth(
       withRole(['owner', 'admin'])(async (req, env, ctx) => {
         const body = await req.json<{
-          product_id?: string;
-          original_transaction_id?: string;
-          app_account_token?: string;
+          signed_transaction?: string;
           source?: 'app_store' | 'offer_code';
         }>();
 
-        if (!body?.product_id || !body?.original_transaction_id) {
-          return badRequest('product_id 和 original_transaction_id 必填');
+        if (!body?.signed_transaction) {
+          return badRequest('signed_transaction 必填');
         }
 
-        const appAccountTokenHash = body.app_account_token
-          ? await hashToken(body.app_account_token)
-          : null;
-
         try {
-          const view = await bindTransaction(env.DB, {
+          const result = await syncSignedTransaction(env.DB, {
             kitchenId: ctx.kitchen!.id,
-            productId: body.product_id,
-            originalTransactionId: body.original_transaction_id,
-            appAccountTokenHash,
+            accountId: ctx.account.id,
+            signedTransaction: body.signed_transaction,
             source: body.source,
           });
+          const activeDishCount = await countActiveByKitchen(env.DB, ctx.kitchen!.id);
           return json({
-            plan_code: view.planCode,
-            dish_limit: view.isUnlimited ? null : view.dishLimit,
-            is_unlimited: view.isUnlimited,
-            store_product_id: view.storeProductId,
-            activated_at: view.activatedAt,
+            status: result.view.status,
+            plan_code: result.view.planCode,
+            dish_limit: result.view.isUnlimited ? null : result.view.dishLimit,
+            is_unlimited: result.view.isUnlimited,
+            active_dish_count: activeDishCount,
+            store_product_id: result.view.storeProductId,
+            activated_at: result.view.activatedAt,
+            original_transaction_id: result.view.originalTransactionId,
+            revoked_at: result.view.revokedAt,
+            revocation_reason: result.view.revocationReason,
+            last_verified_at: result.view.lastVerifiedAt,
           });
         } catch (err) {
           if (err instanceof EntitlementError) {

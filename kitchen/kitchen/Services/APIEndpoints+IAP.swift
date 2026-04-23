@@ -13,17 +13,13 @@ extension APIEndpoints {
 
         static func sync(
             kitchenID: String,
-            productID: String,
-            originalTransactionID: String,
-            appAccountToken: String?
+            signedTransaction: String
         ) -> Endpoint<EntitlementSyncResponse> {
             Endpoint(
                 path: "/api/v1/kitchens/\(kitchenID)/iap/sync",
                 method: "POST",
                 body: SyncBody(
-                    productId: productID,
-                    originalTransactionId: originalTransactionID,
-                    appAccountToken: appAccountToken
+                    signedTransaction: signedTransaction
                 ),
                 requiresAuth: true
             )
@@ -34,30 +30,37 @@ extension APIEndpoints {
 // MARK: - Response Models
 
 struct EntitlementResponse: Decodable {
+    let status: EntitlementStatus
     let planCode: PlanCode
     let dishLimit: Int?
     let isUnlimited: Bool
     let activeDishCount: Int
     let storeProductId: String?
     let activatedAt: String?
+    let originalTransactionId: String?
+    let revokedAt: String?
+    let revocationReason: String?
+    let lastVerifiedAt: String?
 }
 
 struct EntitlementSyncResponse: Decodable {
+    let status: EntitlementStatus
     let planCode: PlanCode
     let dishLimit: Int?
     let isUnlimited: Bool
+    let activeDishCount: Int
     let storeProductId: String?
     let activatedAt: String?
+    let originalTransactionId: String?
+    let revokedAt: String?
+    let revocationReason: String?
+    let lastVerifiedAt: String?
 }
 
 private struct SyncBody: Encodable {
-    let productId: String
-    let originalTransactionId: String
-    let appAccountToken: String?
+    let signedTransaction: String
 
     enum CodingKeys: String, CodingKey {
-        case productId = "product_id"
-        case originalTransactionId = "original_transaction_id"
-        case appAccountToken = "app_account_token"
+        case signedTransaction = "signed_transaction"
     }
 }

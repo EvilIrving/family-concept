@@ -27,11 +27,10 @@ struct kitchenApp: App {
                 .preferredColorScheme(store.colorScheme)
                 .task {
                     store.purchaseManager = purchaseManager
-                    purchaseManager.onTransactionVerified = { [weak store] productID, txID, token in
+                    purchaseManager.onTransactionVerified = { [weak store] productID, signedTransaction in
                         await store?.applyVerifiedTransaction(
-                            productID: productID,
-                            originalTransactionID: txID,
-                            appAccountToken: token
+                            signedTransaction: signedTransaction,
+                            productID: productID
                         )
                     }
                     await purchaseManager.loadProducts()

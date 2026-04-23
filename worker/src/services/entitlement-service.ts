@@ -1,13 +1,20 @@
-import type { EntitlementRow, PlanCode } from '../types';
+import type { EntitlementRow, EntitlementStatus, PlanCode } from '../types';
 import {
   findActiveByKitchen,
-  findActiveByTxnId,
+  findByTxnId,
+  findLatestByKitchen,
   insertEntitlement,
+  replaceActiveEntitlement,
+  setEntitlementRevoked,
+  updateEntitlementMetadata,
 } from '../db/entitlements';
+import {
+  SignedTransactionVerificationError,
+  verifySignedTransaction,
+  type VerifiedSignedTransaction,
+} from './apple-jws';
 
-// 未购买默认免费档：10 道菜
 export const FREE_DISH_LIMIT = 10;
-// 业务层对“无限”的统一表示：一个足够大的数，简化 SQL 条件判断
 export const UNLIMITED_DISH_SENTINEL = 1_000_000;
 
 const PRODUCT_PLAN: Record<string, { plan: PlanCode; limit: number | null }> = {
@@ -22,22 +29,30 @@ const PLAN_RANK: Record<PlanCode, number> = {
 };
 
 export interface EntitlementView {
+  status: EntitlementStatus;
   planCode: PlanCode;
-  dishLimit: number;          // 业务层永远拿到一个数值，无限档用 UNLIMITED_DISH_SENTINEL
+  dishLimit: number;
   isUnlimited: boolean;
   storeProductId: string | null;
   originalTransactionId: string | null;
   activatedAt: string | null;
+  revokedAt: string | null;
+  revocationReason: string | null;
+  lastVerifiedAt: string | null;
 }
 
-export function defaultView(): EntitlementView {
+export function defaultView(status: EntitlementStatus = 'not_found'): EntitlementView {
   return {
+    status,
     planCode: 'free',
     dishLimit: FREE_DISH_LIMIT,
     isUnlimited: false,
     storeProductId: null,
     originalTransactionId: null,
     activatedAt: null,
+    revokedAt: null,
+    revocationReason: null,
+    lastVerifiedAt: null,
   };
 }
 
@@ -45,22 +60,30 @@ export async function getEntitlementView(
   db: D1Database,
   kitchenId: string
 ): Promise<EntitlementView> {
-  const row = await findActiveByKitchen(db, kitchenId);
-  if (!row) return defaultView();
-  return toView(row);
+  const active = await findActiveByKitchen(db, kitchenId);
+  if (active) return toView(active, 'active');
+
+  const latest = await findLatestByKitchen(db, kitchenId);
+  if (latest?.revoked_at) {
+    return toView(latest, 'revoked');
+  }
+
+  return defaultView('not_found');
 }
 
-function toView(row: EntitlementRow): EntitlementView {
+function toView(row: EntitlementRow, status: EntitlementStatus): EntitlementView {
   const isUnlimited = row.dish_limit === null && row.plan_code !== 'free';
   return {
+    status,
     planCode: row.plan_code,
-    dishLimit: isUnlimited
-      ? UNLIMITED_DISH_SENTINEL
-      : row.dish_limit ?? FREE_DISH_LIMIT,
+    dishLimit: isUnlimited ? UNLIMITED_DISH_SENTINEL : row.dish_limit ?? FREE_DISH_LIMIT,
     isUnlimited,
     storeProductId: row.store_product_id,
     originalTransactionId: row.original_transaction_id,
     activatedAt: row.activated_at,
+    revokedAt: row.revoked_at,
+    revocationReason: row.revocation_reason,
+    lastVerifiedAt: row.last_verified_at,
   };
 }
 
@@ -72,67 +95,153 @@ export class EntitlementError extends Error {
 
 export interface SyncInput {
   kitchenId: string;
-  productId: string;
-  originalTransactionId: string;
-  appAccountTokenHash?: string | null;
+  accountId: string;
+  signedTransaction: string;
   source?: 'app_store' | 'offer_code';
 }
 
-/**
- * 绑定一笔 Apple 交易到 kitchen。
- *
- * 注意：当前未做 Apple signedTransaction JWS 本地校验，服务端信任调用方传入
- * 的 transaction 数据。TODO(iap): 接入 App Store Server API /verifyReceipt
- * 等价方案（App Store Server Notifications v2 + inAppPurchaseKey JWT 验签），
- * 并把 signedTransaction 原文作为证据归档。
- */
-export async function bindTransaction(
+export interface SyncResult {
+  view: EntitlementView;
+}
+
+export async function syncSignedTransaction(
   db: D1Database,
   input: SyncInput
+): Promise<SyncResult> {
+  const current = await getEntitlementView(db, input.kitchenId);
+
+  try {
+    const verified = await verifySignedTransaction(input.signedTransaction);
+    const expectedToken = await buildAppAccountToken(input.accountId, input.kitchenId);
+    if (verified.appAccountToken !== expectedToken) {
+      throw new EntitlementError('app_account_token_mismatch', '交易账户绑定不匹配');
+    }
+
+    const view = await persistVerifiedTransaction(db, input, verified);
+    return { view };
+  } catch (error) {
+    if (error instanceof EntitlementError) {
+      throw error;
+    }
+    if (error instanceof SignedTransactionVerificationError) {
+      return {
+        view: {
+          ...current,
+          status: 'pending_verification_failed',
+        },
+      };
+    }
+    throw error;
+  }
+}
+
+async function persistVerifiedTransaction(
+  db: D1Database,
+  input: SyncInput,
+  verified: VerifiedSignedTransaction
 ): Promise<EntitlementView> {
-  const plan = PRODUCT_PLAN[input.productId];
+  const plan = PRODUCT_PLAN[verified.productId];
   if (!plan) throw new EntitlementError('unknown_product', '未知的商品 ID');
 
-  // 同一交易只能绑定单一 kitchen
-  const existing = await findActiveByTxnId(db, input.originalTransactionId);
+  const existing = await findByTxnId(db, verified.originalTransactionId);
   if (existing && existing.kitchen_id !== input.kitchenId) {
-    throw new EntitlementError(
-      'txn_bound_elsewhere',
-      '该交易已被其他厨房绑定'
-    );
-  }
-  if (existing && existing.kitchen_id === input.kitchenId) {
-    return toView(existing);
+    throw new EntitlementError('txn_bound_elsewhere', '该交易已被其他厨房绑定');
   }
 
-  // 对比现有活跃 entitlement 档位，不降级
-  const current = await findActiveByKitchen(db, input.kitchenId);
-  if (current && PLAN_RANK[current.plan_code] >= PLAN_RANK[plan.plan]) {
-    return toView(current);
+  if (existing) {
+    if (
+      existing.app_account_token_hash &&
+      existing.app_account_token_hash !== (await hashToken(verified.appAccountToken ?? ''))
+    ) {
+      throw new EntitlementError('app_account_token_mismatch', '交易账户绑定不匹配');
+    }
+
+    await updateEntitlementMetadata(db, existing.id, verified.signedTransaction);
+    if (verified.revokedAt) {
+      await setEntitlementRevoked(
+        db,
+        existing.id,
+        verified.revokedAt,
+        verified.revocationReason,
+        verified.signedTransaction
+      );
+      const revoked = await findByTxnId(db, verified.originalTransactionId);
+      return toView(revoked as EntitlementRow, 'revoked');
+    }
+
+    const fresh = await findByTxnId(db, verified.originalTransactionId);
+    return toView(
+      fresh as EntitlementRow,
+      fresh?.revoked_at ? 'revoked' : 'active'
+    );
+  }
+
+  const currentActive = await findActiveByKitchen(db, input.kitchenId);
+  if (currentActive && PLAN_RANK[currentActive.plan_code] >= PLAN_RANK[plan.plan]) {
+    return toView(currentActive, 'active');
   }
 
   const id = crypto.randomUUID();
+  const appAccountTokenHash = await hashToken(verified.appAccountToken ?? '');
+  if (currentActive) {
+    await replaceActiveEntitlement(db, {
+      newId: id,
+      kitchenId: input.kitchenId,
+      planCode: plan.plan,
+      dishLimit: plan.limit,
+      storeProductId: verified.productId,
+      originalTransactionId: verified.originalTransactionId,
+      appAccountTokenHash,
+      source: input.source ?? 'app_store',
+      verificationEnvironment: verified.environment,
+      signedTransaction: verified.signedTransaction,
+      revokedAt: verified.revokedAt,
+      revocationReason: verified.revocationReason,
+      previousActiveId: currentActive.id,
+    });
+    const inserted = await findByTxnId(db, verified.originalTransactionId);
+    return toView(inserted as EntitlementRow, verified.revokedAt ? 'revoked' : 'active');
+  }
+
   const row = await insertEntitlement(
     db,
     id,
     input.kitchenId,
     plan.plan,
     plan.limit,
-    input.productId,
-    input.originalTransactionId,
-    input.appAccountTokenHash ?? null,
-    input.source ?? 'app_store'
+    verified.productId,
+    verified.originalTransactionId,
+    appAccountTokenHash,
+    input.source ?? 'app_store',
+    verified.environment,
+    verified.signedTransaction,
+    verified.revokedAt,
+    verified.revocationReason
   );
 
-  // 若存在旧档（比如从 50 升到 unlimited），撤销旧行避免歧义
-  if (current) {
-    await db
-      .prepare(
-        "UPDATE kitchen_entitlements SET revoked_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND revoked_at IS NULL"
-      )
-      .bind(current.id)
-      .run();
-  }
+  return toView(row, verified.revokedAt ? 'revoked' : 'active');
+}
 
-  return toView(row);
+export async function buildAppAccountToken(accountId: string, kitchenId: string): Promise<string> {
+  const seed = new TextEncoder().encode(`kitchen-iap:${accountId}:${kitchenId}`);
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', seed));
+  const bytes = Array.from(digest.slice(0, 16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.map(value => value.toString(16).padStart(2, '0')).join('');
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20, 32),
+  ].join('-');
+}
+
+async function hashToken(value: string): Promise<string> {
+  const data = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest))
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
 }

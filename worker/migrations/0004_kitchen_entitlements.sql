@@ -7,19 +7,26 @@ CREATE TABLE kitchen_entitlements (
   store_product_id         TEXT,
   original_transaction_id  TEXT,
   app_account_token_hash   TEXT,
+  verification_environment TEXT,
   source                   TEXT NOT NULL DEFAULT 'app_store' CHECK (source IN ('app_store','offer_code','admin')),
   activated_at             TEXT NOT NULL DEFAULT (datetime('now')),
   revoked_at               TEXT,
+  revocation_reason        TEXT,
+  last_verified_at         TEXT,
+  last_seen_at             TEXT,
+  status_version           INTEGER NOT NULL DEFAULT 1,
+  signed_transaction       TEXT,
   created_at               TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at               TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- 同一 original_transaction_id 只能绑定一个 kitchen（未撤销状态下）
-CREATE UNIQUE INDEX idx_entitlement_txn_active
+CREATE UNIQUE INDEX idx_entitlement_txn
   ON kitchen_entitlements(original_transaction_id)
-  WHERE original_transaction_id IS NOT NULL AND revoked_at IS NULL;
+  WHERE original_transaction_id IS NOT NULL;
 
--- 单个厨房只保留一条活跃 entitlement，业务层写入时负责覆盖低档
 CREATE INDEX idx_entitlement_kitchen_active
   ON kitchen_entitlements(kitchen_id)
   WHERE revoked_at IS NULL;
+
+CREATE INDEX idx_entitlement_kitchen_recent
+  ON kitchen_entitlements(kitchen_id, updated_at DESC);
