@@ -13,7 +13,7 @@ struct AppToastData: Identifiable {
     var placement: Placement = .top
     var showsIcon: Bool = false
     var iconSystemName: String? = nil
-    var feedbackLevel: AppFeedbackLevel = .low
+    var haptic: AppHapticIntent? = nil
     var foregroundColor: Color = AppSemanticColor.onPrimary
     var backgroundColor: Color = Color.black.opacity(0.82)
 }
@@ -25,6 +25,7 @@ struct TopBannerData: Identifiable {
     var autoDismissDuration: Duration? = .seconds(2.2)
     var showsIcon: Bool = false
     var iconSystemName: String? = nil
+    var haptic: AppHapticIntent? = nil
     var foregroundColor: Color = AppSemanticColor.onPrimary
     var backgroundColor: Color = AppSemanticColor.infoForeground
 }

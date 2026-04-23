@@ -95,7 +95,7 @@ final class AppFeedbackRouter: ObservableObject {
             placement: hint == .centerToast ? .center : .top,
             showsIcon: tokens.iconSystemName != nil,
             iconSystemName: tokens.iconSystemName,
-            feedbackLevel: tokens.hapticLevel,
+            haptic: feedback.haptic,
             foregroundColor: tokens.foregroundColor,
             backgroundColor: tokens.toastBackgroundColor
         )
@@ -119,6 +119,7 @@ final class AppFeedbackRouter: ObservableObject {
             autoDismissDuration: feedback.persistence == .persistent ? nil : .seconds(2.2),
             showsIcon: tokens.iconSystemName != nil,
             iconSystemName: tokens.iconSystemName,
+            haptic: feedback.haptic,
             foregroundColor: tokens.foregroundColor,
             backgroundColor: tokens.bannerBackgroundColor
         )
@@ -191,11 +192,9 @@ private struct FeedbackPresentationTokens {
     let foregroundColor: Color
     let toastBackgroundColor: Color
     let bannerBackgroundColor: Color
-    let hapticLevel: AppFeedbackLevel
 
     init(feedback: AppFeedback) {
         iconSystemName = feedback.systemImage
-        hapticLevel = feedback.severity.presentationLevel
 
         switch feedback.severity {
         case .info:

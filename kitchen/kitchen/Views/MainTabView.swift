@@ -25,8 +25,20 @@ private enum MainTab: CaseIterable {
 struct MainTabView: View {
     @State private var selectedTab: MainTab = .menu
 
+    private var tabBinding: Binding<MainTab> {
+        Binding(
+            get: { selectedTab },
+            set: { newValue in
+                if newValue != selectedTab {
+                    HapticManager.shared.fire(.selection)
+                }
+                selectedTab = newValue
+            }
+        )
+    }
+
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: tabBinding) {
             MenuView()
                 .tag(MainTab.menu)
                 .tabItem {

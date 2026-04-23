@@ -139,7 +139,7 @@
 
 只保留两档轻阴影：
 
-- `shadowCard`: y `6`，blur `18`，color `rgba(31, 77, 58, 0.08)`
+- `shadowCard`: y `8`，blur `22`，color `rgba(31, 77, 58, 0.12)`
 - `shadowSheet`: y `12`，blur `28`，color `rgba(31, 77, 58, 0.12)`
 
 禁止使用黑色重阴影、超大模糊或多层高对比投影。

@@ -1,25 +1,10 @@
 import SwiftUI
 
-enum AppFeedbackLevel: Equatable {
-    case low
-    case neutral
-    case high
-}
-
 enum AppFeedbackSeverity: Int, Equatable {
     case info
     case success
     case warning
     case error
-
-    var presentationLevel: AppFeedbackLevel {
-        switch self {
-        case .info, .success:
-            return .low
-        case .warning, .error:
-            return .high
-        }
-    }
 
     var prefersBanner: Bool {
         switch self {
@@ -27,6 +12,19 @@ enum AppFeedbackSeverity: Int, Equatable {
             return true
         case .info, .success:
             return false
+        }
+    }
+
+    var defaultHaptic: AppHapticIntent? {
+        switch self {
+        case .info:
+            return nil
+        case .success:
+            return .success
+        case .warning:
+            return .warning
+        case .error:
+            return .error
         }
     }
 }
@@ -76,9 +74,32 @@ enum AppEmptyKind: Equatable {
 }
 
 struct AppFeedback: Equatable {
-    let level: AppFeedbackLevel
     let kind: AppFeedbackKind
     let payload: AppFeedbackPayload
+    /// 明确的触觉意图。`nil` 时走 severity 的默认映射；`.some(nil)` 语义不存在——如需"显式不震动"，使用 `silenced`。
+    private let explicitHaptic: AppHapticIntent?
+    private let hapticIsExplicit: Bool
+
+    init(
+        kind: AppFeedbackKind,
+        payload: AppFeedbackPayload,
+        haptic: AppHapticIntent? = nil,
+        hapticExplicit: Bool = false
+    ) {
+        self.kind = kind
+        self.payload = payload
+        self.explicitHaptic = haptic
+        self.hapticIsExplicit = hapticExplicit
+    }
+
+    var haptic: AppHapticIntent? {
+        hapticIsExplicit ? explicitHaptic : payload.severity.defaultHaptic
+    }
+
+    /// 覆盖触觉意图（包括显式静音）。
+    func withHaptic(_ intent: AppHapticIntent?) -> AppFeedback {
+        AppFeedback(kind: kind, payload: payload, haptic: intent, hapticExplicit: true)
+    }
 
     static func empty(
         kind: AppEmptyKind = .noData,
@@ -87,7 +108,6 @@ struct AppFeedback: Equatable {
         systemImage: String? = nil
     ) -> AppFeedback {
         AppFeedback(
-            level: .neutral,
             kind: .empty(kind),
             payload: AppFeedbackPayload(
                 title: title,
@@ -104,7 +124,6 @@ struct AppFeedback: Equatable {
         systemImage: String = "wifi.exclamationmark"
     ) -> AppFeedback {
         AppFeedback(
-            level: .high,
             kind: .network,
             payload: AppFeedbackPayload(
                 title: title,
@@ -122,7 +141,6 @@ struct AppFeedback: Equatable {
         systemImage: String = "lock.slash"
     ) -> AppFeedback {
         AppFeedback(
-            level: .high,
             kind: .auth,
             payload: AppFeedbackPayload(
                 title: title,
@@ -140,7 +158,6 @@ struct AppFeedback: Equatable {
         systemImage: String = "exclamationmark.triangle"
     ) -> AppFeedback {
         AppFeedback(
-            level: .high,
             kind: .generic,
             payload: AppFeedbackPayload(
                 title: title,
@@ -155,10 +172,10 @@ struct AppFeedback: Equatable {
         title: String? = nil,
         message: String? = nil,
         systemImage: String? = nil,
-        actionLabel: String? = nil
+        actionLabel: String? = nil,
+        haptic: AppHapticIntent? = nil
     ) -> AppFeedback {
         AppFeedback(
-            level: .low,
             kind: .generic,
             payload: AppFeedbackPayload(
                 title: title,
@@ -166,7 +183,9 @@ struct AppFeedback: Equatable {
                 icon: systemImage,
                 actionLabel: actionLabel,
                 severity: .info
-            )
+            ),
+            haptic: haptic,
+            hapticExplicit: haptic != nil
         )
     }
 
@@ -174,10 +193,10 @@ struct AppFeedback: Equatable {
         title: String? = nil,
         message: String? = nil,
         systemImage: String? = nil,
-        actionLabel: String? = nil
+        actionLabel: String? = nil,
+        haptic: AppHapticIntent? = nil
     ) -> AppFeedback {
         AppFeedback(
-            level: .high,
             kind: .generic,
             payload: AppFeedbackPayload(
                 title: title,
@@ -185,7 +204,9 @@ struct AppFeedback: Equatable {
                 icon: systemImage,
                 actionLabel: actionLabel,
                 severity: .success
-            )
+            ),
+            haptic: haptic,
+            hapticExplicit: haptic != nil
         )
     }
 

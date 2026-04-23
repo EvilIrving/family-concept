@@ -185,7 +185,7 @@ struct ModelStateTests {
     func emptyFeedbackCarriesSemanticKind() {
         let feedback = AppFeedback.empty(kind: .noSearchResult)
 
-        #expect(feedback.level == .neutral)
+        #expect(feedback.haptic == nil)
         #expect(feedback.emptyKind == .noSearchResult)
         #expect(feedback.kind == .empty(.noSearchResult))
         #expect(feedback.title == nil)
@@ -324,7 +324,6 @@ struct ModelStateTests {
         router.show(.auth(message: "登录失效"))
         let firstBannerID = try #require(router.currentBannerID)
         let warningFeedback = AppFeedback(
-            level: .high,
             kind: .generic,
             payload: AppFeedbackPayload(
                 title: "提醒",
@@ -340,30 +339,30 @@ struct ModelStateTests {
         #expect(router.currentBannerID == firstBannerID)
     }
 
-    @Test("展示态 high feedback 只在首次展示时触发一次震动")
-    func presentationHapticsFireOnceForDisplayedHighFeedback() {
-        var triggeredLevels: [AppFeedbackLevel] = []
-        let haptics = AppFeedbackPresentationHaptics { level in
-            triggeredLevels.append(level)
+    @Test("展示态带意图的 feedback 只在首次展示时触发一次震动")
+    func presentationHapticsFireOnceForPresentation() {
+        var triggered: [AppHapticIntent] = []
+        let haptics = AppFeedbackPresentationHaptics { intent in
+            triggered.append(intent)
         }
         let presentationID = UUID()
 
-        haptics.notePresented(id: presentationID, level: .high)
-        haptics.notePresented(id: presentationID, level: .high)
+        haptics.notePresented(id: presentationID, intent: .error)
+        haptics.notePresented(id: presentationID, intent: .error)
 
-        #expect(triggeredLevels == [.high])
+        #expect(triggered == [.error])
     }
 
-    @Test("展示态 low feedback 不触发震动")
-    func presentationHapticsDoNotFireForDisplayedLowFeedback() {
-        var triggeredLevels: [AppFeedbackLevel] = []
-        let haptics = AppFeedbackPresentationHaptics { level in
-            triggeredLevels.append(level)
+    @Test("展示态无意图的 feedback 不触发震动")
+    func presentationHapticsDoNotFireWhenIntentAbsent() {
+        var triggered: [AppHapticIntent] = []
+        let haptics = AppFeedbackPresentationHaptics { intent in
+            triggered.append(intent)
         }
 
-        haptics.notePresented(id: UUID(), level: .low)
+        haptics.notePresented(id: UUID(), intent: nil)
 
-        #expect(triggeredLevels.isEmpty)
+        #expect(triggered.isEmpty)
     }
 
     @Test("被 router 丢弃或抑制的 feedback 不触发展示震动")

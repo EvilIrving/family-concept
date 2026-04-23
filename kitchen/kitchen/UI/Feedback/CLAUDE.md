@@ -44,14 +44,17 @@
 
 ### 当前实现
 
-- `HapticManager.shared` 统一封装成功、错误、状态推进、新菜加入等反馈事件
-- 当前由 `AppStore` 在订单状态流转、刷新失败和新菜加入时触发
-- 触觉开关通过本地偏好控制，页面只表达交互意图
+- `AppHapticIntent` 独立表达触觉意图（light / medium / heavy / selection / success / warning / error），不与视觉严重度耦合
+- `HapticManager.shared.fire(_:)` 是统一入口，内部按 intent 分发到对应 `UIFeedbackGenerator`
+- `hapticsEnabled` 开关由 `HapticManager` 统一拦截，调用处无需再判断
+- `AppFeedback` 可选 `haptic: AppHapticIntent?`；不显式传时按 severity 默认映射（info → 无；success → .success；warning → .warning；error → .error）
+- 展示态 toast / banner 经 `AppFeedbackPresentationHaptics` 去重，同一个 presentation id 只震一次
 
 ### 使用规则
 
-- 触觉反馈适合确认关键动作完成或提示状态变化
-- 业务层只触发语义事件，具体 `UIFeedbackGenerator` 细节留在 `HapticManager`
+- 任意交互点想震动直接调用 `HapticManager.shared.fire(.light)` 等
+- 构建 `AppFeedback` 时如需覆盖默认触觉，使用 `.low(..., haptic: .light)` 或 `feedback.withHaptic(.selection)`；传 `nil` 可显式静音
+- 触觉意图按交互语义选择，不按视觉严重度推断
 - 页面局部轻提示继续优先用 toast，就地校验继续优先用描边和 shake
 
 ## 设计原则
