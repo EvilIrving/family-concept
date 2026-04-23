@@ -29,7 +29,7 @@ struct OrdersView: View {
                                     ForEach(groupedItems) { item in
                                         OrderItemRow(
                                             item: item,
-                                            canManage: store.canManageOrders,
+                                            canChangeStatus: store.canManageOrders,
                                             canEditWaiting: store.canEditWaitingOrderItems,
                                             onTap: { Task { await store.cycleStatuses(for: item.itemIDs) } },
                                             onReduce: {
@@ -102,7 +102,7 @@ struct OrdersView: View {
     private var doneCount: Int { store.quantity(for: .done) }
 
     private var shouldShowFinishButton: Bool {
-        store.currentOrder != nil && store.orderItems.contains(where: { $0.status != .cancelled })
+        store.canFinishCurrentOrder
     }
 
     private var ordersPhase: LoadingPhase<[GroupedOrderItem]> {

@@ -62,7 +62,10 @@ final class AppStore: ObservableObject {
     var isAdmin: Bool { currentRole == .admin }
     var canManageDishes: Bool { isOwner || isAdmin }
     var canManageOrders: Bool { isOwner || isAdmin }
-    var canEditWaitingOrderItems: Bool { currentMember != nil }
+    var canEditWaitingOrderItems: Bool { canManageOrders }
+    var canFinishCurrentOrder: Bool {
+        canManageOrders && currentOrder != nil && orderItems.contains(where: { $0.status != .cancelled })
+    }
 
     var hasKitchen: Bool { kitchen != nil }
     var isAuthenticated: Bool { !authToken.isEmpty && currentAccount != nil }

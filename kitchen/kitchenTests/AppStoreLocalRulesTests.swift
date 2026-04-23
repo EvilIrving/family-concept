@@ -187,6 +187,26 @@ struct AppStoreLocalRulesTests {
         #expect(store.canManageOrders == false)
     }
 
+    @Test("只有 owner 和 admin 可以结束当前订单")
+    func onlyPrivilegedMembersCanFinishCurrentOrder() {
+        let store = AppStore()
+        store.currentOrder = Order(id: "o1", kitchenId: "k1", status: .open, createdByAccountId: "a1", createdAt: "", finishedAt: nil)
+        store.orderItems = [
+            makeItem(id: "i1", dishId: "d1", quantity: 1, status: .waiting)
+        ]
+
+        store.currentAccount = Account(id: "a1", userName: "member", nickName: "成员", createdAt: "")
+        store.members = [
+            Member(id: "m1", kitchenId: "k1", accountId: "a1", role: .member, nickName: "成员")
+        ]
+        #expect(store.canFinishCurrentOrder == false)
+
+        store.members = [
+            Member(id: "m1", kitchenId: "k1", accountId: "a1", role: .admin, nickName: "副管理员")
+        ]
+        #expect(store.canFinishCurrentOrder)
+    }
+
     private func makeDish(
         id: String,
         name: String,
