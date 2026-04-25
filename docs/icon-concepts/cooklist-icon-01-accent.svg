@@ -1,9 +1,0 @@
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M444 302L496 352L603 245" stroke="url(#check-stroke)" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
-  <defs>
-    <linearGradient id="check-stroke" x1="464" y1="272" x2="594" y2="346" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFF6DA"/>
-      <stop offset="1" stop-color="#F3D996"/>
-    </linearGradient>
-  </defs>
-</svg>

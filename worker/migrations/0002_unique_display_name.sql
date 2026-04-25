@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX IF NOT EXISTS idx_devices_display_name ON devices(display_name);
