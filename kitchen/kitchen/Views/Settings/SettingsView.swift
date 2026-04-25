@@ -9,6 +9,8 @@ struct SettingsView: View {
     @AppStorage("themeMode") private var themeMode = "system"
     @StateObject private var modalRouter = ModalRouter<SettingsModalRoute>()
 
+    private let privacyPolicyURL = URL(string: "https://evilirving.github.io/family-concept")!
+
     var body: some View {
         AppScrollPage {
             EmptyView()
@@ -55,7 +57,11 @@ struct SettingsView: View {
                         title: "恢复购买",
                         onTap: { Task { await purchaseManager.restore() } }
                     )
-                    SettingsMenuRow(title: "隐私政策", showsDivider: false)
+                    SettingsMenuRow(
+                        title: "隐私政策",
+                        showsDivider: false,
+                        url: privacyPolicyURL
+                    )
                 }
             }
 
@@ -76,7 +82,7 @@ struct SettingsView: View {
                 UpgradeSheet()
                     .environmentObject(store)
                     .environmentObject(purchaseManager)
-                    .presentationDetents([.medium, .large])
+                    .presentationDetents([.large])
             }
         }
     }
@@ -140,27 +146,33 @@ private struct UpgradeMenuRow: View {
         Button(action: onTap) {
             HStack(spacing: AppSpacing.sm) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(entitlement.planCode.displayName)
-                        .font(AppTypography.bodyStrong)
-                        .foregroundStyle(AppSemanticColor.textPrimary)
-                    if !entitlement.isUnlimited, let limit = entitlement.dishLimit {
-                        Text("已用 \(entitlement.activeDishCount) / \(limit) 道菜")
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppSemanticColor.textSecondary)
-                    } else {
+                    HStack(spacing: 4) {
+                        Text(entitlement.planCode.displayName)
+                            .font(AppTypography.bodyStrong)
+                            .foregroundStyle(AppSemanticColor.textPrimary)
+                        if !entitlement.isUnlimited, let limit = entitlement.dishLimit {
+                            Text("已用 \(entitlement.activeDishCount) / \(limit) 道菜")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppSemanticColor.textSecondary)
+                        }
+                    }
+                    if entitlement.isUnlimited {
                         Text("菜品数量无上限")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppSemanticColor.textSecondary)
                     }
                 }
                 Spacer()
-                Text(canUpgrade ? "升级" : "查看")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppSemanticColor.textSecondary)
+                if canUpgrade {
+                    Text("升级")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppSemanticColor.textSecondary)
+                }
                 Image(systemName: "chevron.right")
                     .font(.system(size: AppIconSize.xs, weight: .semibold))
                     .foregroundStyle(AppSemanticColor.textTertiary)
             }
+            .contentShape(Rectangle())
             .frame(minHeight: 52)
         }
         .buttonStyle(.plain)
@@ -170,33 +182,46 @@ private struct UpgradeMenuRow: View {
 private struct SettingsMenuRow: View {
     let title: String
     var showsDivider: Bool = true
+    var url: URL? = nil
     var onTap: (() -> Void)? = nil
 
     var body: some View {
-        Button(action: { onTap?() }) {
-            HStack(spacing: AppSpacing.sm) {
-                Text(title)
-                    .font(AppTypography.bodyStrong)
-                    .foregroundStyle(AppSemanticColor.textPrimary)
-                Spacer()
-                if onTap == nil {
-                    Text("即将上线")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppSemanticColor.textSecondary)
-                }
-                Image(systemName: "chevron.right")
-                    .font(.system(size: AppIconSize.xs, weight: .semibold))
-                    .foregroundStyle(AppSemanticColor.textTertiary)
+        if let url {
+            Link(destination: url) {
+                rowContent
             }
-            .frame(minHeight: 52)
-            .overlay(alignment: .bottom) {
-                if showsDivider {
-                    Divider()
-                        .overlay(AppSemanticColor.border)
-                }
+            .buttonStyle(.plain)
+        } else {
+            Button(action: { onTap?() }) {
+                rowContent
+            }
+            .buttonStyle(.plain)
+            .disabled(onTap == nil)
+        }
+    }
+
+    private var rowContent: some View {
+        HStack(spacing: AppSpacing.sm) {
+            Text(title)
+                .font(AppTypography.bodyStrong)
+                .foregroundStyle(AppSemanticColor.textPrimary)
+            Spacer()
+            if url == nil, onTap == nil {
+                Text("即将上线")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
+            }
+            Image(systemName: "chevron.right")
+                .font(.system(size: AppIconSize.xs, weight: .semibold))
+                .foregroundStyle(AppSemanticColor.textTertiary)
+        }
+        .contentShape(Rectangle())
+        .frame(minHeight: 52)
+        .overlay(alignment: .bottom) {
+            if showsDivider {
+                Divider()
+                    .overlay(AppSemanticColor.border)
             }
         }
-        .buttonStyle(.plain)
-        .disabled(onTap == nil)
     }
 }

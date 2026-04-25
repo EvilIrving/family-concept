@@ -7,111 +7,318 @@ struct UpgradeSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var isPurchasing = false
+    @State private var didFailLoadingProducts = false
     @State private var localError: String?
+    @State private var selectedProductCode: PurchaseProduct = .dishesUnlimited
 
     var body: some View {
         AppScrollPage {
-            Text("升级菜品套餐")
-                .font(AppTypography.pageTitle)
-                .foregroundStyle(AppSemanticColor.textPrimary)
-                .padding(.horizontal, AppSpacing.md)
+            header
         } content: {
-            currentPlanCard
+            statusMessage
             productsList
+            productLoadingMessage
+            planComparison
             if let localError {
                 Text(localError)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.textSecondary)
-                    .padding(.horizontal, AppSpacing.md)
             }
-            AppButton(title: "恢复购买", style: .secondary) {
-                Task { await purchaseManager.restore() }
+            AppButton(
+                title: continueTitle,
+                style: isContinueAvailable ? .primary : .secondary,
+                phase: isPurchasing ? .initialLoading(label: "购买中…") : .idle
+            ) {
+                continueTapped()
             }
         }
+        .overlay {
+            if isPurchasing {
+                purchaseOverlay
+            }
+        }
+        .interactiveDismissDisabled(isPurchasing)
         .task {
+            selectedProductCode = defaultSelectedProductCode
             if purchaseManager.products.isEmpty {
-                await purchaseManager.loadProducts()
+                await loadProducts()
             }
         }
     }
 
-    private var currentPlanCard: some View {
-        AppCard {
-            VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text("当前套餐")
-                    .font(AppTypography.caption)
+    private var header: some View {
+        HStack(alignment: .top, spacing: AppSpacing.md) {
+            Spacer()
+            Button(action: { dismiss() }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: AppIconSize.lg, weight: .semibold))
                     .foregroundStyle(AppSemanticColor.textSecondary)
-                Text(store.entitlement.planCode.displayName)
-                    .font(AppTypography.cardTitle)
-                    .foregroundStyle(AppSemanticColor.textPrimary)
-                if !store.entitlement.isUnlimited, let limit = store.entitlement.dishLimit {
-                    Text("已用 \(store.entitlement.activeDishCount) / \(limit)")
-                        .font(AppTypography.bodyStrong)
-                        .foregroundStyle(AppSemanticColor.textSecondary)
-                }
-                if store.pendingEntitlementUpgrade != nil {
-                    Text("购买已完成，正在同步权限…")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppSemanticColor.textSecondary)
-                }
-                if store.entitlement.status == .pendingVerificationFailed {
-                    Text("同步失败，当前展示的是上次已确认的权益，可稍后重试恢复购买")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppSemanticColor.textSecondary)
-                }
-                if store.entitlement.status == .revoked {
-                    Text("该权益已被撤销，当前不可用")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppSemanticColor.textSecondary)
-                }
+                    .frame(width: AppDimension.minTouchTarget, height: AppDimension.minTouchTarget)
+                    .background(AppSemanticColor.surfaceSecondary, in: Circle())
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .buttonStyle(.plain)
         }
     }
 
     @ViewBuilder
+    private var statusMessage: some View {
+        if store.pendingEntitlementUpgrade != nil {
+            inlineMessage("购买已完成，正在同步权限…")
+        } else if store.entitlement.status == .pendingVerificationFailed {
+            inlineMessage("同步失败，当前展示的是上次已确认的权益，可稍后在设置中恢复购买。")
+        } else if store.entitlement.status == .revoked {
+            inlineMessage("该权益已被撤销，当前不可用。")
+        }
+    }
+
+    private func inlineMessage(_ message: String) -> some View {
+        Text(message)
+            .font(AppTypography.caption)
+            .foregroundStyle(AppSemanticColor.textSecondary)
+            .padding(AppSpacing.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppSemanticColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var productLoadingMessage: some View {
+        if didFailLoadingProducts {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                Text("商品信息加载失败，请稍后重试。")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
+                Button("重试") {
+                    Task { await loadProducts() }
+                }
+                .font(AppTypography.bodyStrong)
+                .foregroundStyle(AppSemanticColor.primary)
+                .disabled(purchaseManager.isLoadingProducts)
+            }
+            .padding(AppSpacing.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppSemanticColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+        }
+    }
+
+    private var purchaseOverlay: some View {
+        ZStack {
+            AppSemanticColor.surface.opacity(0.86)
+                .ignoresSafeArea()
+            AppLoadingIndicator(label: "购买处理中", tone: .primary)
+                .padding(AppSpacing.md)
+                .background(AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                        .stroke(AppSemanticColor.border, lineWidth: AppBorderWidth.hairline)
+                }
+        }
+    }
+
     private var productsList: some View {
-        VStack(spacing: AppSpacing.md) {
+        VStack(spacing: AppSpacing.sm) {
             ForEach(PurchaseProduct.allCases, id: \.rawValue) { code in
-                productRow(for: code)
+                productOption(for: code)
             }
         }
     }
 
-    private func productRow(for code: PurchaseProduct) -> some View {
+    private func productOption(for code: PurchaseProduct) -> some View {
         let product = purchaseManager.product(for: code)
-        let alreadyOwned = store.entitlement.planCode == code.plan
-            || store.entitlement.planCode == .dishesUnlimited
+        let isSelected = selectedProductCode == code
+        let isCurrent = isCurrentPlan(code.plan)
+        let isSelectable = isPlanSelectable(code.plan)
 
-        return AppCard {
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                HStack {
-                    Text(code.plan.displayName)
-                        .font(AppTypography.cardTitle)
-                        .foregroundStyle(AppSemanticColor.textPrimary)
-                    Spacer()
-                    if let product {
-                        Text(product.displayPrice)
+        return Button(action: {
+            guard isSelectable else { return }
+            selectedProductCode = code
+        }) {
+            HStack(spacing: AppSpacing.md) {
+                Image(systemName: isSelected && isSelectable ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: AppIconSize.xl, weight: .semibold))
+                    .foregroundStyle(isSelected && isSelectable ? AppSemanticColor.primary : AppSemanticColor.textTertiary)
+
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                    HStack(spacing: AppSpacing.xs) {
+                        Text(planTitle(for: code))
                             .font(AppTypography.bodyStrong)
                             .foregroundStyle(AppSemanticColor.textPrimary)
+                        if code == .dishesUnlimited {
+                            Text("推荐")
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppSemanticColor.primary)
+                                .padding(.horizontal, AppSpacing.xs)
+                                .padding(.vertical, AppSpacing.xxs)
+                                .background(AppSemanticColor.interactiveSecondary, in: Capsule())
+                        }
                     }
-                }
-                if let description = product?.description, !description.isEmpty {
-                    Text(description)
+                    Text(planSubtitle(for: code))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppSemanticColor.textSecondary)
                 }
-                AppButton(
-                    title: alreadyOwned ? "已拥有" : (isPurchasing ? "购买中…" : "购买"),
-                    style: alreadyOwned ? .secondary : .primary,
-                    phase: isPurchasing ? .initialLoading(label: "购买中…") : .idle
-                ) {
-                    guard let product, !alreadyOwned, !isPurchasing else { return }
-                    Task { await buy(product) }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: AppSpacing.xxs) {
+                    Text(priceTitle(for: code, product: product))
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(isCurrent ? AppSemanticColor.textSecondary : AppSemanticColor.textPrimary)
+                    if isCurrent {
+                        Text("当前")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
+                    }
                 }
             }
+            .padding(AppSpacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .background(isSelected && isSelectable ? AppSemanticColor.interactiveSecondary : AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                    .stroke(isSelected && isSelectable ? AppSemanticColor.primary : AppSemanticColor.border, lineWidth: isSelected && isSelectable ? AppBorderWidth.strong : AppBorderWidth.hairline)
+            }
         }
+        .buttonStyle(.plain)
+        .disabled(!isSelectable)
+    }
+
+    private var planComparison: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("可保存菜品数量对比")
+                .font(AppTypography.cardTitle)
+                .foregroundStyle(AppSemanticColor.textPrimary)
+            HStack(spacing: AppSpacing.sm) {
+                dishLimitItem(title: "免费", value: "10 道", isEmphasized: false)
+                dishLimitItem(title: "Essentials", value: "50 道", isEmphasized: true)
+                dishLimitItem(title: "Unlimited", value: "不限量", isEmphasized: true)
+            }
+        }
+        .padding(AppSpacing.md)
+        .background(AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                .stroke(AppSemanticColor.border, lineWidth: AppBorderWidth.hairline)
+        }
+    }
+
+    private func dishLimitItem(title: String, value: String, isEmphasized: Bool) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+            Text(title)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppSemanticColor.textSecondary)
+            Text(value)
+                .font(AppTypography.bodyStrong)
+                .foregroundStyle(isEmphasized ? AppSemanticColor.primary : AppSemanticColor.textPrimary)
+        }
+        .padding(AppSpacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppSemanticColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+    }
+
+    private var selectedProduct: Product? {
+        purchaseManager.product(for: selectedProductCode)
+    }
+
+    private var defaultSelectedProductCode: PurchaseProduct {
+        switch store.entitlement.planCode {
+        case .free:
+            return .dishesUnlimited
+        case .dishesFifty, .dishesUnlimited:
+            return .dishesUnlimited
+        }
+    }
+
+    private var isContinueAvailable: Bool {
+        store.entitlement.planCode == .free && selectedProduct != nil
+    }
+
+    private var continueTitle: String {
+        switch store.entitlement.planCode {
+        case .free:
+            return "继续"
+        case .dishesFifty:
+            return "即将支持"
+        case .dishesUnlimited:
+            return "您已经是 ∞"
+        }
+    }
+
+    private func isCurrentPlan(_ plan: PlanCode) -> Bool {
+        store.entitlement.planCode == plan
+    }
+
+    private func isPlanSelectable(_ plan: PlanCode) -> Bool {
+        switch store.entitlement.planCode {
+        case .free:
+            return plan != .free
+        case .dishesFifty:
+            return false
+        case .dishesUnlimited:
+            return false
+        }
+    }
+
+    private func priceTitle(for code: PurchaseProduct, product: Product?) -> String {
+        if isCurrentPlan(code.plan) {
+            return "Current"
+        }
+        if store.entitlement.planCode == .dishesFifty && code == .dishesUnlimited {
+            return "即将支持"
+        }
+        if didFailLoadingProducts && product == nil {
+            return "加载失败"
+        }
+        return product?.displayPrice ?? "价格加载中"
+    }
+
+    private func planTitle(for code: PurchaseProduct) -> String {
+        switch code {
+        case .dishesFifty:
+            return "Essentials"
+        case .dishesUnlimited:
+            return "Unlimited"
+        }
+    }
+
+    private func planSubtitle(for code: PurchaseProduct) -> String {
+        switch code {
+        case .dishesFifty:
+            return "适合刚开始整理家庭菜单"
+        case .dishesUnlimited:
+            if store.entitlement.planCode == .dishesFifty {
+                return "Essentials 升级即将支持"
+            }
+            return "适合长期记录全部菜谱"
+        }
+    }
+
+    private func continueTapped() {
+        guard !isPurchasing else { return }
+        guard isContinueAvailable else {
+            localError = unavailableContinueMessage
+            return
+        }
+        guard let product = selectedProduct else {
+            localError = "商品信息尚未加载完成，请稍后重试"
+            return
+        }
+        Task { await buy(product) }
+    }
+
+    private var unavailableContinueMessage: String {
+        switch store.entitlement.planCode {
+        case .free:
+            return didFailLoadingProducts ? "商品信息加载失败，请重试后继续" : "商品信息尚未加载完成，请稍后重试"
+        case .dishesFifty:
+            return "Essentials 升级到 Unlimited 即将支持。"
+        case .dishesUnlimited:
+            return "当前已经是 Unlimited，无需重复购买。"
+        }
+    }
+
+    private func loadProducts() async {
+        didFailLoadingProducts = false
+        await purchaseManager.loadProducts()
+        didFailLoadingProducts = purchaseManager.products.isEmpty
     }
 
     private func buy(_ product: Product) async {
