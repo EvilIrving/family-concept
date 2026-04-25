@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cooklist 隐私政策与会员服务</title>
+  <meta name="description" content="Cooklist 隐私政策与会员服务协议">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8f3;
+      --panel: #fffffb;
+      --panel-soft: #fdf8ee;
+      --text: #20281f;
+      --muted: #647064;
+      --line: #dfe7db;
+      --green: #2f7d4c;
+      --green-deep: #1f5c38;
+      --green-soft: #e7f2e7;
+      --gold: #b9852d;
+      --shadow: 0 22px 58px rgba(39, 67, 38, .11);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(circle at 16% 8%, rgba(232, 201, 136, .26), transparent 30rem),
+        radial-gradient(circle at 86% 12%, rgba(126, 177, 119, .2), transparent 28rem),
+        linear-gradient(180deg, #fbfcf7 0%, var(--bg) 52%, #f0f5ed 100%);
+      color: var(--text);
+    }
+
+    .loader {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      background: var(--bg);
+      transition: opacity .45s ease, visibility .45s ease;
+    }
+
+    .loader.is-hidden {
+      visibility: hidden;
+      opacity: 0;
+    }
+
+    .loader-card {
+      width: min(360px, 100%);
+      display: grid;
+      justify-items: center;
+      gap: 18px;
+      padding: 36px 30px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: rgba(255, 255, 251, .86);
+      box-shadow: var(--shadow);
+    }
+
+    .steam-badge {
+      position: relative;
+      width: 78px;
+      height: 78px;
+      border-radius: 24px;
+      background: linear-gradient(145deg, #f7fff1, #d9ecd6);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 18px 32px rgba(47, 125, 76, .18);
+      animation: breathe 1.8s ease-in-out infinite;
+    }
+
+    .steam-badge::before,
+    .steam-badge::after {
+      content: "";
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      border-radius: 999px;
+      background: var(--green);
+    }
+
+    .steam-badge::before {
+      top: 30px;
+      height: 22px;
+      box-shadow: 0 13px 0 -4px var(--green-deep);
+    }
+
+    .steam-badge::after {
+      top: 16px;
+      height: 4px;
+      opacity: .36;
+      animation: steam 1.8s ease-in-out infinite;
+    }
+
+    .loader-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .loader-text {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .shell {
+      width: min(1020px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 28px;
+      align-items: end;
+      padding: 28px 0 24px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--green-deep);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      background: linear-gradient(145deg, #eaf7dc, #7db56f);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+    }
+
+    h1 {
+      max-width: 720px;
+      margin: 18px 0 0;
+      font-size: clamp(34px, 6vw, 64px);
+      line-height: 1.03;
+      letter-spacing: 0;
+    }
+
+    .meta {
+      justify-self: end;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: right;
+    }
+
+    .tabs {
+      position: sticky;
+      top: 12px;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin: 20px 0 22px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 251, .84);
+      box-shadow: 0 12px 28px rgba(39, 67, 38, .08);
+      backdrop-filter: blur(16px);
+    }
+
+    .tab {
+      min-height: 46px;
+      border: 0;
+      border-radius: 13px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .22s ease, color .22s ease, transform .22s ease;
+    }
+
+    .tab:hover {
+      transform: translateY(-1px);
+    }
+
+    .tab[aria-selected="true"] {
+      background: var(--green);
+      color: #fbfff9;
+    }
+
+    main {
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      background: rgba(255, 255, 251, .92);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel {
+      display: none;
+      padding: clamp(26px, 5vw, 54px);
+    }
+
+    .panel.is-active {
+      display: block;
+      animation: reveal .3s ease both;
+    }
+
+    .section {
+      display: grid;
+      grid-template-columns: minmax(150px, 220px) 1fr;
+      gap: clamp(20px, 4vw, 48px);
+      padding: 28px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .section:first-child {
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    h2 {
+      margin: 0;
+      color: var(--green-deep);
+      font-size: 20px;
+      line-height: 1.25;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      line-height: 1.4;
+    }
+
+    p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.8;
+    }
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+
+    .notice {
+      margin-bottom: 26px;
+      padding: 18px 20px;
+      border: 1px solid #ead9af;
+      border-radius: 20px;
+      background: var(--panel-soft);
+      color: #72521f;
+      line-height: 1.7;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .pill {
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: var(--green-deep);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    footer {
+      padding: 22px 4px 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-4px) scale(1.035); }
+    }
+
+    @keyframes steam {
+      0%, 100% { transform: translateY(0); opacity: .22; }
+      50% { transform: translateY(-9px); opacity: .5; }
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        width: min(100% - 24px, 1020px);
+        padding-top: 22px;
+      }
+
+      header {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .meta {
+        justify-self: start;
+        text-align: left;
+      }
+
+      main {
+        border-radius: 24px;
+      }
+
+      .section {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .tab {
+        min-height: 44px;
+        font-size: 14px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="loader" id="loader" aria-live="polite">
+    <div class="loader-card">
+      <div class="steam-badge" aria-hidden="true"></div>
+      <p class="loader-title">正在载入 Cooklist 文档</p>
+      <p class="loader-text">隐私政策与会员服务</p>
+    </div>
+  </div>
+
+  <div class="shell">
+    <header>
+      <div>
+        <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Cooklist</div>
+        <h1>隐私政策与会员服务</h1>
+      </div>
+      <div class="meta">生效日期：2026 年 4 月 25 日</div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="文档切换">
+      <button class="tab" id="tab-privacy" role="tab" type="button" aria-selected="true" aria-controls="panel-privacy" data-tab="privacy">隐私政策</button>
+      <button class="tab" id="tab-membership" role="tab" type="button" aria-selected="false" aria-controls="panel-membership" data-tab="membership">会员服务</button>
+    </nav>
+
+    <main>
+      <article class="panel is-active" id="panel-privacy" role="tabpanel" aria-labelledby="tab-privacy">
+        <div class="notice">本隐私政策适用于 Cooklist iOS 应用及其相关服务。我们仅在提供家庭厨房协作、菜单管理、订单处理和会员权益所需范围内处理信息。</div>
+
+        <section class="section">
+          <h2>收集的信息</h2>
+          <div>
+            <p>当你注册、登录或使用应用功能时，我们会处理账号信息，包括用户名、昵称、账号 ID 与登录会话令牌。</p>
+            <p>你主动提交的内容包括厨房名称、邀请码、菜品名称、食材、订单内容，以及你上传的菜品图片。</p>
+            <p>应用会在设备本地保存主题模式、引导页状态、最近一次进入的厨房 ID，以及用于保持登录状态的本地会话信息。</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>使用方式</h2>
+          <div>
+            <p>我们将上述信息用于账号登录、恢复登录状态、创建或加入厨房、管理成员、展示菜单、上传和显示菜品图片、创建和处理订单，以及保存你的界面偏好。</p>
+            <p>我们不会将你的个人信息用于广告投放，不会出售你的信息，也不会进行跨应用或跨网站追踪。</p>
+            <div class="pill-row" aria-label="隐私承诺">
+              <span class="pill">不出售数据</span>
+              <span class="pill">不做广告追踪</span>
+              <span class="pill">服务功能所需</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>图片与内容</h2>
+          <div>
+            <p>你上传的菜品图片会被上传到应用使用的远程存储服务，用于在应用内展示菜品封面图。</p>
+            <p>厨房名称、菜品信息、订单内容和其他用户内容会发送到应用服务器，以实现多人协作和业务功能。</p>
+            <p>如果你所在的厨房包含其他成员，你提交的厨房成员信息、菜品信息、订单内容和相关图片会在该厨房的成员之间显示。</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>第三方服务</h2>
+          <div>
+            <p>当前版本未集成统计、广告归因或第三方追踪 SDK。</p>
+            <p>应用会通过系统网络框架与应用自有后端服务通信，并使用远程图片存储地址加载你已上传的菜品图片。</p>
+            <p>应用集成开源图片加载库 Nuke，用于在设备本地缓存菜品图片以减少重复下载。该库只在本地运行，不会向第三方服务器发送你的数据。</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>本地存储</h2>
+          <div>
+            <p>应用会在你的设备本地存储登录会话令牌、账号 ID、昵称、最近一次进入的厨房 ID、引导页状态和主题模式，以便维持登录状态和改善使用体验。</p>
+            <p>为减少网络流量和提升加载速度，应用还会把已加载过的菜品图片缓存在设备的应用容器目录内。缓存仅在本地使用，会在容量超限或系统清理时自动失效；卸载应用时会一并删除。</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>你的选择</h2>
+          <div>
+            <p>你可以选择不上传图片，但某些需要图片的功能可能因此无法完成。</p>
+            <p>你可以通过退出登录来清除设备上的登录状态；部分服务器侧业务数据仍可能按照服务运行需要保留。</p>
+            <p>如果你是未成年人，请在监护人同意和指导下使用本应用。</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>更新与联系</h2>
+          <div>
+            <p>如果本隐私政策发生变更，我们会通过应用内页面或更新后的公开链接提供最新版本。</p>
+            <p>如果你对本隐私政策或个人信息处理方式有疑问，应通过应用公开提供的联系渠道与我们联系。</p>
+          </div>
+        </section>
+      </article>
+
+      <article class="panel" id="panel-membership" role="tabpanel" aria-labelledby="tab-membership">
+        <div class="notice">本会员服务协议适用于 Cooklist 内通过 App Store 购买的厨房权益。当前权益以一次性买断为主，不包含自动续期订阅。</div>
+
+        <section class="section">
+          <h2>服务内容</h2>
+          <div>
+            <p>Cooklist 会员服务用于提升家庭厨房可管理的菜品额度，并让同一厨房内的成员共享对应厨房权益。</p>
+            <p>当前可用权益包括 50 道菜额度和无限道菜额度。免费档默认可管理 10 道菜。</p>
+            <div class="pill-row" aria-label="会员权益">
+              <span class="pill">免费档 10 道菜</span>
+              <span class="pill">50 道菜</span>
+              <span class="pill">无限道菜</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>购买与生效</h2>
+          <div>
+            <p>会员权益通过 Apple App Store 完成购买和支付。具体价格、税费和可购买地区以 App Store 展示为准。</p>
+            <p>购买完成后，应用会将交易信息同步到服务端进行校验。权益状态以服务端校验结果为准。</p>
+            <p>如果网络异常或校验暂未完成，应用可能显示短暂的处理中状态；完成校验后，权益会自动更新。</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>权益范围</h2>
+          <div>
+            <p>会员权益绑定到对应厨房，用于该厨房的菜品额度管理。厨房中的 owner、admin 和 member 可在各自权限范围内使用已生效的额度。</p>
+            <p>会员权益不代表账号、厨房成员关系、历史订单或用户生成内容会被额外出售、出租或用于广告追踪。</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>恢复与变更</h2>
+          <div>
+            <p>如果你更换设备、重新安装应用或需要恢复购买，可通过 App Store 账号和应用内恢复购买能力重新同步权益。</p>
+            <p>同一厨房的权益状态会以服务端记录和 Apple 交易校验结果为准。若 Apple 撤销交易、退款或交易校验失败，相关权益可能被调整或停止。</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>退款说明</h2>
+          <div>
+            <p>所有通过 App Store 完成的购买、退款和争议处理均遵循 Apple 的规则。你可以通过 Apple 提供的渠道提交退款请求。</p>
+            <p>退款成功后，相关会员权益可能被撤销，厨房菜品额度会回到对应的有效权益状态。</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>使用限制</h2>
+          <div>
+            <p>你不得通过破解、篡改客户端、伪造交易、绕过服务端校验或其他异常方式获取会员权益。</p>
+            <p>如发现异常交易、欺诈、滥用或违反适用法律法规的行为，我们有权在合理范围内暂停、撤销或重新校验相关权益。</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>协议更新</h2>
+          <div>
+            <p>我们可能根据产品功能、支付规则或合规要求更新本会员服务协议。更新后的协议会通过应用内页面或公开链接提供。</p>
+            <p>如果你对会员权益、购买恢复或服务条款有疑问，应通过应用公开提供的联系渠道与我们联系。</p>
+          </div>
+        </section>
+      </article>
+    </main>
+
+    <footer>© 2026 Cooklist</footer>
+  </div>
+
+  <script>
+    const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+    const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+
+    function activateTab(name, updateHash = true) {
+      tabs.forEach((tab) => {
+        const active = tab.dataset.tab === name;
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+      });
+
+      panels.forEach((panel) => {
+        panel.classList.toggle('is-active', panel.id === `panel-${name}`);
+      });
+
+      if (updateHash) {
+        history.replaceState(null, '', `#${name}`);
+      }
+    }
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+      tab.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+        event.preventDefault();
+        const direction = event.key === 'ArrowRight' ? 1 : -1;
+        const next = tabs[(index + direction + tabs.length) % tabs.length];
+        next.focus();
+        activateTab(next.dataset.tab);
+      });
+    });
+
+    const initial = location.hash.replace('#', '');
+    if (['privacy', 'membership'].includes(initial)) {
+      activateTab(initial, false);
+    }
+
+    window.addEventListener('load', () => {
+      window.setTimeout(() => {
+        document.getElementById('loader').classList.add('is-hidden');
+      }, 420);
+    });
+  </script>
+</body>
+</html>
