@@ -4,10 +4,15 @@
     {
       "layers" : [
         {
-          "image-name" : "app_icon 2.svg",
-          "name" : "app_icon 2"
+          "blend-mode" : "hard-light",
+          "fill" : "automatic",
+          "glass" : false,
+          "image-name" : "1024 2.png",
+          "name" : "kitchen",
+          "opacity" : 1
         }
       ],
+      "name" : "Group",
       "shadow" : {
         "kind" : "neutral",
         "opacity" : 0.5

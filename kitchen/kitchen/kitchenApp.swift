@@ -39,7 +39,7 @@ struct kitchenApp: App {
     }
 
     private static func configureImagePipeline() {
-        let dataCache = try? DataCache(name: "cooklist.dish-images")
+        let dataCache = try? DataCache(name: "kitchen.dish-images")
         dataCache?.sizeLimit = 200 * 1024 * 1024
 
         let imageCache = ImageCache()
