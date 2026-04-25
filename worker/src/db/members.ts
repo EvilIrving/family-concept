@@ -7,13 +7,24 @@ export async function insertMember(
   accountId: string,
   role: Role
 ): Promise<MemberRow> {
-  await db
-    .prepare(
-      'INSERT INTO members (id, kitchen_id, account_id, role) VALUES (?, ?, ?, ?)'
-    )
-    .bind(id, kitchenId, accountId, role)
-    .run();
-  return findByKitchenAndAccount(db, kitchenId, accountId) as Promise<MemberRow>;
+  try {
+    await db
+      .prepare(
+        'INSERT INTO members (id, kitchen_id, account_id, role) VALUES (?, ?, ?, ?)'
+      )
+      .bind(id, kitchenId, accountId, role)
+      .run();
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '';
+    if (!message.includes('UNIQUE constraint failed: members.kitchen_id, members.account_id')) {
+      throw e;
+    }
+  }
+
+  const member = await findByKitchenAndAccount(db, kitchenId, accountId);
+  if (member) return member;
+
+  return reactivateMember(db, kitchenId, accountId, role) as Promise<MemberRow>;
 }
 
 export async function findByKitchenAndAccount(

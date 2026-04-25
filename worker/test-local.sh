@@ -66,6 +66,10 @@ ADMIN_JOIN=$(curl -s -X POST "$BASE/onboarding/complete" -H "$C" -H "$(auth_head
   -d "{\"mode\":\"join\",\"nick_name\":\"Admin小李\",\"invite_code\":\"$INVITE_CODE\"}")
 echo "$ADMIN_JOIN" | jq .
 
+echo "--- 重复加入同一 kitchen 应返回已有成员 ---"
+curl -s -X POST "$BASE/onboarding/complete" -H "$C" -H "$(auth_header "$ADMIN_TOKEN")" \
+  -d "{\"mode\":\"join\",\"nick_name\":\"Admin小李\",\"invite_code\":\"$INVITE_CODE\"}" | jq .
+
 curl -s -X POST "$BASE/onboarding/complete" -H "$C" -H "$(auth_header "$MEMBER_TOKEN")" \
   -d "{\"mode\":\"join\",\"nick_name\":\"Member小张\",\"invite_code\":\"$INVITE_CODE\"}" | jq .
 

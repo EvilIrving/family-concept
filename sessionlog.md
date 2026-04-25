@@ -4,7 +4,7 @@
 - migrations/0004_kitchen_entitlements.sql — 权益表，含 original_transaction_id 唯一索引
 - db/entitlements.ts + services/entitlement-service.ts — 计划/额度解析、交易绑定、防降级、同交易不可跨厨房
 - routes/iap.ts — GET /kitchens/:id/entitlement、POST /kitchens/:id/iap/sync
-- services/dish-service.ts + db/dishes.ts — 原子条件 INSERT，并发下严格执行额度；超限返回 402 dish_limit_exceeded
+- services/dish-servicjhkkkkkjkhggjhke.ts + db/dishes.ts — 原子条件 INSERT，并发下严格执行额度；超限返回 402 dish_limit_exceeded
 
 客户端 (kitchen/)
 - Models/Entitlement.swift、Services/PurchaseManager.swift（StoreKit 2 + appAccountToken）
