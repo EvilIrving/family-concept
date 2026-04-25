@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cooklist 技术支持</title>
+  <meta name="description" content="Cooklist 技术支持、问题反馈与联系方式。">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: oklch(0.965 0.014 150);
+      --surface: oklch(0.99 0.006 145);
+      --surface-soft: oklch(0.952 0.022 145);
+      --text: oklch(0.22 0.026 150);
+      --muted: oklch(0.47 0.026 150);
+      --line: oklch(0.88 0.018 145);
+      --green: oklch(0.47 0.108 152);
+      --green-deep: oklch(0.33 0.08 152);
+      --shadow: 0 18px 46px oklch(0.33 0.08 152 / 0.10);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      font-kerning: normal;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(180deg, oklch(0.99 0.008 145), var(--bg));
+      color: var(--text);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .shell {
+      width: min(980px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: clamp(24px, 4vw, 44px) 0 48px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: clamp(42px, 8vw, 78px);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--green-deep);
+      font-size: 0.96rem;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 11px;
+      display: block;
+      object-fit: cover;
+      box-shadow: 0 8px 18px oklch(0.33 0.08 152 / 0.12);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 650;
+    }
+
+    .nav a {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 14px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+    }
+
+    .nav a:hover {
+      border-color: var(--line);
+      background: var(--surface);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(300px, 1.1fr);
+      gap: clamp(28px, 6vw, 72px);
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      max-width: 9ch;
+      margin: 0;
+      font-size: clamp(2.8rem, 7vw, 6rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 62ch;
+      margin: 0;
+      color: var(--text);
+      font-size: clamp(1.08rem, 1.5vw, 1.22rem);
+      line-height: 1.72;
+    }
+
+    main {
+      display: grid;
+      gap: 18px;
+      margin-top: clamp(30px, 5vw, 52px);
+    }
+
+    .section {
+      display: grid;
+      grid-template-columns: minmax(170px, 240px) 1fr;
+      gap: clamp(20px, 4vw, 48px);
+      padding: clamp(24px, 4vw, 38px);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .section.soft {
+      background: var(--surface-soft);
+      box-shadow: none;
+    }
+
+    h2 {
+      margin: 0;
+      color: var(--green-deep);
+      font-size: clamp(1.28rem, 2.5vw, 1.75rem);
+      line-height: 1.22;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      color: var(--text);
+      font-size: 1.08rem;
+      line-height: 1.35;
+    }
+
+    p {
+      max-width: 68ch;
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.78;
+    }
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+
+    .stack {
+      display: grid;
+      gap: 20px;
+    }
+
+    .contact {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      min-height: 46px;
+      margin-top: 4px;
+      padding: 0 18px;
+      border-radius: 999px;
+      background: var(--green);
+      color: oklch(0.985 0.008 145);
+      font-size: 0.96rem;
+      font-weight: 750;
+      box-shadow: 0 10px 22px oklch(0.38 0.09 152 / 0.16);
+    }
+
+    footer {
+      padding-top: 22px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        width: min(100% - 24px, 980px);
+      }
+
+      header,
+      .hero,
+      .section {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        display: grid;
+        padding-bottom: 40px;
+      }
+
+      .nav {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+
+      h1 {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <a class="brand" href="landing.html" aria-label="Cooklist 首页"><img class="brand-mark" src="logo.png" alt="">Cooklist</a>
+      <nav class="nav" aria-label="页面导航">
+        <a href="landing.html">首页</a>
+        <a href="index.html">隐私与会员</a>
+      </nav>
+    </header>
+
+    <section class="hero" aria-labelledby="page-title">
+      <h1 id="page-title">技术支持</h1>
+      <p class="lead">如果你在创建私厨、加入邀请码、管理菜品、处理订单或恢复购买时遇到问题，可以通过邮箱联系我们。</p>
+    </section>
+
+    <main>
+      <section class="section soft">
+        <h2>联系方式</h2>
+        <div>
+          <p>联系邮箱：dong.yy1916@gmail.com</p>
+          <p>请尽量说明设备型号、iOS 版本、问题发生步骤，以及是否涉及购买恢复或成员权限。</p>
+          <a class="contact" href="mailto:dong.yy1916@gmail.com?subject=Cooklist%20%E6%8A%80%E6%9C%AF%E6%94%AF%E6%8C%81">发送邮件</a>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>可处理的问题</h2>
+        <div class="stack">
+          <section>
+            <h3>账号与加入</h3>
+            <p>包括设备身份异常、邀请码无法加入、厨房成员角色显示不正确等问题。</p>
+          </section>
+          <section>
+            <h3>菜单与订单</h3>
+            <p>包括菜品无法保存、图片上传失败、订单状态不同步、采购清单结果异常等问题。</p>
+          </section>
+          <section>
+            <h3>会员与购买恢复</h3>
+            <p>包括权益未生效、恢复购买失败、退款后额度变化等与 App Store 购买相关的问题。</p>
+          </section>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>隐私与服务条款</h2>
+        <div>
+          <p>隐私政策和会员服务协议已在公开文档页提供。你可以在提交问题前查看数据处理范围、会员权益规则和退款说明。</p>
+          <a class="contact" href="index.html">查看隐私与会员文档</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>© 2026 Cooklist</footer>
+  </div>
+</body>
+</html>

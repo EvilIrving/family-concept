@@ -136,8 +136,32 @@
       width: 28px;
       height: 28px;
       border-radius: 10px;
-      background: linear-gradient(145deg, #eaf7dc, #7db56f);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+      display: block;
+      object-fit: cover;
+      box-shadow: 0 8px 18px rgba(39, 67, 38, .12);
+    }
+
+    .nav {
+      display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .nav a {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 251, .72);
+      color: inherit;
+      text-decoration: none;
     }
 
     h1 {
@@ -314,6 +338,10 @@
         text-align: left;
       }
 
+      .nav {
+        justify-content: flex-start;
+      }
+
       main {
         border-radius: 24px;
       }
@@ -353,10 +381,16 @@
   <div class="shell">
     <header>
       <div>
-        <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Cooklist</div>
+        <div class="brand"><img class="brand-mark" src="logo.png" alt="">Cooklist</div>
         <h1>隐私政策与会员服务</h1>
       </div>
-      <div class="meta">生效日期：2026 年 4 月 25 日</div>
+      <div class="meta">
+        <div>生效日期：2026 年 4 月 25 日</div>
+        <nav class="nav" aria-label="页面导航">
+          <a href="landing.html">首页</a>
+          <a href="support.html">技术支持</a>
+        </nav>
+      </div>
     </header>
 
     <nav class="tabs" role="tablist" aria-label="文档切换">

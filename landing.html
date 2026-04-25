@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cooklist 私厨管理</title>
+  <meta name="description" content="Cooklist 是面向家庭私厨的 iOS 菜单、点菜与订单协作工具。">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: oklch(0.965 0.014 150);
+      --surface: oklch(0.99 0.006 145);
+      --surface-soft: oklch(0.952 0.022 145);
+      --text: oklch(0.22 0.026 150);
+      --muted: oklch(0.47 0.026 150);
+      --line: oklch(0.88 0.018 145);
+      --green: oklch(0.47 0.108 152);
+      --green-deep: oklch(0.33 0.08 152);
+      --gold: oklch(0.61 0.102 78);
+      --shadow: 0 18px 46px oklch(0.33 0.08 152 / 0.10);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      font-kerning: normal;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(180deg, oklch(0.99 0.008 145), var(--bg));
+      color: var(--text);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .shell {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: clamp(24px, 4vw, 44px) 0 48px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: clamp(42px, 8vw, 82px);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--green-deep);
+      font-size: 0.96rem;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 11px;
+      display: block;
+      object-fit: cover;
+      box-shadow: 0 8px 18px oklch(0.33 0.08 152 / 0.12);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 650;
+    }
+
+    .nav a {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 14px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+    }
+
+    .nav a:hover {
+      border-color: var(--line);
+      background: var(--surface);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+      gap: clamp(28px, 6vw, 72px);
+      align-items: end;
+      margin-bottom: clamp(32px, 7vw, 68px);
+    }
+
+    h1 {
+      max-width: 11ch;
+      margin: 0;
+      font-size: clamp(3rem, 8vw, 6.85rem);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    .hero-copy {
+      max-width: 62ch;
+      padding-bottom: 10px;
+    }
+
+    .eyebrow {
+      margin: 0 0 18px;
+      color: var(--green-deep);
+      font-size: 0.86rem;
+      font-weight: 750;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.75;
+    }
+
+    .lead {
+      color: var(--text);
+      font-size: clamp(1.08rem, 1.5vw, 1.25rem);
+      line-height: 1.7;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .button {
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+      border-radius: 999px;
+      font-size: 0.96rem;
+      font-weight: 750;
+    }
+
+    .button.primary {
+      background: var(--green);
+      color: oklch(0.985 0.008 145);
+      box-shadow: 0 10px 22px oklch(0.38 0.09 152 / 0.16);
+    }
+
+    .button.secondary {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--green-deep);
+    }
+
+    .tabs {
+      position: sticky;
+      top: 12px;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 18px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: oklch(0.99 0.006 145 / 0.92);
+      box-shadow: 0 10px 26px oklch(0.33 0.08 152 / 0.07);
+    }
+
+    .tab {
+      min-height: 44px;
+      border: 0;
+      border-radius: 13px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.94rem;
+      font-weight: 750;
+      cursor: pointer;
+      transition: background .2s ease, color .2s ease;
+    }
+
+    .tab[aria-selected="true"] {
+      background: var(--green);
+      color: oklch(0.985 0.008 145);
+    }
+
+    main {
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel {
+      display: none;
+      padding: clamp(26px, 5vw, 50px);
+    }
+
+    .panel.is-active {
+      display: block;
+      animation: reveal .28s cubic-bezier(.22, 1, .36, 1) both;
+    }
+
+    .panel-grid {
+      display: grid;
+      grid-template-columns: minmax(180px, 260px) 1fr;
+      gap: clamp(22px, 5vw, 56px);
+    }
+
+    h2 {
+      max-width: 10ch;
+      margin: 0;
+      color: var(--green-deep);
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      line-height: 1.16;
+      letter-spacing: 0;
+    }
+
+    .points {
+      display: grid;
+      gap: 22px;
+    }
+
+    .point {
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .point:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      color: var(--text);
+      font-size: 1.12rem;
+      line-height: 1.35;
+    }
+
+    .support-strip {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+      margin-top: 24px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--surface-soft);
+    }
+
+    .support-strip strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--green-deep);
+      font-size: 1rem;
+    }
+
+    footer {
+      padding-top: 22px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        width: min(100% - 24px, 1080px);
+      }
+
+      header,
+      .hero,
+      .panel-grid,
+      .support-strip {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        display: grid;
+        padding-bottom: 40px;
+      }
+
+      .nav {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+
+      h1 {
+        max-width: 9ch;
+      }
+
+      .tabs {
+        grid-template-columns: 1fr;
+      }
+
+      h2 {
+        max-width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <a class="brand" href="landing.html" aria-label="Cooklist 首页"><img class="brand-mark" src="logo.png" alt="">Cooklist</a>
+      <nav class="nav" aria-label="页面导航">
+        <a href="index.html">隐私与会员</a>
+        <a href="support.html">技术支持</a>
+      </nav>
+    </header>
+
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">家里的菜单，有人一起管。</h1>
+      <div class="hero-copy">
+        <p class="eyebrow">私人厨房管理工具</p>
+        <p class="lead">Cooklist 帮家庭私厨整理菜品、邀请成员点菜、同步订单状态。它不做公开外卖，也不做复杂收银，只处理家里那张持续变化的菜单。</p>
+        <div class="actions">
+          <a class="button primary" href="#workflow">查看使用方式</a>
+          <a class="button secondary" href="support.html">联系技术支持</a>
+        </div>
+      </div>
+    </section>
+
+    <nav class="tabs" role="tablist" aria-label="产品介绍切换">
+      <button class="tab" id="tab-workflow" role="tab" type="button" aria-selected="true" aria-controls="panel-workflow" data-tab="workflow">使用方式</button>
+      <button class="tab" id="tab-roles" role="tab" type="button" aria-selected="false" aria-controls="panel-roles" data-tab="roles">成员协作</button>
+      <button class="tab" id="tab-privacy" role="tab" type="button" aria-selected="false" aria-controls="panel-privacy" data-tab="privacy">隐私边界</button>
+    </nav>
+
+    <main>
+      <article class="panel is-active" id="panel-workflow" role="tabpanel" aria-labelledby="tab-workflow">
+        <div class="panel-grid">
+          <h2>从菜单到订单</h2>
+          <div class="points">
+            <section class="point">
+              <h3>创建一个私厨</h3>
+              <p>owner 创建厨房后获得邀请码，家人或固定成员通过邀请码加入，不开放陌生人自行注册。</p>
+            </section>
+            <section class="point">
+              <h3>维护可点菜单</h3>
+              <p>owner 和 admin 可以添加菜品、图片与食材标签，免费档默认管理 10 道菜，会员权益可提升额度。</p>
+            </section>
+            <section class="point">
+              <h3>在同一张订单里协作</h3>
+              <p>成员追加菜品，厨房负责人更新等待、制作中、已完成或已取消状态，当前厨房同一时间只保留一个活跃订单。</p>
+            </section>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel" id="panel-roles" role="tabpanel" aria-labelledby="tab-roles">
+        <div class="panel-grid">
+          <h2>权限清楚</h2>
+          <div class="points">
+            <section class="point">
+              <h3>owner</h3>
+              <p>拥有私厨，管理成员、邀请码、菜品和订单状态。</p>
+            </section>
+            <section class="point">
+              <h3>admin</h3>
+              <p>协助维护菜单和处理订单，适合固定分工的厨手或家庭成员。</p>
+            </section>
+            <section class="point">
+              <h3>member</h3>
+              <p>查看菜单并追加点菜，适合只需要点菜和查看进度的成员。</p>
+            </section>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel" id="panel-privacy" role="tabpanel" aria-labelledby="tab-privacy">
+        <div class="panel-grid">
+          <h2>只处理服务所需数据</h2>
+          <div class="points">
+            <section class="point">
+              <h3>不做广告追踪</h3>
+              <p>Cooklist 不使用广告标识符，不出售个人信息，也不会基于第三方数据进行定向广告投放。</p>
+            </section>
+            <section class="point">
+              <h3>图片用于菜品展示</h3>
+              <p>你上传的菜品图片用于应用内展示菜品封面，已加载图片可能缓存在设备本地以减少重复下载。</p>
+            </section>
+            <section class="point">
+              <h3>公开文档可随时查看</h3>
+              <p>隐私政策、会员服务与联系方式集中在公开文档页，便于审核和用户查阅。</p>
+            </section>
+          </div>
+        </div>
+      </article>
+    </main>
+
+    <section class="support-strip" aria-label="技术支持入口">
+      <div>
+        <strong>需要协助或反馈问题</strong>
+        <p>请进入技术支持页查看处理范围和联系邮箱。</p>
+      </div>
+      <a class="button secondary" href="support.html">打开技术支持</a>
+    </section>
+
+    <footer>© 2026 Cooklist</footer>
+  </div>
+
+  <script>
+    const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+    const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+    const names = tabs.map((tab) => tab.dataset.tab);
+
+    function activateTab(name, updateHash = true) {
+      tabs.forEach((tab) => {
+        const active = tab.dataset.tab === name;
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+      });
+
+      panels.forEach((panel) => {
+        panel.classList.toggle('is-active', panel.id === `panel-${name}`);
+      });
+
+      if (updateHash) {
+        history.replaceState(null, "", `#${name}`);
+      }
+    }
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => activateTab(tab.dataset.tab));
+      tab.addEventListener("keydown", (event) => {
+        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+        event.preventDefault();
+        const direction = ["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : -1;
+        const next = tabs[(index + direction + tabs.length) % tabs.length];
+        next.focus();
+        activateTab(next.dataset.tab);
+      });
+    });
+
+    const initial = location.hash.replace("#", "");
+    if (names.includes(initial)) {
+      activateTab(initial, false);
+    }
+  </script>
+</body>
+</html>
