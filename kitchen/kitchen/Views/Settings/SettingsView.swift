@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
     @AppStorage("themeMode") private var themeMode = "system"
     @StateObject private var modalRouter = ModalRouter<SettingsModalRoute>()
+    @State private var signOutPendingConfirm = false
 
     private let privacyPolicyURL = URL(string: "https://evilirving.github.io/family-concept")!
 
@@ -68,8 +69,17 @@ struct SettingsView: View {
                 }
             }
 
-            AppButton(title: "退出登录", role: .destructive) {
-                Task { await store.signOut() }
+            AppButton(title: signOutPendingConfirm ? "确认退出" : "退出登录", role: .destructive) {
+                if signOutPendingConfirm {
+                    signOutPendingConfirm = false
+                    Task { await store.signOut() }
+                } else {
+                    signOutPendingConfirm = true
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(3))
+                        signOutPendingConfirm = false
+                    }
+                }
             }
         }
         .sheet(item: modalRouteBinding, onDismiss: { modalRouter.handleDismissedCurrent() }) { route in
