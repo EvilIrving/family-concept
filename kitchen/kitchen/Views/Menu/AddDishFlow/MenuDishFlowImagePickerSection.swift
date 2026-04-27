@@ -51,29 +51,13 @@ struct MenuDishFlowImagePickerSection: View {
 
     private var pickerButtons: some View {
         HStack(spacing: AppSpacing.sm) {
-            Button(action: onPhotoLibraryRequest) {
-                Label("相册", systemImage: "photo.on.rectangle")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppSemanticColor.primary)
-                    .frame(maxWidth: .infinity, minHeight: AppDimension.minTouchTarget)
-                    .background(
-                        AppSemanticColor.interactiveSecondary,
-                        in: RoundedRectangle(cornerRadius: AppRadius.sm)
-                    )
+            AppButton(title: "相册", leadingIcon: "photo.on.rectangle", role: .secondary, size: .sm) {
+                onPhotoLibraryRequest()
             }
-            .buttonStyle(.plain)
 
-            Button(action: onCameraRequest) {
-                Label("拍照", systemImage: "camera")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppSemanticColor.primary)
-                    .frame(maxWidth: .infinity, minHeight: AppDimension.minTouchTarget)
-                    .background(
-                        AppSemanticColor.interactiveSecondary,
-                        in: RoundedRectangle(cornerRadius: AppRadius.sm)
-                    )
+            AppButton(title: "拍照", leadingIcon: "camera", role: .secondary, size: .sm) {
+                onCameraRequest()
             }
-            .buttonStyle(.plain)
         }
     }
 
@@ -114,15 +98,10 @@ struct MenuDishFlowImagePickerSection: View {
                     .clipped()
 
                 if showsRemoveButton {
-                    Button {
+                    AppIconActionButton(systemImage: "xmark.circle.fill", tone: .neutral, size: .lg) {
                         coordinator.clearImage()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: AppIconSize.xl))
-                            .foregroundStyle(AppSemanticColor.textSecondary)
-                            .padding(AppInset.badgeHorizontal)
                     }
-                    .buttonStyle(.plain)
+                    .padding(AppInset.badgeHorizontal)
                 }
             }
 

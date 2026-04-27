@@ -7,19 +7,39 @@ struct AppIconActionButton: View {
         case danger
     }
 
+    enum Size {
+        case sm
+        case md
+        case lg
+
+        var side: CGFloat {
+            switch self {
+            case .sm:
+                return 28
+            case .md:
+                return AppDimension.iconButtonSide
+            case .lg:
+                return 40
+            }
+        }
+    }
+
     let systemImage: String
     var tone: Tone = .neutral
+    var size: Size = .md
     var isDisabled = false
+    var haptic: AppButton.HapticPolicy = .automatic
     var action: () -> Void
 
     var body: some View {
         Button {
+            fireHaptic()
             action()
         } label: {
             Image(systemName: systemImage)
                 .font(.system(size: AppIconSize.xs, weight: .semibold))
                 .foregroundStyle(foregroundColor)
-                .frame(width: AppDimension.iconButtonSide, height: AppDimension.iconButtonSide)
+                .frame(width: size.side, height: size.side)
                 .background(backgroundColor, in: RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
@@ -28,6 +48,17 @@ struct AppIconActionButton: View {
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
+    }
+
+    private func fireHaptic() {
+        switch haptic {
+        case .none:
+            return
+        case .automatic:
+            HapticManager.shared.fire(tone == .danger ? .warning : .selection)
+        case let .custom(intent):
+            HapticManager.shared.fire(intent)
+        }
     }
 
     private var foregroundColor: Color {

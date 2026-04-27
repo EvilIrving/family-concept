@@ -14,12 +14,46 @@ enum AppComponentColor {
 
         static let ghostBackground = AppSemanticColor.surface
         static let ghostBackgroundPressed = AppSemanticColor.surfaceSecondary
+        static let ghostBackgroundDisabled = AppSemanticColor.surfaceTertiary
         static let ghostBorder = AppSemanticColor.border
         static let ghostText = AppSemanticColor.textPrimary
 
         static let destructiveBackground = AppSemanticColor.dangerBackground
         static let destructiveBackgroundPressed = AppSemanticColor.dangerPressed
+        static let destructiveBackgroundDisabled = AppSemanticColor.surfaceTertiary
         static let destructiveText = AppSemanticColor.danger
+    }
+
+    enum Chip {
+        static let background = AppSemanticColor.surfaceSecondary
+        static let backgroundPressed = AppSemanticColor.surfaceTertiary
+        static let selectedBackground = AppSemanticColor.interactiveSecondary
+        static let foreground = AppSemanticColor.textPrimary
+        static let selectedForeground = AppSemanticColor.primary
+        static let border = AppSemanticColor.border
+    }
+
+    enum Segmented {
+        static let background = AppSemanticColor.surfaceSecondary
+        static let selectedBackground = AppSemanticColor.surface
+        static let pressedBackground = AppSemanticColor.surfaceTertiary
+        static let foreground = AppSemanticColor.textSecondary
+        static let selectedForeground = AppSemanticColor.primary
+        static let border = AppSemanticColor.border
+    }
+
+    enum Row {
+        static let background = AppSemanticColor.surface
+        static let backgroundPressed = AppSemanticColor.surfaceSecondary
+        static let foreground = AppSemanticColor.textPrimary
+        static let accessory = AppSemanticColor.textTertiary
+    }
+
+    enum Link {
+        static let primary = AppSemanticColor.primary
+        static let primaryPressed = AppSemanticColor.primaryPressed
+        static let secondary = AppSemanticColor.textSecondary
+        static let destructive = AppSemanticColor.danger
     }
 
     enum Card {

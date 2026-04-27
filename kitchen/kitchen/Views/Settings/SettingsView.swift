@@ -65,7 +65,7 @@ struct SettingsView: View {
                 }
             }
 
-            AppButton(title: "退出登录", style: .destructive) {
+            AppButton(title: "退出登录", role: .destructive) {
                 Task { await store.signOut() }
             }
         }
@@ -143,7 +143,7 @@ private struct UpgradeMenuRow: View {
     let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
+        AppRowButton(action: onTap) {
             HStack(spacing: AppSpacing.sm) {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
@@ -168,14 +168,9 @@ private struct UpgradeMenuRow: View {
                         .font(AppTypography.caption)
                         .foregroundStyle(AppSemanticColor.textSecondary)
                 }
-                Image(systemName: "chevron.right")
-                    .font(.system(size: AppIconSize.xs, weight: .semibold))
-                    .foregroundStyle(AppSemanticColor.textTertiary)
             }
-            .contentShape(Rectangle())
             .frame(minHeight: 52)
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -190,12 +185,10 @@ private struct SettingsMenuRow: View {
             Link(destination: url) {
                 rowContent
             }
-            .buttonStyle(.plain)
         } else {
-            Button(action: { onTap?() }) {
+            AppRowButton(action: { onTap?() }) {
                 rowContent
             }
-            .buttonStyle(.plain)
             .disabled(onTap == nil)
         }
     }
@@ -211,11 +204,7 @@ private struct SettingsMenuRow: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.textSecondary)
             }
-            Image(systemName: "chevron.right")
-                .font(.system(size: AppIconSize.xs, weight: .semibold))
-                .foregroundStyle(AppSemanticColor.textTertiary)
         }
-        .contentShape(Rectangle())
         .frame(minHeight: 52)
         .overlay(alignment: .bottom) {
             if showsDivider {

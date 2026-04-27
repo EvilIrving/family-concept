@@ -75,7 +75,12 @@ struct MemberRoleSheet: View {
                 }
 
                 if canEditRole, let member {
-                    Button {
+                    AppButton(
+                        title: roleActionTitle,
+                        leadingIcon: member.role == .admin ? "person.badge.key" : "person.badge.shield.checkmark",
+                        role: .secondary,
+                        phase: isUpdatingRole ? .initialLoading(label: roleActionTitle) : .idle
+                    ) {
                         Task {
                             isUpdatingRole = true
                             let actionTitle = roleActionTitle
@@ -94,29 +99,18 @@ struct MemberRoleSheet: View {
                                 )
                             }
                         }
-                    } label: {
-                        HStack(spacing: AppSpacing.xs) {
-                            if isUpdatingRole {
-                                AppLoadingIndicator(tone: .primary, controlSize: .small)
-                            } else {
-                                Image(systemName: member.role == .admin ? "person.badge.key" : "person.badge.shield.checkmark")
-                                    .font(.system(size: AppIconSize.sm, weight: .semibold))
-                            }
-                            Text(roleActionTitle)
-                        }
-                        .font(AppTypography.button)
-                        .foregroundStyle(AppSemanticColor.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, AppSpacing.sm)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppSemanticColor.interactiveSecondaryPressed)
                     .padding(.top, AppSpacing.xs)
                     .disabled(isUpdatingRole || isRemovingMember)
                 }
 
                 if store.isOwner && !isSelf, let member {
-                    Button {
+                    AppButton(
+                        title: "移除成员",
+                        leadingIcon: "person.badge.minus",
+                        role: .destructive,
+                        phase: isRemovingMember ? .initialLoading(label: "移除成员") : .idle
+                    ) {
                         Task {
                             isRemovingMember = true
                             let success = await store.removeMember(accountID: member.accountId)
@@ -135,23 +129,7 @@ struct MemberRoleSheet: View {
                                 )
                             }
                         }
-                    } label: {
-                        HStack(spacing: AppSpacing.xs) {
-                            if isRemovingMember {
-                                AppLoadingIndicator(tone: .primary, controlSize: .small)
-                            } else {
-                                Image(systemName: "person.badge.minus")
-                                    .font(.system(size: AppIconSize.sm, weight: .semibold))
-                            }
-                            Text("移除成员")
-                        }
-                        .font(AppTypography.button)
-                        .foregroundStyle(AppSemanticColor.danger)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, AppSpacing.sm)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppSemanticColor.dangerBackground)
                     .padding(.top, AppSpacing.xs)
                     .disabled(isUpdatingRole || isRemovingMember)
                 }

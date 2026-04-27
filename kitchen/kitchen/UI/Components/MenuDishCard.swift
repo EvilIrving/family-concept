@@ -53,6 +53,7 @@ struct MenuDishCard: View {
                 .padding(AppSpacing.sm)
             }
         }
+        // 整张卡片不能包成 Button：底部加减按钮是独立交互区，避免 SwiftUI 嵌套 Button 破坏点击。
         .onTapGesture(count: 2) {
             onManage?()
         }

@@ -26,7 +26,7 @@ struct UpgradeSheet: View {
             }
             AppButton(
                 title: continueTitle,
-                style: isContinueAvailable ? .primary : .secondary,
+                role: isContinueAvailable ? .primary : .secondary,
                 phase: isPurchasing ? .initialLoading(label: "购买中…") : .idle
             ) {
                 continueTapped()
@@ -49,14 +49,9 @@ struct UpgradeSheet: View {
     private var header: some View {
         HStack(alignment: .top, spacing: AppSpacing.md) {
             Spacer()
-            Button(action: { dismiss() }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: AppIconSize.lg, weight: .semibold))
-                    .foregroundStyle(AppSemanticColor.textSecondary)
-                    .frame(width: AppDimension.minTouchTarget, height: AppDimension.minTouchTarget)
-                    .background(AppSemanticColor.surfaceSecondary, in: Circle())
+            AppIconActionButton(systemImage: "xmark", tone: .neutral, size: .lg) {
+                dismiss()
             }
-            .buttonStyle(.plain)
         }
     }
 
@@ -87,11 +82,9 @@ struct UpgradeSheet: View {
                 Text("商品信息加载失败，请稍后重试。")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.textSecondary)
-                Button("重试") {
+                AppLinkButton(title: "重试") {
                     Task { await loadProducts() }
                 }
-                .font(AppTypography.bodyStrong)
-                .foregroundStyle(AppSemanticColor.primary)
                 .disabled(purchaseManager.isLoadingProducts)
             }
             .padding(AppSpacing.sm)
@@ -128,10 +121,10 @@ struct UpgradeSheet: View {
         let isCurrent = isCurrentPlan(code.plan)
         let isSelectable = isPlanSelectable(code.plan)
 
-        return Button(action: {
+        return AppRowButton(action: {
             guard isSelectable else { return }
             selectedProductCode = code
-        }) {
+        }, accessory: .none) {
             HStack(spacing: AppSpacing.md) {
                 Image(systemName: isSelected && isSelectable ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: AppIconSize.xl, weight: .semibold))
@@ -177,8 +170,8 @@ struct UpgradeSheet: View {
                     .stroke(isSelected && isSelectable ? AppSemanticColor.primary : AppSemanticColor.border, lineWidth: isSelected && isSelectable ? AppBorderWidth.strong : AppBorderWidth.hairline)
             }
         }
-        .buttonStyle(.plain)
         .disabled(!isSelectable)
+        .accessibilityAddTraits(isSelected && isSelectable ? .isSelected : [])
     }
 
     private var planComparison: some View {

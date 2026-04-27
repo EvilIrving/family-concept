@@ -11,11 +11,10 @@ struct OrderItemRow: View {
 
     var body: some View {
         HStack(spacing: AppSpacing.sm) {
-            if canChangeStatus {
-                Button(action: onTap) {
+            if canChangeStatus && !(canEditWaiting && item.status == .waiting) {
+                AppRowButton(action: onTap) {
                     rowContent
                 }
-                .buttonStyle(.plain)
             } else {
                 rowContent
             }
@@ -47,8 +46,8 @@ struct OrderItemRow: View {
 
             if canEditWaiting && item.status == .waiting {
                 HStack(spacing: AppSpacing.xxs) {
-                    AppIconActionButton(systemImage: "minus", tone: .neutral, action: onReduce)
-                    AppIconActionButton(systemImage: "xmark", tone: .danger, action: onCancel)
+                    AppIconActionButton(systemImage: "minus", tone: .neutral, size: .sm, action: onReduce)
+                    AppIconActionButton(systemImage: "xmark", tone: .danger, size: .sm, action: onCancel)
                 }
             }
 

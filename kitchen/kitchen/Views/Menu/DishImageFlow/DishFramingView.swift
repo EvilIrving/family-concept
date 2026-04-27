@@ -231,17 +231,13 @@ private struct DishFramingBottomPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack(spacing: AppSpacing.sm) {
-                Button(action: onSecondaryTap) {
-                    Text(secondaryTitle)
-                        .framingSecondaryButtonStyle()
+                AppButton(title: secondaryTitle, role: .ghost, haptic: .custom(.selection)) {
+                    onSecondaryTap()
                 }
-                .buttonStyle(.plain)
 
-                Button(action: onPrimaryTap) {
-                    Text(primaryTitle)
-                        .framingPrimaryButtonStyle()
+                AppButton(title: primaryTitle, role: .primary, haptic: .custom(.light)) {
+                    onPrimaryTap()
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, AppSpacing.lg)
@@ -265,18 +261,9 @@ private struct DishFramingTopBar: View {
     var body: some View {
         VStack {
             HStack {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(AppComponentColor.Cropper.controlForeground)
-                        .frame(width: AppDimension.minTouchTarget, height: AppDimension.minTouchTarget)
-                        .background(AppComponentColor.Cropper.controlForeground.opacity(0.12), in: Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(AppComponentColor.Cropper.controlBorder, lineWidth: AppBorderWidth.hairline)
-                        )
+                AppIconActionButton(systemImage: "chevron.left", tone: .neutral, size: .lg) {
+                    onBack()
                 }
-                .buttonStyle(.plain)
                 .disabled(isProcessing)
                 .accessibilityLabel("返回")
 
@@ -287,28 +274,6 @@ private struct DishFramingTopBar: View {
 
             Spacer()
         }
-    }
-}
-
-private extension View {
-    func framingPrimaryButtonStyle() -> some View {
-        self
-            .font(AppTypography.button)
-            .foregroundStyle(AppComponentColor.Cropper.confirmForeground)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .background(AppComponentColor.Cropper.confirmBackground, in: Capsule())
-    }
-
-    func framingSecondaryButtonStyle() -> some View {
-        self
-            .font(AppTypography.button)
-            .foregroundStyle(AppComponentColor.Cropper.controlForeground)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .background(AppComponentColor.Cropper.controlForeground.opacity(0.12), in: Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(AppComponentColor.Cropper.controlBorder, lineWidth: AppBorderWidth.hairline)
-            )
     }
 }
 

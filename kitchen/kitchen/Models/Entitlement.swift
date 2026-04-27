@@ -34,7 +34,7 @@ enum EntitlementStatus: String, Codable {
 
 /// 付费商品定义 —— 与 App Store Connect 保持一致
 enum PurchaseProduct: String, CaseIterable {
-    case dishesFifty = "kitchen.dishes.fifty"
+    case dishesFifty = "kitchen.dishes.essentials"
     case dishesUnlimited = "kitchen.dishes.unlimited"
 
     var plan: PlanCode {

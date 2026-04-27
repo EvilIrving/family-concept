@@ -48,6 +48,7 @@ struct MemberAvatarStrip: View {
         let initials = String(member.nickName.prefix(1))
 
         return Button {
+            HapticManager.shared.fire(.selection)
             onMemberTap(member)
         } label: {
             ZStack {
@@ -70,7 +71,17 @@ struct MemberAvatarStrip: View {
             .contentShape(Circle())
             .shadow(color: AppSemanticColor.shadowSubtle, radius: 1, y: 1)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MemberAvatarButtonStyle())
         .accessibilityLabel("\(member.nickName)，\(member.role.title)")
+    }
+}
+
+private struct MemberAvatarButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
+            .animation(reduceMotion ? nil : AppMotion.press, value: configuration.isPressed)
     }
 }

@@ -28,14 +28,10 @@ struct MenuSearchBar: View {
                 )
 
                 if !searchText.isEmpty {
-                    Button {
+                    AppIconActionButton(systemImage: "xmark.circle.fill", tone: .neutral, size: .sm) {
                         searchText = ""
                         focusedField = .search
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(AppSemanticColor.textTertiary)
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, AppSpacing.md)
@@ -49,20 +45,9 @@ struct MenuSearchBar: View {
             }
 
             if canManageDishes {
-                Button {
+                AppButton(title: "新增", leadingIcon: "plus.circle.fill", role: .ghost, size: .sm, fullWidth: false) {
                     onAddDish()
-                } label: {
-                    HStack(spacing: AppGap.tight) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: AppIconSize.lg, weight: .semibold))
-                        Text("新增")
-                            .font(AppTypography.bodyStrong)
-                    }
-                    .foregroundStyle(AppSemanticColor.primary)
-                    .padding(.horizontal, AppSpacing.xs)
-                    .frame(height: AppDimension.barControlHeight)
                 }
-                .buttonStyle(.plain)
                 .accessibilityLabel("新增菜品")
             }
         }
@@ -77,20 +62,12 @@ struct MenuCategoryChips: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: AppSpacing.xs) {
                 ForEach(categories, id: \.self) { category in
-                    Button {
+                    AppChipButton(
+                        title: category,
+                        isSelected: selection == category
+                    ) {
                         selection = category
-                    } label: {
-                        Text(category)
-                            .font(AppTypography.micro)
-                            .foregroundStyle(selection == category ? AppSemanticColor.onPrimary : AppSemanticColor.primary)
-                            .padding(.horizontal, AppSpacing.sm)
-                            .frame(height: AppDimension.compactPillHeight)
-                            .background(
-                                selection == category ? AppSemanticColor.primary : AppSemanticColor.interactiveSecondary,
-                                in: Capsule()
-                            )
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }

@@ -55,7 +55,7 @@ struct MenuDishFormScreen: View {
                     if let onDelete {
                         AppButton(
                             title: "删除菜品",
-                            style: .destructive,
+                            role: .destructive,
                             action: {
                                 archiveConfirmationPresented = true
                             }
@@ -135,20 +135,12 @@ struct MenuDishFormScreen: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: AppSpacing.xs) {
                 ForEach(quickCategories, id: \.self) { category in
-                    Button {
+                    AppChipButton(
+                        title: category,
+                        isSelected: draft.selectedQuickCategory == category
+                    ) {
                         draft.selectedQuickCategory = category
-                    } label: {
-                        Text(category)
-                            .font(AppTypography.micro)
-                            .foregroundStyle(draft.selectedQuickCategory == category ? AppSemanticColor.onPrimary : AppSemanticColor.primary)
-                            .padding(.horizontal, AppSpacing.sm)
-                            .frame(height: AppDimension.compactPillHeight)
-                            .background(
-                                draft.selectedQuickCategory == category ? AppSemanticColor.primary : AppSemanticColor.interactiveSecondary,
-                                in: Capsule()
-                            )
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }

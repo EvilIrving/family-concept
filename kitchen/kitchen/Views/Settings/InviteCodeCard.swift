@@ -6,7 +6,13 @@ struct InviteCodeCard: View {
     let onCopy: () -> Void
 
     var body: some View {
-        Button(action: onCopy) {
+        AppRowButton(action: {
+            onCopy()
+        }, accessory: .custom(AnyView(
+            Image(systemName: "doc.on.doc")
+                .font(.system(size: AppIconSize.sm - 1, weight: .semibold))
+                .foregroundStyle(AppSemanticColor.primary)
+        ))) {
             HStack(spacing: AppSpacing.sm) {
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text("邀请码")
@@ -17,15 +23,8 @@ struct InviteCodeCard: View {
                         .foregroundStyle(AppSemanticColor.primary)
                 }
                 Spacer()
-                Image(systemName: "doc.on.doc")
-                    .font(.system(size: AppIconSize.sm - 1, weight: .semibold))
-                    .foregroundStyle(AppSemanticColor.primary)
             }
-            .padding(.horizontal, AppSpacing.md)
-            .padding(.vertical, AppSpacing.sm)
-            .background(AppSemanticColor.interactiveSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         }
-        .buttonStyle(.plain)
         .accessibilityLabel("复制邀请码")
     }
 }

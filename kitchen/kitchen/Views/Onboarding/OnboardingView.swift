@@ -89,10 +89,9 @@ struct OnboardingView: View {
                 onSubmitRegister: submitRegister
             )
 
-            KitchenModeToggle(
-                kitchenMode: $kitchenMode,
-                showKitchenField: $showKitchenField,
-                focusedField: $focusedField
+            AppSegmentedButton(
+                segments: kitchenSegments,
+                selection: kitchenModeSelection
             )
 
             if showKitchenField {
@@ -114,33 +113,10 @@ struct OnboardingView: View {
 
     private var kitchenSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
-            HStack(spacing: AppSpacing.md) {
-                Button("输入邀请码加入") {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        kitchenMode = .join
-                        kitchenInput = ""
-                        kitchenInputInvalid = false
-                    }
-                    focusedField = .kitchen
-                }
-                .font(AppTypography.caption)
-                .foregroundStyle(kitchenMode == .join ? AppSemanticColor.textPrimary : AppSemanticColor.textSecondary)
-
-                Text("或")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppSemanticColor.textSecondary)
-
-                Button("创建私厨") {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        kitchenMode = .create
-                        kitchenInput = ""
-                        kitchenInputInvalid = false
-                    }
-                    focusedField = .kitchen
-                }
-                .font(AppTypography.caption)
-                .foregroundStyle(kitchenMode == .create ? AppSemanticColor.textPrimary : AppSemanticColor.textSecondary)
-            }
+            AppSegmentedButton(
+                segments: kitchenSegments,
+                selection: loggedInKitchenSelection
+            )
 
             KitchenForm(
                 kitchenInput: $kitchenInput,
@@ -151,12 +127,8 @@ struct OnboardingView: View {
                 onSubmit: submitKitchen
             )
 
-            Button {
+            AppLinkButton(title: "退出登录", role: .secondary) {
                 Task { await store.signOut() }
-            } label: {
-                Text("退出登录")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppSemanticColor.textTertiary)
             }
         }
     }
@@ -166,7 +138,7 @@ struct OnboardingView: View {
     private var authModeLink: some View {
         HStack {
             Spacer()
-            Button {
+            AppLinkButton(title: authMode == .login ? "还没有账号？注册" : "已有账号？登录", role: .secondary) {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     authMode = authMode == .login ? .register : .login
                     store.error = nil
@@ -174,12 +146,42 @@ struct OnboardingView: View {
                     passwordInvalid = false
                     nickNameInvalid = false
                 }
-            } label: {
-                Text(authMode == .login ? "还没有账号？注册" : "已有账号？登录")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppSemanticColor.textTertiary)
             }
         }
+    }
+
+    private var kitchenSegments: [AppSegmentedButton<KitchenMode>.Segment] {
+        [
+            .init(value: .join, title: "输入邀请码加入", accessibilityLabel: "输入邀请码加入"),
+            .init(value: .create, title: "创建私厨", accessibilityLabel: "创建私厨")
+        ]
+    }
+
+    private var kitchenModeSelection: Binding<KitchenMode> {
+        Binding(
+            get: { showKitchenField ? kitchenMode : .join },
+            set: { mode in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    kitchenMode = mode
+                    showKitchenField = true
+                    focusedField = .kitchen
+                }
+            }
+        )
+    }
+
+    private var loggedInKitchenSelection: Binding<KitchenMode> {
+        Binding(
+            get: { kitchenMode },
+            set: { mode in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    kitchenMode = mode
+                    kitchenInput = ""
+                    kitchenInputInvalid = false
+                }
+                focusedField = .kitchen
+            }
+        )
     }
 
     private var hintText: String {

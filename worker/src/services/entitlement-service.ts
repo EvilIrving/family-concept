@@ -18,7 +18,7 @@ export const FREE_DISH_LIMIT = 10;
 export const UNLIMITED_DISH_SENTINEL = 1_000_000;
 
 const PRODUCT_PLAN: Record<string, { plan: PlanCode; limit: number | null }> = {
-  'kitchen.dishes.fifty': { plan: 'dishes_fifty', limit: 50 },
+  'kitchen.dishes.essentials': { plan: 'dishes_fifty', limit: 50 },
   'kitchen.dishes.unlimited': { plan: 'dishes_unlimited', limit: null },
 };
 

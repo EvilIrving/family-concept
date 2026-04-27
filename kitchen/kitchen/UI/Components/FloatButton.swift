@@ -9,10 +9,14 @@ struct FloatButton: View {
     let systemImage: String
     var kind: Kind = .icon
     var badgeCount: Int? = nil
+    var haptic: AppHapticIntent = .medium
     var action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            HapticManager.shared.fire(haptic)
+            action()
+        } label: {
             Group {
                 switch kind {
                 case .icon:

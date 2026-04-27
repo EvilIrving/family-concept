@@ -13,7 +13,7 @@
 - 加菜流程捕获 402 后刷新权益；归档后同步计数
 - SettingsView 套餐入口 + UpgradeSheet + 恢复购买；kitchenApp 注入并订阅 Transaction.updates
 
-未实现/TODO：Apple signedTransaction JWS 服务端验签（entitlement-service.ts 有标注）、offer code 分支、撤销/退款后的自动降级策略。产品 ID：kitchen.dishes.fifty、kitchen.dishes.unlimited，需在 App Store Connect 配置。
+未实现/TODO：Apple signedTransaction JWS 服务端验签（entitlement-service.ts 有标注）、offer code 分支、撤销/退款后的自动降级策略。产品 ID：kitchen.dishes.essentials、kitchen.dishes.unlimited，需在 App Store Connect 配置。
 
 ## 菜品图片流程收口到固定 1:1 裁切链路 · 2026-04-23 10:33 · Codex
 

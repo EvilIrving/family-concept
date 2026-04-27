@@ -33,13 +33,13 @@ struct OrderHistorySheet: View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: AppSpacing.sm) {
                 ForEach(orders) { order in
-                    Button {
+                    AppRowButton(action: {
                         Task {
                             if await store.fetchOrderDetail(orderID: order.id) != nil {
                                 selectedOrderID = order.id
                             }
                         }
-                    } label: {
+                    }) {
                         VStack(alignment: .leading, spacing: AppSpacing.sm) {
                             HStack(alignment: .firstTextBaseline) {
                                 AppPill(title: "\(order.itemCount) 道菜", tint: AppSemanticColor.primary, background: AppSemanticColor.interactiveSecondary)
@@ -47,14 +47,10 @@ struct OrderHistorySheet: View {
                                     .font(AppTypography.caption)
                                     .foregroundStyle(AppSemanticColor.textSecondary)
                                 Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: AppIconSize.xs, weight: .semibold))
-                                    .foregroundStyle(AppSemanticColor.textTertiary)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, AppSpacing.md)
-                        .contentShape(Rectangle())
                         .overlay(alignment: .bottom) {
                             if order.id != orders.last?.id {
                                 Divider()
@@ -62,7 +58,6 @@ struct OrderHistorySheet: View {
                             }
                         }
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .padding(.top, AppSpacing.xs)

@@ -54,7 +54,7 @@ struct OrdersView: View {
                                 }
 
                                 if shouldShowFinishButton {
-                                    AppButton(title: "这顿好了", style: .primary) {
+                                    AppButton(title: "这顿好了", role: .primary) {
                                         Task {
                                             let didFinish = await store.finishOrder()
                                             if didFinish {
@@ -131,10 +131,10 @@ struct OrdersView: View {
     private var ordersShoppingListBar: some View {
         VStack(spacing: 0) {
             Rectangle().fill(AppSemanticColor.border).frame(height: 1)
-            Button {
+            AppRowButton(action: {
                 store.fetchShoppingList()
                 modalRouter.present(.shoppingList)
-            } label: {
+            }) {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "list.bullet.rectangle.fill")
                         .font(.system(size: AppIconSize.md, weight: .semibold))
@@ -144,16 +144,11 @@ struct OrdersView: View {
                         .foregroundStyle(AppSemanticColor.textPrimary)
                         .lineLimit(1)
                     Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: AppIconSize.xs, weight: .semibold))
-                        .foregroundStyle(AppSemanticColor.textTertiary)
                 }
                 .padding(.horizontal, AppSpacing.md)
                 .frame(maxWidth: .infinity, minHeight: AppDimension.toolbarButtonHeight, alignment: .leading)
                 .background(AppSemanticColor.surface)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
         }
     }
 
