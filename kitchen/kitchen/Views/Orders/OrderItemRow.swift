@@ -10,15 +10,7 @@ struct OrderItemRow: View {
     let onCancel: () -> Void
 
     var body: some View {
-        HStack(spacing: AppSpacing.sm) {
-            if canChangeStatus && item.status != .waiting {
-                AppRowButton(action: onTap) {
-                    rowContent
-                }
-            } else {
-                rowContent
-            }
-        }
+        rowContent
     }
 
     private var rowContent: some View {
@@ -59,14 +51,25 @@ struct OrderItemRow: View {
 
     @ViewBuilder
     private var statusControl: some View {
-        if canChangeStatus && item.status == .waiting {
+        if canChangeStatus && item.status != .done && item.status != .cancelled {
             Button(action: onTap) {
                 AppPill(title: item.status.title, tint: statusColor, background: statusBackground)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("开始制作 \(item.dishName)")
+            .accessibilityLabel(statusActionLabel)
         } else {
             AppPill(title: item.status.title, tint: statusColor, background: statusBackground)
+        }
+    }
+
+    private var statusActionLabel: String {
+        switch item.status {
+        case .waiting:
+            return "开始制作 \(item.dishName)"
+        case .cooking:
+            return "完成 \(item.dishName)"
+        case .done, .cancelled:
+            return item.status.title
         }
     }
 
