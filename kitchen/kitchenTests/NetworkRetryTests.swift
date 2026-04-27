@@ -204,6 +204,44 @@ struct NetworkRetryTests {
         #expect(MockURLProtocol.requestCount == 1)
     }
 
+    @Test("反馈提交接口使用鉴权 POST 并编码联系方式字段")
+    func feedbackEndpointUsesAuthenticatedPostBody() async throws {
+        let session = makeMockSession()
+        let executor = RequestExecutor(
+            session: session,
+            sleep: { _ in },
+            randomJitter: { _ in 0 }
+        )
+        let client = APIClient(baseURL: "https://example.com", session: session, requestExecutor: executor)
+
+        MockURLProtocol.configure { request, _ in
+            #expect(request.httpMethod == "POST")
+            #expect(request.url?.absoluteString == "https://example.com/api/v1/feedback")
+            #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer token")
+
+            let body = try #require(request.httpBody)
+            let payload = try JSONSerialization.jsonObject(with: body) as? [String: String]
+            #expect(payload?["message"] == "想要桌面小组件")
+            #expect(payload?["contact_platform"] == "tg")
+            #expect(payload?["contact_handle"] == "@onecat")
+
+            return (
+                HTTPURLResponse(url: try #require(request.url), statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                Data("{\"ok\":true}".utf8)
+            )
+        }
+
+        let result = try await client.submitFeedback(
+            message: "想要桌面小组件",
+            contactPlatform: .tg,
+            contactHandle: "@onecat",
+            authToken: "token"
+        )
+
+        #expect(result.ok)
+        #expect(MockURLProtocol.requestCount == 1)
+    }
+
 }
 
 private struct RetryPayload: Decodable {

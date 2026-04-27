@@ -23,7 +23,7 @@ struct SettingsView: View {
                 }
             }
 
-            SettingsSection(title: "偏好") {
+            SettingsSection(title: "偏好设置") {
                 PreferencesSection(
                     notificationsEnabled: $notificationsEnabled,
                     hapticsEnabled: $hapticsEnabled,
@@ -32,7 +32,7 @@ struct SettingsView: View {
             }
 
             if store.hasKitchen {
-                SettingsSection(title: "套餐") {
+                SettingsSection(title: "会员套餐") {
                     SettingsMenuCard {
                         UpgradeMenuRow(
                             entitlement: store.entitlement,
@@ -43,22 +43,25 @@ struct SettingsView: View {
                 }
             }
 
-            SettingsSection(title: "支持与建议") {
+            SettingsSection(title: "帮助与反馈") {
                 SettingsMenuCard {
-                    SettingsMenuRow(title: "联系我们提交需求")
-                    SettingsMenuRow(title: "评分与支持")
-                    SettingsMenuRow(title: "分享", showsDivider: false)
+                    SettingsMenuRow(
+                        title: "意见反馈",
+                        onTap: { modalRouter.present(.feedback) }
+                    )
+                    SettingsMenuRow(title: "给我们评分")
+                    SettingsMenuRow(title: "分享给家人", showsDivider: false)
                 }
             }
 
-            SettingsSection(title: "其他") {
+            SettingsSection(title: "账户与隐私") {
                 SettingsMenuCard {
                     SettingsMenuRow(
                         title: "恢复购买",
                         onTap: { Task { await purchaseManager.restore() } }
                     )
                     SettingsMenuRow(
-                        title: "隐私政策",
+                        title: "隐私说明",
                         showsDivider: false,
                         url: privacyPolicyURL
                     )
@@ -82,6 +85,11 @@ struct SettingsView: View {
                 UpgradeSheet()
                     .environmentObject(store)
                     .environmentObject(purchaseManager)
+                    .presentationDetents([.fraction(0.67)])
+            case .feedback:
+                FeedbackSheet()
+                    .environmentObject(store)
+                    .environmentObject(feedbackRouter)
                     .presentationDetents([.large])
             }
         }
@@ -143,54 +151,58 @@ private struct UpgradeMenuRow: View {
     let onTap: () -> Void
 
     var body: some View {
-        AppRowButton(action: onTap) {
-            HStack(spacing: AppSpacing.sm) {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text(entitlement.planCode.displayName)
-                            .font(AppTypography.bodyStrong)
-                            .foregroundStyle(AppSemanticColor.textPrimary)
-                        if !entitlement.isUnlimited, let limit = entitlement.dishLimit {
-                            Text("已用 \(entitlement.activeDishCount) / \(limit) 道菜")
-                                .font(AppTypography.caption)
-                                .foregroundStyle(AppSemanticColor.textSecondary)
-                        }
-                    }
-                    if entitlement.isUnlimited {
-                        Text("菜品数量无上限")
+        HStack(spacing: AppSpacing.sm) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(entitlement.planCode.displayName)
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppSemanticColor.textPrimary)
+                    if !entitlement.isUnlimited, let limit = entitlement.dishLimit {
+                        Text("已用 \(entitlement.activeDishCount) / \(limit) 道")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppSemanticColor.textSecondary)
                     }
                 }
-                Spacer()
-                if canUpgrade {
-                    Text("升级")
+                if entitlement.isUnlimited {
+                    Text("不限菜品数量")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppSemanticColor.textSecondary)
                 }
             }
-            .frame(minHeight: 52)
+            Spacer()
+            if canUpgrade {
+                Text("升级")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
+            }
+            Image(systemName: "chevron.right")
+                .font(.system(size: AppIconSize.xs, weight: .semibold))
+                .foregroundStyle(AppSemanticColor.textTertiary)
         }
+        .frame(minHeight: AppDimension.listRowMinHeight)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
     }
 }
 
 private struct SettingsMenuRow: View {
+    @Environment(\.openURL) private var openURL
+
     let title: String
     var showsDivider: Bool = true
     var url: URL? = nil
     var onTap: (() -> Void)? = nil
 
     var body: some View {
-        if let url {
-            Link(destination: url) {
-                rowContent
+        rowContent
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if let url {
+                    openURL(url)
+                } else {
+                    onTap?()
+                }
             }
-        } else {
-            AppRowButton(action: { onTap?() }) {
-                rowContent
-            }
-            .disabled(onTap == nil)
-        }
     }
 
     private var rowContent: some View {
@@ -200,12 +212,15 @@ private struct SettingsMenuRow: View {
                 .foregroundStyle(AppSemanticColor.textPrimary)
             Spacer()
             if url == nil, onTap == nil {
-                Text("即将上线")
+                Text("稍后推出")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.textSecondary)
             }
+            Image(systemName: "chevron.right")
+                .font(.system(size: AppIconSize.xs, weight: .semibold))
+                .foregroundStyle(AppSemanticColor.textTertiary)
         }
-        .frame(minHeight: 52)
+        .frame(minHeight: AppDimension.listRowMinHeight)
         .overlay(alignment: .bottom) {
             if showsDivider {
                 Divider()

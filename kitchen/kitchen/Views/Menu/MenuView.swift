@@ -10,10 +10,14 @@ struct MenuView: View {
     @State private var selectedCategory = "全部"
     @State private var dishFlowItem: MenuDishFlowItem?
     @State private var visibleDishCount = 12
+    @State private var isCartButtonCollapsed = false
+    @State private var scrollSettleTask: Task<Void, Never>?
+    @State private var scrollActivityGeneration = 0
     @FocusState private var focusedField: MenuField?
 
     private let dishPageSize = 12
     private let preloadScreenCount = 12
+    private let cartButtonRevealDelay: Duration = .seconds(1)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -29,23 +33,23 @@ struct MenuView: View {
                     selection: $selectedCategory
                 )
             }
-            .padding(AppSpacing.md)
-            .background(AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                    .stroke(AppSemanticColor.border, lineWidth: AppBorderWidth.hairline)
-            }
-            .appShadow(AppShadow.card)
             .padding(.horizontal, AppSpacing.md)
-            .padding(.top, AppSpacing.xxs)
-            .padding(.bottom, AppSpacing.xxs)
+            .padding(.top, AppSpacing.sm)
+            .padding(.bottom, AppSpacing.md)
+            .background(AppSemanticColor.background)
 
             menuContent
+        }
+        .overlay(alignment: .bottomTrailing) {
             if store.cartCount > 0 {
                 MenuCartBar(
                     cartCount: store.cartCount,
+                    isCollapsed: isCartButtonCollapsed,
                     onTap: { modalRouter.present(.cart) }
                 )
+                .padding(.trailing, AppSpacing.md)
+                .padding(.bottom, AppSpacing.md)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
         .appPageBackground()
@@ -82,6 +86,14 @@ struct MenuView: View {
         .onChange(of: store.dishes) { _, _ in
             resetVisibleDishes()
         }
+        .onChange(of: store.cartCount) { oldCount, newCount in
+            if newCount == 0 {
+                scrollSettleTask?.cancel()
+                isCartButtonCollapsed = false
+            } else if oldCount == 0 {
+                isCartButtonCollapsed = false
+            }
+        }
     }
 
     private var menuContent: some View {
@@ -111,7 +123,9 @@ struct MenuView: View {
                     dishFlowItem = .edit(dish.id, AddDishDraft.editing(dish, quickCategories: quickCategories))
                 } : nil,
                 onDishAppear: handleDishAppear,
-                onTapBackground: { focusedField = nil }
+                onTapBackground: { focusedField = nil },
+                onScrollBegan: handleMenuScrollBegan,
+                onScrollSettled: handleMenuScrollSettled
             )
         } onRetry: {
             Task { await store.fetchAll() }
@@ -218,6 +232,35 @@ struct MenuView: View {
                 ),
                 hint: .centerToast
             )
+        }
+    }
+
+    private func handleMenuScrollBegan() {
+        guard store.cartCount > 0 else { return }
+        scrollActivityGeneration += 1
+        scrollSettleTask?.cancel()
+        collapseCartButton()
+    }
+
+    private func handleMenuScrollSettled() {
+        guard store.cartCount > 0 else { return }
+        scrollActivityGeneration += 1
+        let generation = scrollActivityGeneration
+
+        scrollSettleTask?.cancel()
+        scrollSettleTask = Task { @MainActor in
+            try? await Task.sleep(for: cartButtonRevealDelay)
+            guard !Task.isCancelled, generation == scrollActivityGeneration else { return }
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
+                isCartButtonCollapsed = false
+            }
+        }
+    }
+
+    private func collapseCartButton() {
+        guard !isCartButtonCollapsed else { return }
+        withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
+            isCartButtonCollapsed = true
         }
     }
 }

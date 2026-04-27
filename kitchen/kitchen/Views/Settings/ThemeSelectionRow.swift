@@ -7,12 +7,12 @@ struct ThemeSelectionRow: View {
 
     var body: some View {
         HStack(spacing: AppSpacing.sm) {
-            Text("主题")
+            Text("外观")
                 .font(AppTypography.bodyStrong)
                 .foregroundStyle(AppSemanticColor.textPrimary)
             Spacer()
             Menu {
-                ForEach([("浅色", "light"), ("系统", "system"), ("深色", "dark")], id: \.1) { label, value in
+                ForEach([("浅色", "light"), ("跟随系统", "system"), ("深色", "dark")], id: \.1) { label, value in
                     Button {
                         themeMode = value
                         store.setThemeMode(value)
@@ -43,7 +43,7 @@ struct ThemeSelectionRow: View {
         switch themeMode {
         case "light": return "浅色"
         case "dark": return "深色"
-        default: return "系统"
+        default: return "跟随系统"
         }
     }
 }

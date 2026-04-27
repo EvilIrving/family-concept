@@ -20,7 +20,7 @@ struct AppScrollPage<Header: View, Content: View>: View {
 }
 
 struct AppSheetContainer<Content: View>: View {
-    let title: String
+    let title: String?
     var subtitle: String? = nil
     let dismissTitle: String
     var confirmTitle: String? = nil
@@ -38,48 +38,61 @@ struct AppSheetContainer<Content: View>: View {
                 .padding(.top, AppSpacing.sm)
                 .padding(.bottom, AppSpacing.md)
 
-            HStack(alignment: .top) {
-                Button(dismissTitle, action: onDismiss)
-                    .font(AppTypography.bodyStrong)
-                    .foregroundStyle(AppSemanticColor.textSecondary)
-
-                Spacer()
-
-                VStack(spacing: AppSpacing.xxs) {
-                    Text(title)
-                        .font(AppTypography.cardTitle)
-                        .foregroundStyle(AppSemanticColor.textPrimary)
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppSemanticColor.textSecondary)
-                    }
-                }
-
-                Spacer()
-
-                if let confirmTitle, let onConfirm {
-                    Button(action: onConfirm) {
-                        Group {
-                            if isConfirmLoading {
-                                AppLoadingIndicator(tone: .primary, controlSize: .small)
-                            } else {
-                                Text(confirmTitle)
-                            }
-                        }
-                        .font(AppTypography.bodyStrong)
-                        .foregroundStyle(isConfirmDisabled ? AppSemanticColor.textTertiary : AppSemanticColor.primary)
-                    }
-                    .disabled(isConfirmDisabled || isConfirmLoading)
-                } else {
+            if title != nil || subtitle != nil || confirmTitle != nil {
+                HStack(alignment: .top) {
                     Button(dismissTitle, action: onDismiss)
                         .font(AppTypography.bodyStrong)
-                        .hidden()
-                        .accessibilityHidden(true)
+                        .foregroundStyle(AppSemanticColor.textSecondary)
+
+                    Spacer()
+
+                    VStack(spacing: AppSpacing.xxs) {
+                        if let title {
+                            Text(title)
+                                .font(AppTypography.cardTitle)
+                                .foregroundStyle(AppSemanticColor.textPrimary)
+                        }
+                        if let subtitle {
+                            Text(subtitle)
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppSemanticColor.textSecondary)
+                        }
+                    }
+
+                    Spacer()
+
+                    if let confirmTitle, let onConfirm {
+                        Button(action: onConfirm) {
+                            Group {
+                                if isConfirmLoading {
+                                    AppLoadingIndicator(tone: .primary, controlSize: .small)
+                                } else {
+                                    Text(confirmTitle)
+                                }
+                            }
+                            .font(AppTypography.bodyStrong)
+                            .foregroundStyle(isConfirmDisabled ? AppSemanticColor.textTertiary : AppSemanticColor.primary)
+                        }
+                        .disabled(isConfirmDisabled || isConfirmLoading)
+                    } else {
+                        Button(dismissTitle, action: onDismiss)
+                            .font(AppTypography.bodyStrong)
+                            .hidden()
+                            .accessibilityHidden(true)
+                    }
                 }
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.bottom, AppSpacing.md)
+            } else {
+                HStack {
+                    Button(dismissTitle, action: onDismiss)
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppSemanticColor.textSecondary)
+                    Spacer()
+                }
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.bottom, AppSpacing.md)
             }
-            .padding(.horizontal, AppSpacing.lg)
-            .padding(.bottom, AppSpacing.md)
 
             content
                 .padding(.horizontal, AppSpacing.lg)

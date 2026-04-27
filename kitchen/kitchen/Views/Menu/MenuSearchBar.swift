@@ -45,7 +45,7 @@ struct MenuSearchBar: View {
             }
 
             if canManageDishes {
-                AppButton(title: "新增", leadingIcon: "plus.circle.fill", role: .ghost, size: .sm, fullWidth: false) {
+                AppButton(title: "新增", role: .ghost, size: .md, fullWidth: false) {
                     onAddDish()
                 }
                 .accessibilityLabel("新增菜品")

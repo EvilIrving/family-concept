@@ -9,11 +9,11 @@ struct PreferencesSection: View {
     var body: some View {
         AppCard {
             VStack(spacing: 0) {
-                toggleRow(title: "消息通知", isOn: $notificationsEnabled)
+                toggleRow(title: "通知", isOn: $notificationsEnabled)
                 rowDivider
-                placeholderRow(title: "多语言")
+                placeholderRow(title: "语言")
                 rowDivider
-                toggleRow(title: "震动反馈", isOn: $hapticsEnabled)
+                toggleRow(title: "触感反馈", isOn: $hapticsEnabled)
                 rowDivider
                 ThemeSelectionRow(themeMode: $themeMode)
             }
@@ -43,7 +43,7 @@ struct PreferencesSection: View {
                 .font(AppTypography.bodyStrong)
                 .foregroundStyle(AppSemanticColor.textPrimary)
             Spacer()
-            Text("即将上线")
+            Text("稍后推出")
                 .font(AppTypography.body)
                 .foregroundStyle(AppSemanticColor.textSecondary)
             Image(systemName: "chevron.right")

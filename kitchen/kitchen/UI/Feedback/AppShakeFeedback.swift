@@ -17,7 +17,7 @@ struct AppValidationFeedbackModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .modifier(AppShakeEffect(animatableData: CGFloat(trigger)))
+            .modifier(AppShakeEffect(animatableData: isInvalid ? CGFloat(trigger) : 0))
             .overlay {
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .inset(by: 0.5)

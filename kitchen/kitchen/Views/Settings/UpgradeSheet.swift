@@ -12,25 +12,29 @@ struct UpgradeSheet: View {
     @State private var selectedProductCode: PurchaseProduct = .dishesUnlimited
 
     var body: some View {
-        AppScrollPage {
-            header
-        } content: {
-            statusMessage
-            productsList
-            productLoadingMessage
-            planComparison
-            if let localError {
-                Text(localError)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppSemanticColor.textSecondary)
+        AppSheetContainer(title: nil, dismissTitle: "关闭", onDismiss: { dismiss() }) {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                    statusMessage
+                    productsList
+                    productLoadingMessage
+                    planComparison
+                    if let localError {
+                        Text(localError)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
+                    }
+                    AppButton(
+                        title: continueTitle,
+                        role: isContinueAvailable ? .primary : .secondary,
+                        phase: isPurchasing ? .initialLoading(label: "购买中…") : .idle
+                    ) {
+                        continueTapped()
+                    }
+                }
+                .padding(.bottom, AppSpacing.xl)
             }
-            AppButton(
-                title: continueTitle,
-                role: isContinueAvailable ? .primary : .secondary,
-                phase: isPurchasing ? .initialLoading(label: "购买中…") : .idle
-            ) {
-                continueTapped()
-            }
+            .scrollDismissesKeyboard(.interactively)
         }
         .overlay {
             if isPurchasing {
@@ -42,15 +46,6 @@ struct UpgradeSheet: View {
             selectedProductCode = defaultSelectedProductCode
             if purchaseManager.products.isEmpty {
                 await loadProducts()
-            }
-        }
-    }
-
-    private var header: some View {
-        HStack(alignment: .top, spacing: AppSpacing.md) {
-            Spacer()
-            AppIconActionButton(systemImage: "xmark", tone: .neutral, size: .lg) {
-                dismiss()
             }
         }
     }
@@ -108,9 +103,10 @@ struct UpgradeSheet: View {
     }
 
     private var productsList: some View {
-        VStack(spacing: AppSpacing.sm) {
+        HStack(alignment: .top, spacing: AppSpacing.sm) {
             ForEach(PurchaseProduct.allCases, id: \.rawValue) { code in
                 productOption(for: code)
+                    .frame(maxWidth: .infinity)
             }
         }
     }
@@ -125,33 +121,37 @@ struct UpgradeSheet: View {
             guard isSelectable else { return }
             selectedProductCode = code
         }, accessory: .none) {
-            HStack(spacing: AppSpacing.md) {
-                Image(systemName: isSelected && isSelectable ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: AppIconSize.xl, weight: .semibold))
-                    .foregroundStyle(isSelected && isSelectable ? AppSemanticColor.primary : AppSemanticColor.textTertiary)
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                HStack(alignment: .top, spacing: AppSpacing.xs) {
+                    Image(systemName: isSelected && isSelectable ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: AppIconSize.lg, weight: .semibold))
+                        .foregroundStyle(isSelected && isSelectable ? AppSemanticColor.primary : AppSemanticColor.textTertiary)
+
+                    Spacer(minLength: AppSpacing.xs)
+
+                    if code == .dishesUnlimited {
+                        Text("推荐")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppSemanticColor.primary)
+                            .padding(.horizontal, AppSpacing.xs)
+                            .padding(.vertical, AppSpacing.xxs)
+                            .background(AppSemanticColor.interactiveSecondary, in: Capsule())
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                    HStack(spacing: AppSpacing.xs) {
-                        Text(planTitle(for: code))
-                            .font(AppTypography.bodyStrong)
-                            .foregroundStyle(AppSemanticColor.textPrimary)
-                        if code == .dishesUnlimited {
-                            Text("推荐")
-                                .font(AppTypography.micro)
-                                .foregroundStyle(AppSemanticColor.primary)
-                                .padding(.horizontal, AppSpacing.xs)
-                                .padding(.vertical, AppSpacing.xxs)
-                                .background(AppSemanticColor.interactiveSecondary, in: Capsule())
-                        }
-                    }
+                    Text(planTitle(for: code))
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppSemanticColor.textPrimary)
                     Text(planSubtitle(for: code))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppSemanticColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Spacer()
+                Spacer(minLength: AppSpacing.xs)
 
-                VStack(alignment: .trailing, spacing: AppSpacing.xxs) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(priceTitle(for: code, product: product))
                         .font(AppTypography.bodyStrong)
                         .foregroundStyle(isCurrent ? AppSemanticColor.textSecondary : AppSemanticColor.textPrimary)
@@ -163,7 +163,7 @@ struct UpgradeSheet: View {
                 }
             }
             .padding(AppSpacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 142, alignment: .leading)
             .background(isSelected && isSelectable ? AppSemanticColor.interactiveSecondary : AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)

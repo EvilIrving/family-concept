@@ -21,6 +21,7 @@ private enum LaunchAnimationConstants {
     static let dotBaseOpacity: Double = 0.4
     static let dotScaleOffset: CGFloat = 0.2
     static let dotOpacityOffset: Double = 0.15
+    static let dotBottomPadding: CGFloat = 56
 
     // 辅助计算常量
     static let scaleBlend: CGFloat = 0.5
@@ -43,7 +44,7 @@ struct LaunchScreenView: View {
             Spacer()
 
             loadingIndicator
-                .padding(.bottom, AppInset.pageBottomWithFloatingBar)
+                .padding(.bottom, LaunchAnimationConstants.dotBottomPadding)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .appPageBackground()

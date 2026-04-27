@@ -11,7 +11,7 @@ struct OrderItemRow: View {
 
     var body: some View {
         HStack(spacing: AppSpacing.sm) {
-            if canChangeStatus && !(canEditWaiting && item.status == .waiting) {
+            if canChangeStatus && item.status != .waiting {
                 AppRowButton(action: onTap) {
                     rowContent
                 }
@@ -51,10 +51,23 @@ struct OrderItemRow: View {
                 }
             }
 
-            AppPill(title: item.status.title, tint: statusColor, background: statusBackground)
+            statusControl
         }
         .frame(minHeight: 52)
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var statusControl: some View {
+        if canChangeStatus && item.status == .waiting {
+            Button(action: onTap) {
+                AppPill(title: item.status.title, tint: statusColor, background: statusBackground)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("开始制作 \(item.dishName)")
+        } else {
+            AppPill(title: item.status.title, tint: statusColor, background: statusBackground)
+        }
     }
 
     private var statusColor: Color {

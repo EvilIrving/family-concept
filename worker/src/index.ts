@@ -7,6 +7,7 @@ import { dishRoutes } from './routes/dishes';
 import { orderRoutes } from './routes/orders';
 import { authRoutes } from './routes/auth';
 import { iapRoutes } from './routes/iap';
+import { feedbackRoutes } from './routes/feedback';
 import { withAuth } from './middleware/auth';
 import { findByKitchenAndAccount } from './db/members';
 
@@ -20,6 +21,7 @@ const routes: Route[] = [
   ...dishRoutes,
   ...orderRoutes,
   ...iapRoutes,
+  ...feedbackRoutes,
   {
     method: 'GET',
     pattern: /^\/api\/v1\/health$/,

@@ -3,6 +3,7 @@ export interface Env {
   ASSETS: R2Bucket;
   APP_ENV: string;
   KITCHEN_LIVE: DurableObjectNamespace;
+  TELEGRAM_BOT_TOKEN?: string;
 }
 
 // ─── DB Row Types ────────────────────────────────────────────────────────────

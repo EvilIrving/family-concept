@@ -4,6 +4,7 @@ import Foundation
 enum SettingsModalRoute: Identifiable, Equatable {
     case member(MemberSheetToken)
     case upgrade
+    case feedback
 
     var id: String {
         switch self {
@@ -11,6 +12,8 @@ enum SettingsModalRoute: Identifiable, Equatable {
             return token.id
         case .upgrade:
             return "upgrade"
+        case .feedback:
+            return "feedback"
         }
     }
 
@@ -18,7 +21,7 @@ enum SettingsModalRoute: Identifiable, Equatable {
         switch self {
         case .member(let token):
             return token
-        case .upgrade:
+        case .upgrade, .feedback:
             return nil
         }
     }
