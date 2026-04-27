@@ -60,7 +60,10 @@ Bundle ID：`cain.com.kitchen`
 | 设备 ID（Device ID） | 否 | — | — | 不收集 IDFA、IDFV 或其他设备标识符。 |
 
 ### 购买记录（Purchases）
-**否**
+
+| 子类型 | 是否收集 | 关联至身份 | 追踪用途 | 用途 |
+|--------|----------|-----------|----------|------|
+| 购买历史（Purchase History） | **是** | **是** | 否 | 内购完成后将 StoreKit JWS 交易收据发送至服务端验证以解锁权益。支付卡信息由 Apple 处理，App 不接触。 |
 
 ### 使用数据（Usage Data）
 **否**（无 Analytics SDK，无崩溃上报 SDK，无行为埋点）
