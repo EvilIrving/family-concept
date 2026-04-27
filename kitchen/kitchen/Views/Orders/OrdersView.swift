@@ -87,7 +87,7 @@ struct OrdersView: View {
                 }
             }
             .padding(.trailing, AppSpacing.md)
-            .padding(.bottom, store.orderItems.contains(where: { $0.status != .cancelled }) ? AppSpacing.xl + AppDimension.toolbarButtonHeight : AppSpacing.xl)
+            .padding(.bottom, store.orderItems.contains(where: { $0.status != .cancelled }) ? AppSpacing.xl + shoppingListBarHeight : AppSpacing.xl)
             .accessibilityLabel("查看历史订单")
         }
         .sheet(item: modalRouteBinding, onDismiss: { modalRouter.handleDismissedCurrent() }) { route in
@@ -125,30 +125,33 @@ struct OrdersView: View {
     }
 
     private var shoppingListBarTitle: String { "查看采购清单" }
+    private var shoppingListBarHeight: CGFloat { 40 }
 
     // MARK: - Subviews
 
     private var ordersShoppingListBar: some View {
         VStack(spacing: 0) {
             Rectangle().fill(AppSemanticColor.border).frame(height: 1)
-            AppRowButton(action: {
+            Button {
+                HapticManager.shared.fire(.selection)
                 store.fetchShoppingList()
                 modalRouter.present(.shoppingList)
-            }) {
+            } label: {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "list.bullet.rectangle.fill")
-                        .font(.system(size: AppIconSize.md, weight: .semibold))
+                        .font(.system(size: AppIconSize.sm, weight: .semibold))
                         .foregroundStyle(AppSemanticColor.primary)
                     Text(shoppingListBarTitle)
-                        .font(AppTypography.bodyStrong)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(AppSemanticColor.textPrimary)
                         .lineLimit(1)
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, AppSpacing.md)
-                .frame(maxWidth: .infinity, minHeight: AppDimension.toolbarButtonHeight, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: shoppingListBarHeight, alignment: .leading)
                 .background(AppSemanticColor.surface)
             }
+            .buttonStyle(.plain)
         }
     }
 
