@@ -27,7 +27,7 @@ struct ShoppingListSheet: View {
                 )
             } else {
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: AppSpacing.sm) {
+                    AppCardList {
                         ForEach(store.shoppingListItems) { item in
                             HStack(spacing: AppSpacing.sm) {
                                 Text(item.ingredient)
@@ -40,15 +40,6 @@ struct ShoppingListSheet: View {
                                 Divider().overlay(AppSemanticColor.border)
                             }
                         }
-                    }
-                    .padding(AppSpacing.md)
-                    .background(
-                        AppComponentColor.Card.background,
-                        in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                            .stroke(AppComponentColor.Card.border, lineWidth: 1)
                     }
                 }
             }

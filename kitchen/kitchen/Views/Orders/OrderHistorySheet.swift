@@ -31,7 +31,7 @@ struct OrderHistorySheet: View {
     @ViewBuilder
     private func historyList(_ orders: [OrderHistoryEntry]) -> some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: AppSpacing.sm) {
+            AppCardList {
                 ForEach(orders) { order in
                     Button {
                         Task {
@@ -57,15 +57,6 @@ struct OrderHistorySheet: View {
                         Divider().overlay(AppSemanticColor.border)
                     }
                 }
-            }
-            .padding(AppSpacing.md)
-            .background(
-                AppComponentColor.Card.background,
-                in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                    .stroke(AppComponentColor.Card.border, lineWidth: 1)
             }
         }
     }

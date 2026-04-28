@@ -4,7 +4,11 @@
     "" : {
 
     },
+    "* %lld" : {
+
+    },
     "%@ 已移入归档" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -19,9 +23,6 @@
           }
         }
       }
-    },
-    "* %lld" : {
-
     },
     "%@，%@，点按查看详情" : {
       "localizations" : {
@@ -46,6 +47,7 @@
 
     },
     "上传中…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -62,6 +64,7 @@
       }
     },
     "下单" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -149,6 +152,40 @@
         }
       }
     },
+    "使用框内图片" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Framed Image"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用框内图片"
+          }
+        }
+      }
+    },
+    "使用空格添加多个食材" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use space to add multiple ingredients"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用空格添加多个食材"
+          }
+        }
+      }
+    },
     "保存" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -185,6 +222,7 @@
       }
     },
     "保存失败" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -236,6 +274,7 @@
       }
     },
     "全部" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -288,54 +327,6 @@
         }
       }
     },
-    "处理中…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Processing…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "处理中…"
-          }
-        }
-      }
-    },
-    "使用空格添加多个食材" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use space to add multiple ingredients"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用空格添加多个食材"
-          }
-        }
-      }
-    },
-    "使用框内图片" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use Framed Image"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用框内图片"
-          }
-        }
-      }
-    },
     "创建新账号" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -366,38 +357,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "创建私厨"
-          }
-        }
-      }
-    },
-    "刷新菜单" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Refreshing menu"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刷新菜单"
-          }
-        }
-      }
-    },
-    "加载菜单" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading menu"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加载菜单"
           }
         }
       }
@@ -469,6 +428,23 @@
         }
       }
     },
+    "刷新菜单" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refreshing menu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新菜单"
+          }
+        }
+      }
+    },
     "加载中" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -535,6 +511,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "載入失敗"
+          }
+        }
+      }
+    },
+    "加载菜单" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading menu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载菜单"
           }
         }
       }
@@ -616,6 +609,23 @@
     "商品信息加载失败，请稍后重试。" : {
 
     },
+    "处理中…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "处理中…"
+          }
+        }
+      }
+    },
     "复制邀请码" : {
 
     },
@@ -673,7 +683,25 @@
         }
       }
     },
+    "导出失败" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export failed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出失败"
+          }
+        }
+      }
+    },
     "已下单" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -690,6 +718,7 @@
       }
     },
     "已新增 %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -706,6 +735,7 @@
       }
     },
     "已更新 %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -789,6 +819,7 @@
       }
     },
     "已选菜品" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -800,22 +831,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已选菜品"
-          }
-        }
-      }
-    },
-    "导出失败" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Export failed"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "导出失败"
           }
         }
       }
@@ -874,23 +889,8 @@
     "当前" : {
 
     },
-    "当前还没有进入 kitchen" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No active kitchen"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "当前还没有进入 kitchen"
-          }
-        }
-      }
-    },
     "当前设备不可用相机" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -902,6 +902,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "当前设备不可用相机"
+          }
+        }
+      }
+    },
+    "当前还没有进入 kitchen" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No active kitchen"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前还没有进入 kitchen"
           }
         }
       }
@@ -979,7 +996,11 @@
     "所需菜品" : {
 
     },
+    "把所有想要的功能、遇到的问题、吐槽都写在这里" : {
+
+    },
     "拍照" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -995,29 +1016,8 @@
         }
       }
     },
-    "把所有想要的功能、遇到的问题、吐槽都写在这里" : {
-
-    },
-    "推荐" : {
-
-    },
-    "搜菜名" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search dishes"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "搜菜名"
-          }
-        }
-      }
-    },
     "换个关键词，或点搜索栏右侧「新增」。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1034,6 +1034,7 @@
       }
     },
     "换个关键词试试。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1049,7 +1050,28 @@
         }
       }
     },
+    "推荐" : {
+
+    },
+    "搜菜名" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search dishes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜菜名"
+          }
+        }
+      }
+    },
     "新增" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1066,6 +1088,7 @@
       }
     },
     "新增菜品" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1099,6 +1122,7 @@
       }
     },
     "暂无内容" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1127,6 +1151,7 @@
 
     },
     "没有找到匹配的菜品" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1297,6 +1322,23 @@
         }
       }
     },
+    "相册" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Library"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相册"
+          }
+        }
+      }
+    },
     "确认退出" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1393,6 +1435,7 @@
       }
     },
     "编辑菜品" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1409,6 +1452,7 @@
       }
     },
     "自定义" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1425,6 +1469,7 @@
       }
     },
     "自定义分类" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1441,6 +1486,7 @@
       }
     },
     "菜单还没有菜品" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1457,6 +1503,7 @@
       }
     },
     "菜名" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1468,70 +1515,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "菜名"
-          }
-        }
-      }
-    },
-    "请添加食材" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Please add ingredients"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请添加食材"
-          }
-        }
-      }
-    },
-    "请输入分类" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Please enter a category"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请输入分类"
-          }
-        }
-      }
-    },
-    "请输入菜名" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Please enter a dish name"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请输入菜名"
-          }
-        }
-      }
-    },
-    "购物车是空的" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your cart is empty"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "购物车是空的"
           }
         }
       }
@@ -1608,6 +1591,57 @@
         }
       }
     },
+    "请添加食材" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please add ingredients"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请添加食材"
+          }
+        }
+      }
+    },
+    "请输入分类" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter a category"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入分类"
+          }
+        }
+      }
+    },
+    "请输入菜名" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter a dish name"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入菜名"
+          }
+        }
+      }
+    },
     "账户与隐私" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1639,6 +1673,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "帳號與隱私"
+          }
+        }
+      }
+    },
+    "购物车是空的" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your cart is empty"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购物车是空的"
           }
         }
       }
@@ -1696,6 +1746,7 @@
       }
     },
     "返回" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1801,38 +1852,6 @@
         }
       }
     },
-    "重新拍照" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retake"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重新拍照"
-          }
-        }
-      }
-    },
-    "重新选图" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reselect"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重新选图"
-          }
-        }
-      }
-    },
     "邀请码" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1856,18 +1875,36 @@
     "采购清单" : {
 
     },
-    "相册" : {
+    "重新拍照" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Photo Library"
+            "value" : "Retake"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "相册"
+            "value" : "重新拍照"
+          }
+        }
+      }
+    },
+    "重新选图" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reselect"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新选图"
           }
         }
       }

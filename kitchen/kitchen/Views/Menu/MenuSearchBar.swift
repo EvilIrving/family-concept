@@ -37,10 +37,10 @@ struct MenuSearchBar: View {
             .padding(.horizontal, AppSpacing.md)
             .frame(height: AppDimension.barControlHeight)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppSemanticColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+            .background(AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .stroke(AppSemanticColor.border, lineWidth: AppBorderWidth.hairline)
+                    .stroke(AppSemanticColor.border, lineWidth: 1)
                     .allowsHitTesting(false)
             }
 
