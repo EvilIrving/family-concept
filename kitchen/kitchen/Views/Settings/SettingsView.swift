@@ -48,10 +48,12 @@ struct SettingsView: View {
                 SettingsMenuCard {
                     SettingsMenuRow(
                         title: "意见反馈",
+                        showsDivider: false,
                         onTap: { modalRouter.present(.feedback) }
                     )
-                    SettingsMenuRow(title: "给我们评分")
-                    SettingsMenuRow(title: "分享给家人", showsDivider: false)
+                    // TODO: when app 上架以后启用
+                    // SettingsMenuRow(title: "给我们评分")
+                    // SettingsMenuRow(title: "分享给家人", showsDivider: false)
                 }
             }
 
