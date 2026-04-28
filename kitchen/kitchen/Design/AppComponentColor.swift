@@ -27,9 +27,9 @@ enum AppComponentColor {
     enum Chip {
         static let background = AppSemanticColor.surfaceSecondary
         static let backgroundPressed = AppSemanticColor.surfaceTertiary
-        static let selectedBackground = AppSemanticColor.interactiveSecondary
+        static let selectedBackground = AppSemanticColor.primary
         static let foreground = AppSemanticColor.textPrimary
-        static let selectedForeground = AppSemanticColor.primary
+        static let selectedForeground = AppSemanticColor.onPrimary
         static let border = AppSemanticColor.border
     }
 

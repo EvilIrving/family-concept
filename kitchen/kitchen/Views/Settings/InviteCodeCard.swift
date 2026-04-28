@@ -13,15 +13,13 @@ struct InviteCodeCard: View {
                 .font(.system(size: AppIconSize.sm - 1, weight: .semibold))
                 .foregroundStyle(AppSemanticColor.primary)
         ))) {
-            HStack(spacing: AppSpacing.sm) {
-                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                    Text("邀请码")
-                        .font(AppTypography.micro)
-                        .foregroundStyle(AppSemanticColor.textSecondary)
-                    Text(inviteCode)
-                        .font(AppTypography.bodyStrong)
-                        .foregroundStyle(AppSemanticColor.primary)
-                }
+            HStack(spacing: AppSpacing.xxs) {
+                Text("邀请码：")
+                    .font(AppTypography.bodyStrong)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
+                Text(inviteCode)
+                    .font(AppTypography.bodyStrong)
+                    .foregroundStyle(AppSemanticColor.primary)
                 Spacer()
             }
         }

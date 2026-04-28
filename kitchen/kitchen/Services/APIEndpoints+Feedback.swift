@@ -41,6 +41,19 @@ enum FeedbackContactPlatform: String, CaseIterable, Identifiable {
             return "X"
         }
     }
+
+    var logoAssetName: String {
+        switch self {
+        case .tg:
+            return "TelegramLogo"
+        case .whatsapp:
+            return "WhatsAppLogo"
+        case .ins:
+            return "InstagramLogo"
+        case .x:
+            return "XLogo"
+        }
+    }
 }
 
 struct SubmitFeedbackBody: Encodable {
