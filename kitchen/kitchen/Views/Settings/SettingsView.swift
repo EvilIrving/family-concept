@@ -64,6 +64,10 @@ struct SettingsView: View {
                         onTap: { Task { await purchaseManager.restore() } }
                     )
                     SettingsMenuRow(
+                        title: "兑换优惠码",
+                        onTap: { purchaseManager.redeemCode() }
+                    )
+                    SettingsMenuRow(
                         title: "隐私说明",
                         showsDivider: false,
                         url: privacyPolicyURL

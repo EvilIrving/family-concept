@@ -87,6 +87,12 @@ final class PurchaseManager: ObservableObject {
         }
     }
 
+    // MARK: - Redeem Code
+
+    func redeemCode() {
+        AppStore.presentOfferCodeRedeemSheet()
+    }
+
     // MARK: - Restore
 
     func restore() async {

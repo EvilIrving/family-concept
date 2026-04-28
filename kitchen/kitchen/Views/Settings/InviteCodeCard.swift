@@ -6,23 +6,46 @@ struct InviteCodeCard: View {
     let onCopy: () -> Void
 
     var body: some View {
-        AppRowButton(action: {
+        Button {
+            HapticManager.shared.fire(.selection)
             onCopy()
-        }, accessory: .custom(AnyView(
-            Image(systemName: "doc.on.doc")
-                .font(.system(size: AppIconSize.sm - 1, weight: .semibold))
-                .foregroundStyle(AppSemanticColor.primary)
-        ))) {
-            HStack(spacing: AppSpacing.xxs) {
-                Text("邀请码：")
-                    .font(AppTypography.bodyStrong)
-                    .foregroundStyle(AppSemanticColor.textSecondary)
-                Text(inviteCode)
-                    .font(AppTypography.bodyStrong)
+        } label: {
+            HStack(spacing: AppSpacing.sm) {
+                HStack(spacing: AppSpacing.xxs) {
+                    Text("邀请码：")
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppSemanticColor.textSecondary)
+                    Text(inviteCode)
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppSemanticColor.primary)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "doc.on.doc")
+                    .font(.system(size: AppIconSize.sm - 1, weight: .semibold))
                     .foregroundStyle(AppSemanticColor.primary)
-                Spacer()
             }
+            .frame(maxWidth: .infinity, minHeight: AppDimension.minTouchTarget, alignment: .leading)
+            .padding(AppInset.card)
         }
+        .buttonStyle(InviteCodeCardStyle())
         .accessibilityLabel("复制邀请码")
+    }
+}
+
+private struct InviteCodeCardStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                configuration.isPressed
+                    ? AppSemanticColor.surfaceSecondary
+                    : AppSemanticColor.surface,
+                in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+            )
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.99 : 1)
+            .animation(reduceMotion ? nil : AppMotion.press, value: configuration.isPressed)
     }
 }
