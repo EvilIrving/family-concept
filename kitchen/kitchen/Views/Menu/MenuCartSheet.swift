@@ -31,7 +31,7 @@ struct MenuCartSheet: View {
                             .frame(maxWidth: .infinity)
                             .padding(.top, AppSpacing.xl)
                     } else {
-                        AppCard {
+                        VStack(spacing: AppSpacing.sm) {
                             ForEach(store.cartItems) { item in
                                 HStack(spacing: AppSpacing.sm) {
                                     Text(item.dishName)
@@ -59,6 +59,15 @@ struct MenuCartSheet: View {
                                     Divider().overlay(AppSemanticColor.border)
                                 }
                             }
+                        }
+                        .padding(AppSpacing.md)
+                        .background(
+                            AppComponentColor.Card.background,
+                            in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                                .stroke(AppComponentColor.Card.border, lineWidth: 1)
                         }
                     }
                 }
