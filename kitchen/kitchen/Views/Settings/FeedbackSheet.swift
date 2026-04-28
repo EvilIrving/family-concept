@@ -71,7 +71,21 @@ struct FeedbackSheet: View {
     }
 
     private var platformPicker: some View {
-        PlatformPickerGroup(selection: $contactPlatform)
+        AppSegmentedButton(
+            segments: platformSegments,
+            selection: $contactPlatform
+        )
+    }
+
+    private var platformSegments: [AppSegmentedButton<FeedbackContactPlatform>.Segment] {
+        FeedbackContactPlatform.allCases.map { platform in
+            .init(
+                value: platform,
+                title: platform.displayName,
+                accessibilityLabel: platform.displayName,
+                imageAssetName: platform.logoAssetName
+            )
+        }
     }
 
     private var qrCodeCard: some View {
@@ -149,76 +163,6 @@ struct FeedbackSheet: View {
                     isSubmitting = false
                     feedbackRouter.show(store.feedback(for: error), hint: .centerToast)
                 }
-            }
-        }
-    }
-}
-
-private struct PlatformPickerGroup: View {
-    @Binding var selection: FeedbackContactPlatform
-
-    private let platforms = FeedbackContactPlatform.allCases
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(platforms.enumerated()), id: \.element.id) { index, platform in
-                PlatformPickerCell(
-                    platform: platform,
-                    isSelected: selection == platform,
-                    showsDivider: shouldShowDivider(at: index),
-                    onTap: { selection = platform }
-                )
-            }
-        }
-        .background(
-            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                .fill(AppSemanticColor.surfaceSecondary)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                .stroke(AppSemanticColor.border, lineWidth: 1)
-        )
-    }
-
-    private func shouldShowDivider(at index: Int) -> Bool {
-        guard index < platforms.count - 1 else { return false }
-        let current = platforms[index]
-        let next = platforms[index + 1]
-        return selection != current && selection != next
-    }
-}
-
-private struct PlatformPickerCell: View {
-    let platform: FeedbackContactPlatform
-    let isSelected: Bool
-    let showsDivider: Bool
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            Image(platform.logoAssetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 28, height: 28)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(platform.displayName)
-        .background {
-            if isSelected {
-                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                    .fill(AppSemanticColor.surface)
-                    .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
-                    .padding(3)
-            }
-        }
-        .overlay(alignment: .trailing) {
-            if showsDivider {
-                Rectangle()
-                    .fill(AppSemanticColor.border)
-                    .frame(width: 1, height: 20)
             }
         }
     }
