@@ -5,10 +5,6 @@ struct MenuCartBar: View {
     let isCollapsed: Bool
     let onTap: () -> Void
 
-    @State private var buttonWidth: CGFloat = 0
-
-    private let trailingPadding = AppSpacing.md
-
     var body: some View {
         Button {
             HapticManager.shared.fire(.medium)
@@ -18,9 +14,8 @@ struct MenuCartBar: View {
                 Image(systemName: "cart.fill")
                     .font(.system(size: AppIconSize.lg, weight: .bold))
 
-                Text("已选 \(cartCount) 道菜")
+                Text("\(cartCount)")
                     .font(AppTypography.bodyStrong)
-                    .lineLimit(1)
             }
             .foregroundStyle(AppComponentColor.FloatingButton.foreground)
             .padding(.horizontal, AppSpacing.lg)
@@ -29,23 +24,7 @@ struct MenuCartBar: View {
             .appShadow(AppShadow.floating)
         }
         .buttonStyle(.plain)
-        .background {
-            GeometryReader { proxy in
-                Color.clear
-                    .onAppear {
-                        buttonWidth = proxy.size.width
-                    }
-                    .onChange(of: proxy.size.width) { _, width in
-                        buttonWidth = width
-                    }
-            }
-        }
-        .offset(x: isCollapsed ? collapsedOffset : 0)
+        .opacity(isCollapsed ? 0.2 : 1.0)
         .accessibilityLabel(L10n.tr("已选 %lld 道菜", cartCount))
-    }
-
-    private var collapsedOffset: CGFloat {
-        guard buttonWidth > 0 else { return 0 }
-        return max(buttonWidth + trailingPadding - buttonWidth / 3, 0)
     }
 }

@@ -33,34 +33,40 @@ struct OrderHistorySheet: View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: AppSpacing.sm) {
                 ForEach(orders) { order in
-                    AppRowButton(action: {
+                    Button {
                         Task {
                             if await store.fetchOrderDetail(orderID: order.id) != nil {
                                 selectedOrderID = order.id
                             }
                         }
-                    }) {
-                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                            HStack(alignment: .firstTextBaseline) {
-                                AppPill(title: "\(order.itemCount) 道菜", tint: AppSemanticColor.primary, background: AppSemanticColor.interactiveSecondary)
-                                Text(orderTitle(order))
-                                    .font(AppTypography.caption)
-                                    .foregroundStyle(AppSemanticColor.textSecondary)
-                                Spacer()
-                            }
+                    } label: {
+                        HStack(spacing: AppSpacing.sm) {
+                            AppPill(title: "\(order.itemCount) 道菜", tint: AppSemanticColor.primary, background: AppSemanticColor.interactiveSecondary)
+                            Text(orderTitle(order))
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppSemanticColor.textSecondary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: AppIconSize.xs, weight: .semibold))
+                                .foregroundStyle(AppSemanticColor.textTertiary)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, AppSpacing.md)
-                        .overlay(alignment: .bottom) {
-                            if order.id != orders.last?.id {
-                                Divider()
-                                    .overlay(AppSemanticColor.border)
-                            }
-                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    if order.id != orders.last?.id {
+                        Divider().overlay(AppSemanticColor.border)
                     }
                 }
             }
-            .padding(.top, AppSpacing.xs)
+            .padding(AppSpacing.md)
+            .background(
+                AppComponentColor.Card.background,
+                in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                    .stroke(AppComponentColor.Card.border, lineWidth: 1)
+            }
         }
     }
 

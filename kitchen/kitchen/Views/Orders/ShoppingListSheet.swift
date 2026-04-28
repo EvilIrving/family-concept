@@ -27,25 +27,29 @@ struct ShoppingListSheet: View {
                 )
             } else {
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
+                    VStack(spacing: AppSpacing.sm) {
                         ForEach(store.shoppingListItems) { item in
-                        HStack(spacing: AppSpacing.sm) {
-                            Text(item.ingredient)
-                                .font(AppTypography.bodyStrong)
-                                .foregroundStyle(AppSemanticColor.textPrimary)
-                            Spacer()
-                            AppPill(title: "\(item.dishCount) 道菜", tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
-                        }
-                        .padding(.vertical, AppSpacing.sm)
-                        if item.ingredient != store.shoppingListItems.last?.ingredient {
-                            Divider()
-                                .overlay(AppSemanticColor.border)
+                            HStack(spacing: AppSpacing.sm) {
+                                Text(item.ingredient)
+                                    .font(AppTypography.bodyStrong)
+                                    .foregroundStyle(AppSemanticColor.textPrimary)
+                                Spacer()
+                                AppPill(title: "\(item.dishCount) 道菜", tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
+                            }
+                            if item.ingredient != store.shoppingListItems.last?.ingredient {
+                                Divider().overlay(AppSemanticColor.border)
+                            }
                         }
                     }
-                }
-                .padding(.horizontal, AppSpacing.sm)
-                .padding(.top, AppSpacing.xxs)
-                .padding(.bottom, AppSpacing.xxs)
+                    .padding(AppSpacing.md)
+                    .background(
+                        AppComponentColor.Card.background,
+                        in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                            .stroke(AppComponentColor.Card.border, lineWidth: 1)
+                    }
                 }
             }
         }
