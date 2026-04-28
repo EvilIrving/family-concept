@@ -126,6 +126,7 @@ struct SettingsView: View {
         .environmentObject(AppStore())
         .environmentObject(AppFeedbackRouter.shared)
         .environmentObject(PurchaseManager())
+        .environmentObject(AppLanguageStore())
 }
 
 private struct SettingsSection<Content: View>: View {

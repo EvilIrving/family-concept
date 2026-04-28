@@ -246,11 +246,11 @@ private struct DishFramingBottomPanel: View {
     }
 
     private var primaryTitle: String {
-        "使用框内图片"
+        L10n.tr("使用框内图片")
     }
 
     private var secondaryTitle: String {
-        inputSource == .album ? "重新选图" : "重新拍照"
+        inputSource == .album ? L10n.tr("重新选图") : L10n.tr("重新拍照")
     }
 }
 
@@ -265,7 +265,7 @@ private struct DishFramingTopBar: View {
                     onBack()
                 }
                 .disabled(isProcessing)
-                .accessibilityLabel("返回")
+                .accessibilityLabel(L10n.tr("返回"))
 
                 Spacer()
             }

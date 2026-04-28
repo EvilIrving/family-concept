@@ -24,7 +24,7 @@ enum MenuDishFlowItem: Identifiable {
     }
 
     var title: String {
-        isAdd ? "新增菜品" : "编辑菜品"
+        isAdd ? L10n.tr("新增菜品") : L10n.tr("编辑菜品")
     }
 
     var initialDraft: AddDishDraft {

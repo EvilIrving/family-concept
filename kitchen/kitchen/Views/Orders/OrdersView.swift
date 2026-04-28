@@ -22,6 +22,10 @@ struct OrdersView: View {
 
                 AppLoadingBlock(
                     phase: ordersPhase,
+                    emptyView: { feedback in
+                        AppErrorPlaceholder(feedback: feedback)
+                    },
+                    skeletonView: nil as (() -> EmptyView)?,
                     content: { groupedItems in
                         ScrollView(showsIndicators: false) {
                             VStack(spacing: AppSpacing.lg) {

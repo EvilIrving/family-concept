@@ -259,12 +259,14 @@ struct CartItem: Identifiable, Equatable {
 struct AuthResponse: Codable {
     let token: String
     let account: Account
+    let kitchen: Kitchen?
 }
 
 // MARK: - AuthMeResponse
 
 struct AuthMeResponse: Codable {
     let account: Account
+    let kitchen: Kitchen?
 }
 
 // MARK: - ShoppingListItem

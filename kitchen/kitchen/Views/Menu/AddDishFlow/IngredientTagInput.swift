@@ -22,7 +22,7 @@ struct IngredientTagInput: View {
             }
 
             AppTextField(
-                title: "使用空格添加多个食材",
+                title: L10n.tr("使用空格添加多个食材"),
                 text: $input,
                 focusedField: focusedField,
                 field: .ingredient,

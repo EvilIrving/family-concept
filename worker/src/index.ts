@@ -1,5 +1,5 @@
 import type { Env, Route } from './types';
-import { matchRoute, json, notFound } from './router';
+import { matchRoute, json, notFound, serverError } from './router';
 import { kitchenRoutes } from './routes/kitchens';
 import { memberRoutes } from './routes/members';
 import { onboardingRoutes } from './routes/onboarding';
@@ -65,9 +65,14 @@ const routes: Route[] = [
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    const matched = matchRoute(routes, request.method, url.pathname);
-    if (!matched) return notFound();
-    return matched.handler(request, env, matched.params);
+    try {
+      const url = new URL(request.url);
+      const matched = matchRoute(routes, request.method, url.pathname);
+      if (!matched) return notFound();
+      return await matched.handler(request, env, matched.params);
+    } catch (error) {
+      console.error('Unhandled worker error', error);
+      return serverError();
+    }
   },
 };

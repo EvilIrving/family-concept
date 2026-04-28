@@ -41,7 +41,7 @@ struct MenuCartBar: View {
             }
         }
         .offset(x: isCollapsed ? collapsedOffset : 0)
-        .accessibilityLabel("已选 \(cartCount) 道菜")
+        .accessibilityLabel(L10n.tr("已选 %lld 道菜", cartCount))
     }
 
     private var collapsedOffset: CGFloat {

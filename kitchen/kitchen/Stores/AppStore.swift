@@ -148,14 +148,17 @@ final class AppStore: ObservableObject {
             storedNickName = me.account.nickName
             UserDefaults.standard.set(me.account.nickName, forKey: "nickName")
 
-            if let lastKitchenID = UserDefaults.standard.string(forKey: "lastKitchenID") {
+            if let kitchen = me.kitchen {
+                self.kitchen = kitchen
+                UserDefaults.standard.set(kitchen.id, forKey: "lastKitchenID")
+            } else if let lastKitchenID = UserDefaults.standard.string(forKey: "lastKitchenID") {
                 let k = try await apiClient.fetchKitchen(id: lastKitchenID, authToken: authToken)
                 kitchen = k
             }
         } catch APIError.unauthorized {
             clearSession()
         } catch {
-            // Auth succeeded but kitchen restore failed — keep logged-in state
+            clearSession()
         }
     }
 

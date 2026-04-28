@@ -2,6 +2,7 @@ import SwiftUI
 
 /// 偏好设置区域组件
 struct PreferencesSection: View {
+    @EnvironmentObject private var languageStore: AppLanguageStore
     @Binding var notificationsEnabled: Bool
     @Binding var hapticsEnabled: Bool
     @Binding var themeMode: String
@@ -11,13 +12,30 @@ struct PreferencesSection: View {
             VStack(spacing: 0) {
                 toggleRow(title: "通知", isOn: $notificationsEnabled)
                 rowDivider
-                placeholderRow(title: "语言")
+                languageRow
                 rowDivider
                 toggleRow(title: "触感反馈", isOn: $hapticsEnabled)
                 rowDivider
                 ThemeSelectionRow(themeMode: $themeMode)
             }
         }
+    }
+
+    private var languageRow: some View {
+        HStack {
+            Text("语言")
+                .font(AppTypography.bodyStrong)
+                .foregroundStyle(AppSemanticColor.textPrimary)
+            Spacer()
+            Picker("语言", selection: $languageStore.language) {
+                ForEach(AppLanguage.allCases) { language in
+                    Text(language.displayName).tag(language)
+                }
+            }
+            .labelsHidden()
+            .tint(AppSemanticColor.textSecondary)
+        }
+        .frame(minHeight: 44)
     }
 
     private var rowDivider: some View {
@@ -37,19 +55,4 @@ struct PreferencesSection: View {
         .frame(minHeight: 44)
     }
 
-    private func placeholderRow(title: String) -> some View {
-        HStack(spacing: AppSpacing.sm) {
-            Text(title)
-                .font(AppTypography.bodyStrong)
-                .foregroundStyle(AppSemanticColor.textPrimary)
-            Spacer()
-            Text("稍后推出")
-                .font(AppTypography.body)
-                .foregroundStyle(AppSemanticColor.textSecondary)
-            Image(systemName: "chevron.right")
-                .font(.system(size: AppIconSize.xs, weight: .semibold))
-                .foregroundStyle(AppSemanticColor.textTertiary)
-        }
-        .frame(minHeight: 44)
-    }
 }

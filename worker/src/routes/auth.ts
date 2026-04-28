@@ -3,6 +3,7 @@ import { conflict, json, badRequest, unauthorized } from '../router';
 import { hashPassword, verifyPassword, generateSessionToken, hashSessionToken, sessionExpiresAt } from '../auth';
 import { findByUserName, insertAccount } from '../db/accounts';
 import { insertSession, deleteByTokenHash } from '../db/sessions';
+import { findActiveKitchenByAccount } from '../db/members';
 import { withAuth } from '../middleware/auth';
 
 function sanitizeAccount(account: { id: string; user_name: string; nick_name: string; created_at: string }) {
@@ -44,7 +45,7 @@ export const authRoutes: Route[] = [
         sessionExpiresAt()
       );
 
-      return json({ token, account: sanitizeAccount(account) }, { status: 201 });
+      return json({ token, account: sanitizeAccount(account), kitchen: null }, { status: 201 });
     },
   },
   {
@@ -72,7 +73,8 @@ export const authRoutes: Route[] = [
         sessionExpiresAt()
       );
 
-      return json({ token, account: sanitizeAccount(account) });
+      const kitchen = await findActiveKitchenByAccount(env.DB, account.id);
+      return json({ token, account: sanitizeAccount(account), kitchen });
     },
   },
   {
@@ -86,8 +88,9 @@ export const authRoutes: Route[] = [
   {
     method: 'GET',
     pattern: /^\/api\/v1\/auth\/me$/,
-    handler: withAuth(async (_req, _env, ctx) => {
-      return json({ account: sanitizeAccount(ctx.account) });
+    handler: withAuth(async (_req, env, ctx) => {
+      const kitchen = await findActiveKitchenByAccount(env.DB, ctx.account.id);
+      return json({ account: sanitizeAccount(ctx.account), kitchen });
     }),
   },
 ];

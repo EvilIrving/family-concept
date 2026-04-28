@@ -28,8 +28,7 @@ kitchen/
 - 文件名：与主类型名一致，`PascalCase`（如 `AppStore.swift`、`Domain.swift`）
 - 常量：`camelCase`，不用 `k` 前缀
 - Bool 属性：以 `is`、`has`、`can`、`should` 开头
-- 枚举 case：`camelCase`（Swift 惯例）
-- 用户可见字符串：中文，直接硬编码，不使用本地化文件
+- 枚举 case：`camelCase`（Swift 惯例） 
 - 注释：允许中文
 
 ## Swift 代码风格

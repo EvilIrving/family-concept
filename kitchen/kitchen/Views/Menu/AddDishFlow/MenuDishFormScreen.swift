@@ -38,11 +38,11 @@ struct MenuDishFormScreen: View {
                         quickCategoryChips
 
                         if draft.selectedQuickCategory == "自定义" {
-                            formTextField("自定义分类", text: $draft.customCategory, field: .customCategory)
+                            formTextField(L10n.tr("自定义分类"), text: $draft.customCategory, field: .customCategory)
                         }
                     }
 
-                    formTextField("菜名", text: $draft.name, field: .name)
+                    formTextField(L10n.tr("菜名"), text: $draft.name, field: .name)
 
                     IngredientTagInput(
                         tags: $draft.ingredientTags,
@@ -54,7 +54,7 @@ struct MenuDishFormScreen: View {
 
                     if let onDelete {
                         AppButton(
-                            title: "删除菜品",
+                            title: L10n.tr("删除菜品"),
                             role: .destructive,
                             action: {
                                 archiveConfirmationPresented = true
@@ -136,7 +136,7 @@ struct MenuDishFormScreen: View {
             HStack(spacing: AppSpacing.xs) {
                 ForEach(quickCategories, id: \.self) { category in
                     AppChipButton(
-                        title: category,
+                        title: category == "自定义" ? L10n.tr("自定义") : category,
                         isSelected: draft.selectedQuickCategory == category
                     ) {
                         draft.selectedQuickCategory = category

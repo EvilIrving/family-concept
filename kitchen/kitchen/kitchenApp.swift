@@ -13,6 +13,7 @@ struct kitchenApp: App {
     @StateObject private var store = AppStore()
     @StateObject private var feedbackRouter = AppFeedbackRouter.shared
     @StateObject private var purchaseManager = PurchaseManager()
+    @StateObject private var languageStore = AppLanguageStore()
 
     init() {
         Self.configureImagePipeline()
@@ -24,6 +25,9 @@ struct kitchenApp: App {
                 .environmentObject(store)
                 .environmentObject(feedbackRouter)
                 .environmentObject(purchaseManager)
+                .environmentObject(languageStore)
+                .environment(\.locale, languageStore.locale)
+                .id(languageStore.language)
                 .preferredColorScheme(store.colorScheme)
                 .task {
                     store.purchaseManager = purchaseManager

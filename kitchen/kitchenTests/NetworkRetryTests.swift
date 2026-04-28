@@ -129,6 +129,32 @@ struct NetworkRetryTests {
         #expect(MockURLProtocol.requestCount == 1)
     }
 
+    @Test("HTML 错误页不会作为用户消息展示")
+    func htmlErrorPageMapsToGenericMessage() async throws {
+        let session = makeMockSession()
+        let executor = RequestExecutor(
+            session: session,
+            sleep: { _ in },
+            randomJitter: { _ in 0 }
+        )
+        let client = APIClient(baseURL: "https://example.com", session: session, requestExecutor: executor)
+
+        MockURLProtocol.configure { request, _ in
+            (
+                HTTPURLResponse(url: try #require(request.url), statusCode: 500, httpVersion: nil, headerFields: nil)!,
+                Data("<!DOCTYPE html><html><head><title>Worker threw exception</title></head></html>".utf8)
+            )
+        }
+
+        do {
+            let _: RetryPayload = try await client.request(Endpoint(path: "/auth/logout", method: "POST"))
+            Issue.record("HTML 错误页不应被当作普通服务端消息")
+        } catch let error as APIError {
+            #expect(error == .invalidResponse("服务器内部错误，请稍后再试"))
+            #expect(error.userMessage == "服务器内部错误，请稍后再试")
+        }
+    }
+
     @Test("取消会中断退避等待且不进入下一次请求")
     func cancellationStopsBeforeNextAttempt() async throws {
         let session = makeMockSession()

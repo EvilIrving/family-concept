@@ -40,7 +40,7 @@ struct MenuDishFlowContainer: View {
         NavigationStack(path: $navigationPath) {
             MenuDishFormScreen(
                 title: item.title,
-                confirmTitle: "保存",
+                confirmTitle: L10n.tr("保存"),
                 requiresImage: item.isAdd,
                 draft: $draft,
                 quickCategories: quickCategories,
@@ -239,21 +239,21 @@ struct MenuDishFlowContainer: View {
         guard !addedName.isEmpty else {
             draft.invalidName = true
             draft.validationTrigger += 1
-            feedbackRouter.show(.low(message: "请输入菜名"), hint: .centerToast)
+            feedbackRouter.show(.low(message: L10n.tr("请输入菜名")), hint: .centerToast)
             focusedField.wrappedValue = .name
             return
         }
         guard !finalCategory.isEmpty else {
             draft.invalidCategory = true
             draft.validationTrigger += 1
-            feedbackRouter.show(.low(message: "请输入分类"), hint: .centerToast)
+            feedbackRouter.show(.low(message: L10n.tr("请输入分类")), hint: .centerToast)
             focusedField.wrappedValue = draft.selectedQuickCategory == "自定义" ? .customCategory : .name
             return
         }
         guard !draft.ingredientTags.isEmpty else {
             draft.invalidIngredients = true
             draft.validationTrigger += 1
-            feedbackRouter.show(.low(message: "请添加食材"), hint: .centerToast)
+            feedbackRouter.show(.low(message: L10n.tr("请添加食材")), hint: .centerToast)
             focusedField.wrappedValue = .ingredient
             return
         }
@@ -263,7 +263,7 @@ struct MenuDishFlowContainer: View {
             defer { isSaving = false }
             guard store.kitchen != nil else {
                 await MainActor.run {
-                    feedbackRouter.show(.low(message: "当前还没有进入 kitchen"), hint: .centerToast)
+                    feedbackRouter.show(.low(message: L10n.tr("当前还没有进入 kitchen")), hint: .centerToast)
                 }
                 return
             }
@@ -301,7 +301,7 @@ struct MenuDishFlowContainer: View {
 
             guard let dish = result else {
                 await MainActor.run {
-                    let errorMsg = store.error ?? "保存失败"
+                    let errorMsg = store.error ?? L10n.tr("保存失败")
                     feedbackRouter.show(.low(message: errorMsg), hint: .centerToast)
                     if let imageFileURL {
                         restoreUploadState(

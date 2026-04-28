@@ -16,13 +16,13 @@ struct DishCameraCaptureView: UIViewControllerRepresentable {
 
             let label = UILabel()
             label.translatesAutoresizingMaskIntoConstraints = false
-            label.text = "当前设备不可用相机"
+            label.text = L10n.tr("当前设备不可用相机")
             label.textColor = UIColor(AppSemanticColor.cropControlForeground)
             label.font = .preferredFont(forTextStyle: .headline)
 
             let button = UIButton(type: .system)
             button.translatesAutoresizingMaskIntoConstraints = false
-            button.setTitle("关闭", for: .normal)
+            button.setTitle(L10n.tr("关闭"), for: .normal)
             button.setTitleColor(UIColor(AppSemanticColor.cropControlForeground), for: .normal)
             button.titleLabel?.font = .preferredFont(forTextStyle: .body)
             button.addAction(UIAction { _ in

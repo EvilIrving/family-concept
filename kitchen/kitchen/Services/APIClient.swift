@@ -227,10 +227,21 @@ final class APIClient {
         if let message = String(data: data, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
            !message.isEmpty {
+            if looksLikeHTML(message) {
+                return .invalidResponse("服务器内部错误，请稍后再试")
+            }
             return .serverMessage(message)
         }
 
         return .invalidResponse("错误响应格式异常")
+    }
+
+    private func looksLikeHTML(_ message: String) -> Bool {
+        let lowercased = message.lowercased()
+        return lowercased.hasPrefix("<!doctype html")
+            || lowercased.hasPrefix("<html")
+            || lowercased.contains("<title>")
+            || lowercased.contains("<body")
     }
 
     private func buildMultipartURLRequest(

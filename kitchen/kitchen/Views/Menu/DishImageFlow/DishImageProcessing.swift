@@ -5,7 +5,7 @@ enum DishImageProcessingError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .exportFailed: "导出失败"
+        case .exportFailed: L10n.tr("导出失败")
         }
     }
 }

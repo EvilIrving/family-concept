@@ -29,8 +29,7 @@ kitchen/
 - 文件名：与主类型名一致，`PascalCase`（如 `AppStore.swift`、`Domain.swift`）
 - 常量：`camelCase`，不用 `k` 前缀
 - Bool 属性：以 `is`、`has`、`can`、`should` 开头
-- 枚举 case：`camelCase`（Swift 惯例）
-- 用户可见字符串：中文，直接硬编码，不使用本地化文件
+- 枚举 case：`camelCase`（Swift 惯例） 
 - 注释：允许中文
 
 ## Swift 代码风格
@@ -65,6 +64,7 @@ kitchen/
 - View struct 只负责布局和状态绑定，不写业务逻辑
 - body 超过 50 行时，拆分为私有子 struct 或 `@ViewBuilder` 方法
 - 不在 View 内直接散写颜色、字号、圆角、阴影——必须通过 `AppTheme` token
+- 新增或修改任何用户可见文案时，必须同步新增或更新五语言本地化 key，并通过本地化资源引用展示
 - Preview 必须可正常编译展示，不允许空 Preview
 
 ### 文件拆分原则
@@ -111,3 +111,4 @@ kitchen/
 - 禁止 `NotificationCenter` 替代 Store 状态传递
 - 禁止汉堡菜单 / Drawer 导航模式
 - 禁止颜色唯一的信息表达（需同时配图标或文字）
+- 禁止硬编码任何用户可见展示字符串

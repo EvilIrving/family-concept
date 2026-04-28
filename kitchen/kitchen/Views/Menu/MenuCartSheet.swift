@@ -7,15 +7,15 @@ struct MenuCartSheet: View {
 
     var body: some View {
         AppSheetContainer(
-            title: "已选菜品",
-            dismissTitle: "关闭",
-            confirmTitle: "下单",
+            title: L10n.tr("已选菜品"),
+            dismissTitle: L10n.tr("关闭"),
+            confirmTitle: L10n.tr("下单"),
             onDismiss: { dismiss() },
             onConfirm: {
                 Task {
                     await store.submitCart()
                     guard store.error == nil else { return }
-                    feedbackRouter.show(.low(message: "已下单"))
+                    feedbackRouter.show(.low(message: L10n.tr("已下单")))
                     dismiss()
                 }
             },

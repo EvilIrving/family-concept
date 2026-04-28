@@ -1,4 +1,5 @@
 import type { MemberRow, Role } from '../types';
+import type { KitchenRow } from '../types';
 
 export async function insertMember(
   db: D1Database,
@@ -66,6 +67,23 @@ export async function listByKitchen(
     .bind(kitchenId)
     .all<MemberWithDevice>();
   return result.results;
+}
+
+export async function findActiveKitchenByAccount(
+  db: D1Database,
+  accountId: string
+): Promise<KitchenRow | null> {
+  return db
+    .prepare(`
+      SELECT k.*
+      FROM members m
+      JOIN kitchens k ON k.id = m.kitchen_id
+      WHERE m.account_id = ? AND m.status = 'active'
+      ORDER BY m.joined_at DESC
+      LIMIT 1
+    `)
+    .bind(accountId)
+    .first<KitchenRow>();
 }
 
 export interface MemberWithDevice extends MemberRow {

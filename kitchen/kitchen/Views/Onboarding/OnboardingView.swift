@@ -6,7 +6,6 @@ struct OnboardingView: View {
     // 状态
     @State private var authMode: AuthMode = .login
     @State private var kitchenMode: KitchenMode = .join
-    @State private var showKitchenField = false
 
     // 表单字段
     @State private var userName = ""
@@ -54,11 +53,7 @@ struct OnboardingView: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.textSecondary)
 
-                if store.isAuthenticated {
-                    kitchenSection
-                } else {
-                    authSection
-                }
+                authSection
 
                 if let error = store.error {
                     Text(error)
@@ -94,42 +89,16 @@ struct OnboardingView: View {
                 selection: kitchenModeSelection
             )
 
-            if showKitchenField {
-                KitchenForm(
-                    kitchenInput: $kitchenInput,
-                    kitchenMode: $kitchenMode,
-                    kitchenInputInvalid: $kitchenInputInvalid,
-                    kitchenInputShake: $kitchenInputShake,
-                    focusedField: $focusedField,
-                    onSubmit: submit
-                )
-            }
-
-            authModeLink
-        }
-    }
-
-    // MARK: - Kitchen Section (logged in, no kitchen)
-
-    private var kitchenSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            AppSegmentedButton(
-                segments: kitchenSegments,
-                selection: loggedInKitchenSelection
-            )
-
             KitchenForm(
                 kitchenInput: $kitchenInput,
                 kitchenMode: $kitchenMode,
                 kitchenInputInvalid: $kitchenInputInvalid,
                 kitchenInputShake: $kitchenInputShake,
                 focusedField: $focusedField,
-                onSubmit: submitKitchen
+                onSubmit: submit
             )
 
-            AppLinkButton(title: "退出登录", role: .secondary) {
-                Task { await store.signOut() }
-            }
+            authModeLink
         }
     }
 
@@ -138,7 +107,7 @@ struct OnboardingView: View {
     private var authModeLink: some View {
         HStack {
             Spacer()
-            AppLinkButton(title: authMode == .login ? "还没有账号？注册" : "已有账号？登录", role: .secondary) {
+            AppLinkButton(title: authMode == .login ? L10n.tr("还没有账号？注册") : L10n.tr("已有账号？登录"), role: .secondary) {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     authMode = authMode == .login ? .register : .login
                     store.error = nil
@@ -152,25 +121,12 @@ struct OnboardingView: View {
 
     private var kitchenSegments: [AppSegmentedButton<KitchenMode>.Segment] {
         [
-            .init(value: .join, title: "输入邀请码加入", accessibilityLabel: "输入邀请码加入"),
-            .init(value: .create, title: "创建私厨", accessibilityLabel: "创建私厨")
+            .init(value: .join, title: L10n.tr("输入邀请码加入"), accessibilityLabel: L10n.tr("输入邀请码加入")),
+            .init(value: .create, title: L10n.tr("创建私厨"), accessibilityLabel: L10n.tr("创建私厨"))
         ]
     }
 
     private var kitchenModeSelection: Binding<KitchenMode> {
-        Binding(
-            get: { showKitchenField ? kitchenMode : .join },
-            set: { mode in
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    kitchenMode = mode
-                    showKitchenField = true
-                    focusedField = .kitchen
-                }
-            }
-        )
-    }
-
-    private var loggedInKitchenSelection: Binding<KitchenMode> {
         Binding(
             get: { kitchenMode },
             set: { mode in
@@ -178,36 +134,28 @@ struct OnboardingView: View {
                     kitchenMode = mode
                     kitchenInput = ""
                     kitchenInputInvalid = false
+                    focusedField = .kitchen
                 }
-                focusedField = .kitchen
             }
         )
     }
 
     private var hintText: String {
-        if store.isAuthenticated {
-            return kitchenMode == .join ? "输入邀请码加入已有私厨" : "给你的私厨起个名字"
-        }
         switch authMode {
-        case .login: return ""
-        case .register: return "创建新账号"
+        case .login: return kitchenMode == .join ? L10n.tr("登录并加入私厨") : L10n.tr("登录并创建私厨")
+        case .register: return L10n.tr("创建新账号")
         }
     }
 
     private var buttonTitle: String {
-        if store.isAuthenticated {
-            return kitchenMode == .join ? "加入" : "创建并进入"
-        }
-        return authMode == .login ? "登录" : "注册"
+        return authMode == .login ? L10n.tr("登录") : L10n.tr("注册")
     }
 
     private func submit() {
         focusedField = nil
         store.error = nil
 
-        if store.isAuthenticated {
-            submitKitchen()
-        } else if authMode == .login {
+        if authMode == .login {
             submitLogin()
         } else {
             submitRegister()
@@ -219,8 +167,13 @@ struct OnboardingView: View {
               OnboardingValidationHelper.validatePassword(password, shake: &passwordShake, invalid: &passwordInvalid)
         else { return }
 
-        let code = showKitchenField && kitchenMode == .join ? kitchenInput : ""
-        let name = showKitchenField && kitchenMode == .create ? kitchenInput : ""
+        if !kitchenInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           !OnboardingValidationHelper.validateKitchenInput(kitchenInput, shake: &kitchenInputShake, invalid: &kitchenInputInvalid) {
+            return
+        }
+
+        let code = kitchenMode == .join ? kitchenInput : ""
+        let name = kitchenMode == .create ? kitchenInput : ""
 
         Task {
             isSubmitting = true
@@ -234,11 +187,12 @@ struct OnboardingView: View {
     private func submitRegister() {
         guard OnboardingValidationHelper.validateUserName(userName, shake: &userNameShake, invalid: &userNameInvalid),
               OnboardingValidationHelper.validatePassword(password, shake: &passwordShake, invalid: &passwordInvalid),
-              OnboardingValidationHelper.validateNickName(nickName, shake: &nickNameShake, invalid: &nickNameInvalid)
+              OnboardingValidationHelper.validateNickName(nickName, shake: &nickNameShake, invalid: &nickNameInvalid),
+              OnboardingValidationHelper.validateKitchenInput(kitchenInput, shake: &kitchenInputShake, invalid: &kitchenInputInvalid)
         else { return }
 
-        let code = showKitchenField && kitchenMode == .join ? kitchenInput : ""
-        let name = showKitchenField && kitchenMode == .create ? kitchenInput : ""
+        let code = kitchenMode == .join ? kitchenInput : ""
+        let name = kitchenMode == .create ? kitchenInput : ""
 
         Task {
             isSubmitting = true
@@ -250,19 +204,6 @@ struct OnboardingView: View {
         }
     }
 
-    private func submitKitchen() {
-        guard OnboardingValidationHelper.validateKitchenInput(kitchenInput, shake: &kitchenInputShake, invalid: &kitchenInputInvalid) else { return }
-
-        Task {
-            isSubmitting = true
-            defer { isSubmitting = false }
-            if kitchenMode == .join {
-                await store.joinKitchen(inviteCode: kitchenInput.trimmingCharacters(in: .whitespacesAndNewlines))
-            } else {
-                await store.createKitchen(named: kitchenInput.trimmingCharacters(in: .whitespacesAndNewlines))
-            }
-        }
-    }
 }
 
 #Preview {

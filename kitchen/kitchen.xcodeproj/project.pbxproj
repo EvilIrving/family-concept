@@ -239,10 +239,14 @@
 				};
 			};
 			buildConfigurationList = A4B95C432F877BEE003ABDB1 /* Build configuration list for PBXProject "kitchen" */;
-			developmentRegion = en;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				"zh-Hans",
+				"zh-Hant",
+				ja,
+				ko,
 				Base,
 			);
 			mainGroup = A4B95C3F2F877BEE003ABDB1;

@@ -11,13 +11,24 @@ extension AppStore {
             let response = try await apiClient.login(userName: userName, password: password)
             persistAuth(response.token, account: response.account)
 
+            if let kitchen = response.kitchen {
+                self.kitchen = kitchen
+                UserDefaults.standard.set(kitchen.id, forKey: "lastKitchenID")
+                return
+            }
+
             if let lastKitchenID = UserDefaults.standard.string(forKey: "lastKitchenID"),
                let k = try? await apiClient.fetchKitchen(id: lastKitchenID, authToken: authToken) {
                 kitchen = k
                 return
             }
 
-            await completeOnboarding(inviteCode: inviteCode, kitchenName: kitchenName)
+            if inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               kitchenName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                error = "这个账号还没有加入私厨，请输入邀请码或创建私厨"
+            } else {
+                await completeOnboarding(inviteCode: inviteCode, kitchenName: kitchenName)
+            }
         } catch {
             consumeError(error)
         }
