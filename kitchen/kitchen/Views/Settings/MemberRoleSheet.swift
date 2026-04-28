@@ -6,8 +6,9 @@ struct MemberRoleSheet: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
     @Environment(\.dismiss) private var dismiss
-    @State private var isUpdatingRole = false
-    @State private var isRemovingMember = false
+    @State private var pendingAction: PendingAction?
+
+    private enum PendingAction { case role, remove }
 
     private var member: Member? {
         store.members.first { $0.accountId == memberAccountID }
@@ -29,112 +30,112 @@ struct MemberRoleSheet: View {
         member?.role == .admin ? .member : .admin
     }
 
+    private var hasActions: Bool {
+        guard member != nil, store.isOwner, !isSelf else { return false }
+        return true
+    }
+
     var body: some View {
         AppSheetContainer(title: "成员", dismissTitle: "关闭", onDismiss: { dismiss() }) {
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                if let member {
-                    HStack(alignment: .center, spacing: AppSpacing.sm) {
-                        ZStack {
-                            Circle()
-                                .fill(AppSemanticColor.interactiveSecondaryPressed)
-                                .overlay(
-                                    Circle()
-                                        .stroke(AppSemanticColor.surface, lineWidth: 2)
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(isSelf ? AppSemanticColor.brandAccent : AppSemanticColor.border, lineWidth: isSelf ? 2 : 1)
-                                )
-                            Text(String(member.nickName.prefix(1)))
-                                .font(AppTypography.bodyStrong)
-                                .foregroundStyle(isSelf ? AppSemanticColor.primary : AppSemanticColor.textPrimary)
+            if let member {
+                VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                    memberHeader(member)
+                    if hasActions {
+                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                            if canEditRole { roleButton(member) }
+                            removeButton(member)
                         }
-                        .frame(width: 44, height: 44)
-
-                        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                            Text(member.nickName)
-                                .font(AppTypography.bodyStrong)
-                                .foregroundStyle(AppSemanticColor.textPrimary)
-                                .lineLimit(1)
-                            Text("权限：\(member.role.title)")
-                                .font(AppTypography.micro)
-                                .foregroundStyle(AppSemanticColor.textSecondary)
-                        }
-                        Spacer(minLength: 0)
                     }
-
-                    if isSelf {
-                        Text("这是我的账号")
-                            .font(AppTypography.micro)
-                            .foregroundStyle(AppSemanticColor.textTertiary)
-                    }
-                } else {
-                    Text("成员已不在列表中")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppSemanticColor.textSecondary)
                 }
-
-                if canEditRole, let member {
-                    AppButton(
-                        title: roleActionTitle,
-                        leadingIcon: member.role == .admin ? "person.badge.key" : "person.badge.shield.checkmark",
-                        role: .secondary,
-                        phase: isUpdatingRole ? .initialLoading(label: roleActionTitle) : .idle
-                    ) {
-                        Task {
-                            isUpdatingRole = true
-                            let actionTitle = roleActionTitle
-                            let success = await store.updateMemberRole(accountID: member.accountId, role: roleActionTarget)
-                            isUpdatingRole = false
-
-                            if success {
-                                feedbackRouter.show(.high(message: "已\(actionTitle)"), hint: .centerToast)
-                            } else {
-                                feedbackRouter.show(
-                                    .low(
-                                        message: store.error ?? "\(actionTitle)失败，请稍后重试",
-                                        systemImage: "xmark.octagon.fill"
-                                    ),
-                                    hint: .centerToast
-                                )
-                            }
-                        }
-                    }
-                    .padding(.top, AppSpacing.xs)
-                    .disabled(isUpdatingRole || isRemovingMember)
-                }
-
-                if store.isOwner && !isSelf, let member {
-                    AppButton(
-                        title: "移除成员",
-                        leadingIcon: "person.badge.minus",
-                        role: .destructive,
-                        phase: isRemovingMember ? .initialLoading(label: "移除成员") : .idle
-                    ) {
-                        Task {
-                            isRemovingMember = true
-                            let success = await store.removeMember(accountID: member.accountId)
-                            isRemovingMember = false
-
-                            if success {
-                                feedbackRouter.show(.high(message: "已移除成员"), hint: .centerToast)
-                                dismiss()
-                            } else {
-                                feedbackRouter.show(
-                                    .low(
-                                        message: store.error ?? "移除成员失败，请稍后重试",
-                                        systemImage: "xmark.octagon.fill"
-                                    ),
-                                    hint: .centerToast
-                                )
-                            }
-                        }
-                    }
-                    .padding(.top, AppSpacing.xs)
-                    .disabled(isUpdatingRole || isRemovingMember)
-                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            } else {
+                Text("该成员已不在私厨中")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, AppSpacing.lg)
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+    }
+
+    @ViewBuilder
+    private func memberHeader(_ member: Member) -> some View {
+        HStack(alignment: .center, spacing: AppSpacing.sm) {
+            Circle()
+                .fill(AppSemanticColor.interactiveSecondaryPressed)
+                .overlay(
+                    Text(String(member.nickName.prefix(1)))
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppSemanticColor.textPrimary)
+                )
+                .frame(width: 44, height: 44)
+
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                Text(member.nickName)
+                    .font(AppTypography.bodyStrong)
+                    .foregroundStyle(AppSemanticColor.textPrimary)
+                    .lineLimit(1)
+                Text(isSelf ? "这是我的账号 · \(member.role.title)" : "权限：\(member.role.title)")
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func roleButton(_ member: Member) -> some View {
+        let title = roleActionTitle
+        return AppButton(
+            title: title,
+            leadingIcon: member.role == .admin ? "person.badge.key" : "person.badge.shield.checkmark",
+            role: .secondary,
+            phase: pendingAction == .role ? .initialLoading(label: title) : .idle
+        ) {
+            run(.role, successMessage: "已\(title)", failureFallback: "\(title)失败，请稍后重试") {
+                await store.updateMemberRole(accountID: member.accountId, role: roleActionTarget)
+            }
+        }
+        .disabled(pendingAction != nil)
+    }
+
+    private func removeButton(_ member: Member) -> some View {
+        AppButton(
+            title: "移除成员",
+            leadingIcon: "person.badge.minus",
+            role: .destructive,
+            phase: pendingAction == .remove ? .initialLoading(label: "移除成员") : .idle
+        ) {
+            run(.remove, successMessage: "已移除成员", failureFallback: "移除成员失败，请稍后重试", dismissOnSuccess: true) {
+                await store.removeMember(accountID: member.accountId)
+            }
+        }
+        .disabled(pendingAction != nil)
+    }
+
+    private func run(
+        _ action: PendingAction,
+        successMessage: String,
+        failureFallback: String,
+        dismissOnSuccess: Bool = false,
+        operation: @escaping () async -> Bool
+    ) {
+        Task {
+            pendingAction = action
+            let success = await operation()
+            pendingAction = nil
+
+            if success {
+                feedbackRouter.show(.high(message: successMessage), hint: .centerToast)
+                if dismissOnSuccess { dismiss() }
+            } else {
+                feedbackRouter.show(
+                    .low(
+                        message: store.error ?? failureFallback,
+                        systemImage: "xmark.octagon.fill"
+                    ),
+                    hint: .centerToast
+                )
+            }
         }
     }
 }

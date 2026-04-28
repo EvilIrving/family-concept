@@ -15,28 +15,34 @@ struct MemberAvatarStrip: View {
         AppSemanticColor.successBackground
     ]
 
+    private let avatarOverlap: CGFloat = -14
+    private var hasOverflow: Bool { members.count > 6 }
+
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: -14) {
+                HStack(spacing: avatarOverlap) {
                     ForEach(Array(members.enumerated()), id: \.element.id) { index, member in
                         memberAvatarButton(member, colorIndex: index)
                             .zIndex(Double(index))
                     }
                 }
-                .padding(.leading, AppSpacing.sm)
-                .padding (.vertical, AppSpacing.xxs)
-                .padding (.trailing, AppSpacing.xs)
+                .padding(EdgeInsets(
+                    top: AppSpacing.xxs,
+                    leading: AppSpacing.sm,
+                    bottom: AppSpacing.xxs,
+                    trailing: AppSpacing.xs
+                ))
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel(
-                members.count > 6
-                    ? "厨房成员，共 \(members.count) 人，横向滑动可查看全部"
-                    : "厨房成员，共 \(members.count) 人"
+                hasOverflow
+                    ? "私厨成员，共 \(members.count) 人，横向滑动可查看全部"
+                    : "私厨成员，共 \(members.count) 人"
             )
 
-            if members.count > 6 {
-                Text("共 \(members.count) 人，左滑可查看其余成员")
+            if hasOverflow {
+                Text("向左滑动查看更多成员")
                     .font(AppTypography.micro)
                     .foregroundStyle(AppSemanticColor.textTertiary)
             }
@@ -72,7 +78,7 @@ struct MemberAvatarStrip: View {
             .shadow(color: AppSemanticColor.shadowSubtle, radius: 1, y: 1)
         }
         .buttonStyle(MemberAvatarButtonStyle())
-        .accessibilityLabel("\(member.nickName)，\(member.role.title)")
+        .accessibilityLabel("\(member.nickName)，\(member.role.title)，点按查看详情")
     }
 }
 
