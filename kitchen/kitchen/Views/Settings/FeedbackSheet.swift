@@ -17,7 +17,7 @@ struct FeedbackSheet: View {
     }
 
     var body: some View {
-        AppSheetContainer(title: "需求和反馈", dismissTitle: "关闭", onDismiss: { dismiss() }) {
+        AppSheetContainer(title: L10n.tr("需求和反馈"), dismissTitle: L10n.tr("关闭"), onDismiss: { dismiss() }) {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: AppSpacing.lg) {
                     inputCard
@@ -32,12 +32,12 @@ struct FeedbackSheet: View {
 
     private var inputCard: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
-            fieldLabel("想提的需求和吐槽")
+            fieldLabel(L10n.tr("想提的需求和吐槽"))
             feedbackEditor
-            fieldLabel("联系方式")
+            fieldLabel(L10n.tr("联系方式"))
             platformPicker
             AppTextField(
-                title: "留下 \(contactPlatform.displayName) 联系方式",
+                title: L10n.tr("留下 %@ 联系方式", contactPlatform.displayName),
                 text: $contactHandle,
                 focusedField: $focusedField,
                 field: .contact,
@@ -107,10 +107,10 @@ struct FeedbackSheet: View {
 
     private var submitButton: some View {
         AppButton(
-            title: "提交",
+            title: L10n.tr("提交"),
             leadingIcon: "paperplane.fill",
             role: .primary,
-            phase: isSubmitting ? .loading(label: "提交中") : .idle
+            phase: isSubmitting ? .loading(label: L10n.tr("提交中")) : .idle
         ) {
             submit()
         }
@@ -135,12 +135,12 @@ struct FeedbackSheet: View {
         validationTrigger += 1
         guard !messageTrimmed.isEmpty else {
             focusedField = .message
-            feedbackRouter.show(.low(message: "请先填写需求或吐槽"), hint: .centerToast)
+            feedbackRouter.show(.low(message: L10n.tr("请先填写需求或吐槽")), hint: .centerToast)
             return
         }
         guard !contactTrimmed.isEmpty else {
             focusedField = .contact
-            feedbackRouter.show(.low(message: "请留下联系方式"), hint: .centerToast)
+            feedbackRouter.show(.low(message: L10n.tr("请留下联系方式")), hint: .centerToast)
             return
         }
 
@@ -155,7 +155,7 @@ struct FeedbackSheet: View {
                 )
                 await MainActor.run {
                     isSubmitting = false
-                    feedbackRouter.show(.high(message: "已提交反馈"), hint: .centerToast)
+                    feedbackRouter.show(.high(message: L10n.tr("已提交反馈")), hint: .centerToast)
                     dismiss()
                 }
             } catch {

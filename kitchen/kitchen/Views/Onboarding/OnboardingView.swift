@@ -121,7 +121,7 @@ struct OnboardingView: View {
 
     private var kitchenSegments: [AppSegmentedButton<KitchenMode>.Segment] {
         [
-            .init(value: .join, title: L10n.tr("输入邀请码加入"), accessibilityLabel: L10n.tr("输入邀请码加入")),
+            .init(value: .join, title: L10n.tr("邀请码"), accessibilityLabel: L10n.tr("输入邀请码加入")),
             .init(value: .create, title: L10n.tr("创建私厨"), accessibilityLabel: L10n.tr("创建私厨"))
         ]
     }

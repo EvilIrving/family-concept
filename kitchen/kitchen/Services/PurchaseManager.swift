@@ -12,6 +12,7 @@ final class PurchaseManager: ObservableObject {
     @Published private(set) var products: [Product] = []
     @Published private(set) var isLoadingProducts: Bool = false
     @Published private(set) var isPurchasing: Bool = false
+    @Published private(set) var isRestoring: Bool = false
 
     // MARK: - Callbacks
 
@@ -90,18 +91,25 @@ final class PurchaseManager: ObservableObject {
     // MARK: - Redeem Code
 
     func redeemCode() {
-        AppStore.presentOfferCodeRedeemSheet()
+        SKPaymentQueue.default().presentCodeRedemptionSheet()
     }
 
     // MARK: - Restore
 
-    func restore() async {
-        // StoreKit 2 的推荐做法：遍历 Transaction.currentEntitlements
+    func restore() async throws -> Int {
+        isRestoring = true
+        defer { isRestoring = false }
+
+        try await StoreKit.AppStore.sync()
+
+        var restoredCount = 0
         for await result in Transaction.currentEntitlements {
             if case .verified(let tx) = result {
+                restoredCount += 1
                 await onTransactionVerified?(tx.productID, result.jwsRepresentation)
             }
         }
+        return restoredCount
     }
 
     // MARK: - Transaction Observer

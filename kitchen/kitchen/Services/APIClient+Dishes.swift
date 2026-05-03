@@ -133,13 +133,13 @@ extension APIClient {
 
     private func uploadDecodeError(_ error: Error, data: Data) -> APIError {
         if data.isEmpty {
-            return .invalidResponse("接口返回为空")
+            return .invalidResponse(L10n.tr("接口返回为空"))
         }
 
         if let text = String(data: data, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
            !text.isEmpty {
-            return .invalidResponse("接口返回格式异常：\(String(text.prefix(120)))")
+            return .invalidResponse(L10n.tr("接口返回格式异常：%@", String(text.prefix(120))))
         }
 
         return .decoding(error)

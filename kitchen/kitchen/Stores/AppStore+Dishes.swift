@@ -25,7 +25,7 @@ extension AppStore {
             return dish
         } catch {
             if isDishLimitServerError(error) {
-                menuFeedback = .generic(message: "已达菜品上限，请升级套餐")
+                menuFeedback = .generic(message: L10n.tr("已达菜品上限，请升级套餐"))
                 await refreshEntitlement()
             } else {
                 consumeError(error)

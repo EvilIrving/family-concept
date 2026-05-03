@@ -11,9 +11,9 @@ struct OrdersView: View {
                 AppCard {
                     VStack(alignment: .leading, spacing: AppSpacing.md) {
                         HStack(spacing: AppSpacing.xs) {
-                            statusPill(title: "待制作", value: waitingCount, tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
-                            statusPill(title: "制作中", value: cookingCount, tint: AppSemanticColor.warning, background: AppSemanticColor.warningBackground)
-                            statusPill(title: "已完成", value: doneCount, tint: AppSemanticColor.primary, background: AppSemanticColor.interactiveSecondary)
+                            statusPill(title: L10n.tr("待制作"), value: waitingCount, tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
+                            statusPill(title: L10n.tr("制作中"), value: cookingCount, tint: AppSemanticColor.warning, background: AppSemanticColor.warningBackground)
+                            statusPill(title: L10n.tr("已完成"), value: doneCount, tint: AppSemanticColor.primary, background: AppSemanticColor.interactiveSecondary)
                         }
                     }
                 }
@@ -39,14 +39,14 @@ struct OrdersView: View {
                                             onReduce: {
                                                 Task {
                                                     if await store.reduceWaitingItemQuantity(for: item) {
-                                                        feedbackRouter.show(.low(message: "已减少 \(item.dishName) 1 份"))
+                                                        feedbackRouter.show(.low(message: L10n.tr("已减少 %@ 1 份", item.dishName)))
                                                     }
                                                 }
                                             },
                                             onCancel: {
                                                 Task {
                                                     if await store.cancelWaitingItems(for: item) {
-                                                        feedbackRouter.show(.low(message: "已取消 \(item.dishName)"))
+                                                        feedbackRouter.show(.low(message: L10n.tr("已取消 %@", item.dishName)))
                                                     }
                                                 }
                                             }
@@ -58,11 +58,11 @@ struct OrdersView: View {
                                 }
 
                                 if shouldShowFinishButton {
-                                    AppButton(title: "这顿好了", role: .primary) {
+                                    AppButton(title: L10n.tr("这顿好了"), role: .primary) {
                                         Task {
                                             let didFinish = await store.finishOrder()
                                             if didFinish {
-                                                feedbackRouter.show(.low(message: "这顿收好了"))
+                                                feedbackRouter.show(.low(message: L10n.tr("这顿收好了")))
                                             }
                                         }
                                     }
@@ -92,7 +92,7 @@ struct OrdersView: View {
             }
             .padding(.trailing, AppSpacing.md)
             .padding(.bottom, store.orderItems.contains(where: { $0.status != .cancelled }) ? AppSpacing.xl + shoppingListBarHeight : AppSpacing.xl)
-            .accessibilityLabel("查看历史订单")
+            .accessibilityLabel(L10n.tr("查看历史订单"))
         }
         .sheet(item: modalRouteBinding, onDismiss: { modalRouter.handleDismissedCurrent() }) { route in
             ordersSheet(for: route)
@@ -111,24 +111,24 @@ struct OrdersView: View {
 
     private var ordersPhase: LoadingPhase<[GroupedOrderItem]> {
         if store.isLoading && !store.groupedOrderItems.isEmpty {
-            return .refreshing(store.groupedOrderItems, label: "刷新订单")
+            return .refreshing(store.groupedOrderItems, label: L10n.tr("刷新订单"))
         }
         if let feedback = store.ordersFeedback {
             return .failure(feedback, retainedValue: store.orderItems.isEmpty ? nil : store.groupedOrderItems)
         }
         if store.isLoading && store.orderItems.isEmpty {
-            return .initialLoading(label: "加载订单")
+            return .initialLoading(label: L10n.tr("加载订单"))
         }
         if store.groupedOrderItems.isEmpty {
             return .failure(
-                .empty(kind: .noData, title: "还没有出餐内容", message: "菜单页提交后，这里会直接显示当前订单。"),
+                .empty(kind: .noData, title: L10n.tr("还没有出餐内容"), message: L10n.tr("菜单页提交后，这里会直接显示当前订单。")),
                 retainedValue: nil
             )
         }
         return .success(store.groupedOrderItems)
     }
 
-    private var shoppingListBarTitle: String { "查看采购清单" }
+    private var shoppingListBarTitle: String { L10n.tr("查看采购清单") }
     private var shoppingListBarHeight: CGFloat { 40 }
 
     // MARK: - Subviews

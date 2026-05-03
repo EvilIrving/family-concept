@@ -9,6 +9,7 @@ struct SettingsView: View {
     @AppStorage("themeMode") private var themeMode = "system"
     @StateObject private var modalRouter = ModalRouter<SettingsModalRoute>()
     @State private var signOutPendingConfirm = false
+    @State private var isRedeemingCode = false
 
     private let privacyPolicyURL = URL(string: "https://evilirving.github.io/family-concept")!
 
@@ -24,7 +25,7 @@ struct SettingsView: View {
                 }
             }
 
-            SettingsSection(title: "偏好设置") {
+            SettingsSection(title: L10n.tr("偏好设置")) {
                 PreferencesSection(
                     notificationsEnabled: $notificationsEnabled,
                     hapticsEnabled: $hapticsEnabled,
@@ -33,7 +34,7 @@ struct SettingsView: View {
             }
 
             if store.hasKitchen {
-                SettingsSection(title: "会员套餐") {
+                SettingsSection(title: L10n.tr("会员套餐")) {
                     SettingsMenuCard {
                         UpgradeMenuRow(
                             entitlement: store.entitlement,
@@ -44,10 +45,10 @@ struct SettingsView: View {
                 }
             }
 
-            SettingsSection(title: "帮助与反馈") {
+            SettingsSection(title: L10n.tr("帮助与反馈")) {
                 SettingsMenuCard {
                     SettingsMenuRow(
-                        title: "意见反馈",
+                        title: L10n.tr("意见反馈"),
                         showsDivider: false,
                         onTap: { modalRouter.present(.feedback) }
                     )
@@ -57,25 +58,27 @@ struct SettingsView: View {
                 }
             }
 
-            SettingsSection(title: "账户与隐私") {
+            SettingsSection(title: L10n.tr("账户与隐私")) {
                 SettingsMenuCard {
                     SettingsMenuRow(
-                        title: "恢复购买",
-                        onTap: { Task { await purchaseManager.restore() } }
+                        title: purchaseManager.isRestoring ? L10n.tr("正在恢复购买") : L10n.tr("恢复购买"),
+                        isEnabled: purchaseManager.isRestoring == false,
+                        onTap: { Task { await restorePurchases() } }
                     )
                     SettingsMenuRow(
-                        title: "兑换优惠码",
-                        onTap: { purchaseManager.redeemCode() }
+                        title: isRedeemingCode ? L10n.tr("正在打开兑换入口") : L10n.tr("兑换优惠码"),
+                        isEnabled: isRedeemingCode == false,
+                        onTap: { redeemCode() }
                     )
                     SettingsMenuRow(
-                        title: "隐私说明",
+                        title: L10n.tr("隐私说明"),
                         showsDivider: false,
                         url: privacyPolicyURL
                     )
                 }
             }
 
-            AppButton(title: signOutPendingConfirm ? "确认退出" : "退出登录", role: .destructive) {
+            AppButton(title: signOutPendingConfirm ? L10n.tr("确认退出") : L10n.tr("退出登录"), role: .destructive) {
                 if signOutPendingConfirm {
                     signOutPendingConfirm = false
                     Task { await store.signOut() }
@@ -122,6 +125,29 @@ struct SettingsView: View {
                 }
             }
         )
+    }
+
+    private func restorePurchases() async {
+        do {
+            let restoredCount = try await purchaseManager.restore()
+            if restoredCount > 0 {
+                feedbackRouter.show(.high(message: L10n.tr("购买已恢复"), systemImage: "checkmark.circle.fill"))
+            } else {
+                feedbackRouter.show(.low(message: L10n.tr("没有可恢复的购买"), systemImage: "info.circle"))
+            }
+        } catch {
+            feedbackRouter.show(store.feedback(for: error))
+        }
+    }
+
+    private func redeemCode() {
+        isRedeemingCode = true
+        purchaseManager.redeemCode()
+        feedbackRouter.show(.low(message: L10n.tr("已打开兑换入口"), systemImage: "ticket"))
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            isRedeemingCode = false
+        }
     }
 }
 
@@ -175,7 +201,7 @@ private struct UpgradeMenuRow: View {
                         .font(AppTypography.bodyStrong)
                         .foregroundStyle(AppSemanticColor.textPrimary)
                     if !entitlement.isUnlimited, let limit = entitlement.dishLimit {
-                        Text("已用 \(entitlement.activeDishCount) / \(limit) 道")
+                        Text(L10n.tr("已用 %lld / %lld 道", Int64(entitlement.activeDishCount), Int64(limit)))
                             .font(AppTypography.caption)
                             .foregroundStyle(AppSemanticColor.textSecondary)
                     }
@@ -207,6 +233,7 @@ private struct SettingsMenuRow: View {
 
     let title: String
     var showsDivider: Bool = true
+    var isEnabled: Bool = true
     var url: URL? = nil
     var onTap: (() -> Void)? = nil
 
@@ -214,6 +241,7 @@ private struct SettingsMenuRow: View {
         rowContent
             .contentShape(Rectangle())
             .onTapGesture {
+                guard isEnabled else { return }
                 if let url {
                     openURL(url)
                 } else {
@@ -226,7 +254,7 @@ private struct SettingsMenuRow: View {
         HStack(spacing: AppSpacing.sm) {
             Text(title)
                 .font(AppTypography.bodyStrong)
-                .foregroundStyle(AppSemanticColor.textPrimary)
+                .foregroundStyle(isEnabled ? AppSemanticColor.textPrimary : AppSemanticColor.textTertiary)
             Spacer()
             if url == nil, onTap == nil {
                 Text("稍后推出")

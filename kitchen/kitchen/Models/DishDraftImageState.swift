@@ -15,34 +15,34 @@ extension DishDraftImageState {
     var statusTitle: String {
         switch self {
         case .empty:
-            return "待添加图片"
+            return L10n.tr("待添加图片")
         case .processing:
-            return "正在优化菜品图"
+            return L10n.tr("正在优化菜品图")
         case .remote:
-            return "图片已就绪"
+            return L10n.tr("图片已就绪")
         case .ready:
-            return "图片已就绪"
+            return L10n.tr("图片已就绪")
         case .uploading:
-            return "正在上传"
+            return L10n.tr("正在上传")
         case .uploadFailed:
-            return "上传失败"
+            return L10n.tr("上传失败")
         case .failed:
-            return "处理失败"
+            return L10n.tr("处理失败")
         }
     }
 
     var statusSubtitle: String {
         switch self {
         case .empty:
-            return "拍照或选图后，可在方形取景框内调整菜品构图"
+            return L10n.tr("拍照或选图后，可在方形取景框内调整菜品构图")
         case .processing:
-            return "正在生成方形菜品封面"
+            return L10n.tr("正在生成方形菜品封面")
         case .remote:
-            return "当前正在使用已上传图片"
+            return L10n.tr("当前正在使用已上传图片")
         case .ready:
-            return "菜品封面已经准备完成"
+            return L10n.tr("菜品封面已经准备完成")
         case .uploading:
-            return "准备同步到云端"
+            return L10n.tr("准备同步到云端")
         case .uploadFailed(_, _, let message):
             return message
         case .failed(let message):

@@ -12,7 +12,7 @@ import Foundation
 enum L10n {
     /// 当前 App 语言代码（由 `AppLanguageStore` 控制）。读取最新值，避免缓存。
     private static var currentLanguageCode: String {
-        UserDefaults.standard.string(forKey: AppLanguageStore.storageKey) ?? "en"
+        AppLanguage.resolved().rawValue
     }
 
     /// 解析本地化字符串。回退顺序：当前语言 → en → key 原样返回

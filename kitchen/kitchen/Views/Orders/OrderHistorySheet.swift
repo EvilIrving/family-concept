@@ -8,8 +8,8 @@ struct OrderHistorySheet: View {
 
     var body: some View {
         AppSheetContainer(
-            title: "历史订单",
-            dismissTitle: "关闭",
+            title: L10n.tr("历史订单"),
+            dismissTitle: L10n.tr("关闭"),
             onDismiss: { dismiss() }
         ) {
             AppLoadingBlock(
@@ -41,7 +41,7 @@ struct OrderHistorySheet: View {
                         }
                     } label: {
                         HStack(spacing: AppSpacing.sm) {
-                            AppPill(title: "\(order.itemCount) 道菜", tint: AppSemanticColor.primary, background: AppSemanticColor.interactiveSecondary)
+                            AppPill(title: L10n.tr("%lld 道菜", order.itemCount), tint: AppSemanticColor.primary, background: AppSemanticColor.interactiveSecondary)
                             Text(orderTitle(order))
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppSemanticColor.textSecondary)
@@ -62,21 +62,21 @@ struct OrderHistorySheet: View {
     }
 
     private func orderTitle(_ order: OrderHistoryEntry) -> String {
-        displayOrderDate(order.finishedAt) ?? "已收好的这一顿"
+        displayOrderDate(order.finishedAt) ?? L10n.tr("已收好的这一顿")
     }
 
     private var historyPhase: LoadingPhase<[OrderHistoryEntry]> {
         if store.isLoadingOrderHistory && !store.orderHistory.isEmpty {
-            return .refreshing(store.orderHistory, label: "刷新历史")
+            return .refreshing(store.orderHistory, label: L10n.tr("刷新历史"))
         }
         if let feedback = store.historyFeedback {
             return .failure(feedback, retainedValue: store.orderHistory.isEmpty ? nil : store.orderHistory)
         }
         if store.isLoadingOrderHistory && store.orderHistory.isEmpty {
-            return .initialLoading(label: "加载历史")
+            return .initialLoading(label: L10n.tr("加载历史"))
         }
         if store.orderHistory.isEmpty {
-            return .failure(.empty(kind: .noData, title: "还没有历史记录"), retainedValue: nil)
+            return .failure(.empty(kind: .noData, title: L10n.tr("还没有历史记录")), retainedValue: nil)
         }
         return .success(store.orderHistory)
     }

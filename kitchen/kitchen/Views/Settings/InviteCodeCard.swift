@@ -30,7 +30,7 @@ struct InviteCodeCard: View {
             .padding(AppInset.card)
         }
         .buttonStyle(InviteCodeCardStyle())
-        .accessibilityLabel("复制邀请码")
+        .accessibilityLabel(L10n.tr("复制邀请码"))
     }
 }
 

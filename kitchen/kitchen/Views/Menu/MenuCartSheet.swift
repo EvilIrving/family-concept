@@ -25,7 +25,7 @@ struct MenuCartSheet: View {
             ScrollView {
                 VStack(spacing: AppSpacing.sm) {
                     if store.cartItems.isEmpty {
-                        Text("购物车是空的")
+                        Text(L10n.tr("购物车是空的"))
                             .font(AppTypography.body)
                             .foregroundStyle(AppSemanticColor.textSecondary)
                             .frame(maxWidth: .infinity)

@@ -12,7 +12,7 @@ struct ThemeSelectionRow: View {
                 .foregroundStyle(AppSemanticColor.textPrimary)
             Spacer()
             Menu {
-                ForEach([("浅色", "light"), ("跟随系统", "system"), ("深色", "dark")], id: \.1) { label, value in
+                ForEach([(L10n.tr("浅色"), "light"), (L10n.tr("跟随系统"), "system"), (L10n.tr("深色"), "dark")], id: \.1) { label, value in
                     Button {
                         themeMode = value
                         store.setThemeMode(value)
@@ -41,9 +41,9 @@ struct ThemeSelectionRow: View {
 
     private var themeDisplayName: String {
         switch themeMode {
-        case "light": return "浅色"
-        case "dark": return "深色"
-        default: return "跟随系统"
+        case "light": return L10n.tr("浅色")
+        case "dark": return L10n.tr("深色")
+        default: return L10n.tr("跟随系统")
         }
     }
 }

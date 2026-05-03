@@ -20,7 +20,7 @@ struct RemoteDishImage<Content: View>: View {
                 content(image)
                     .transition(.opacity)
             case .failure(let feedback, _):
-                AppErrorPlaceholder(feedback: feedback, retryTitle: "重试") {
+                AppErrorPlaceholder(feedback: feedback, retryTitle: L10n.tr("重试")) {
                     Task {
                         await loader.retry()
                     }
@@ -73,9 +73,9 @@ extension RemoteDishImage {
             }
 
             if let retainedValue {
-                phase = .loading(LoadingContext(mode: .refresh, label: "加载中", retainedValue: retainedValue))
+                phase = .loading(LoadingContext(mode: .refresh, label: L10n.tr("加载中"), retainedValue: retainedValue))
             } else {
-                phase = .loading(LoadingContext(mode: .initial, label: "加载中"))
+                phase = .loading(LoadingContext(mode: .initial, label: L10n.tr("加载中")))
             }
 
             do {
@@ -90,7 +90,7 @@ extension RemoteDishImage {
                 #if DEBUG
                 print("RemoteDishImage request error: \(url.absoluteString) error=\(error.localizedDescription)")
                 #endif
-                phase = .failure(.network(message: "图片加载失败"), retainedValue: retainedValue)
+                phase = .failure(.network(message: L10n.tr("图片加载失败")), retainedValue: retainedValue)
             }
         }
 

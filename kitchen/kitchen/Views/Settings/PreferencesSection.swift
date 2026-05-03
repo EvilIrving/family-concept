@@ -10,11 +10,11 @@ struct PreferencesSection: View {
     var body: some View {
         AppCard {
             VStack(spacing: 0) {
-                toggleRow(title: "通知", isOn: $notificationsEnabled)
+                toggleRow(title: L10n.tr("通知"), isOn: $notificationsEnabled)
                 rowDivider
                 languageRow
                 rowDivider
-                toggleRow(title: "触感反馈", isOn: $hapticsEnabled)
+                toggleRow(title: L10n.tr("触感反馈"), isOn: $hapticsEnabled)
                 rowDivider
                 ThemeSelectionRow(themeMode: $themeMode)
             }

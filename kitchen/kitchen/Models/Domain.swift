@@ -9,9 +9,9 @@ enum KitchenRole: String, Codable, CaseIterable, Equatable {
 
     var title: String {
         switch self {
-        case .owner: "管理员"
-        case .admin: "副管理员"
-        case .member: "成员"
+        case .owner: L10n.tr("管理员")
+        case .admin: L10n.tr("副管理员")
+        case .member: L10n.tr("成员")
         }
     }
 }
@@ -36,10 +36,10 @@ enum ItemStatus: String, Codable, CaseIterable, Equatable {
 
     var title: String {
         switch self {
-        case .waiting: "待制作"
-        case .cooking: "制作中"
-        case .done: "已完成"
-        case .cancelled: "已取消"
+        case .waiting: L10n.tr("待制作")
+        case .cooking: L10n.tr("制作中")
+        case .done: L10n.tr("已完成")
+        case .cancelled: L10n.tr("已取消")
         }
     }
 }
@@ -233,7 +233,7 @@ extension Array where Element == OrderItem {
             groupedByKey[key] = GroupedOrderItem(
                 itemIDs: [item.id],
                 dishId: item.dishId,
-                dishName: dishNames[item.dishId] ?? "未知菜品",
+                dishName: dishNames[item.dishId] ?? L10n.tr("未知菜品"),
                 quantity: item.quantity,
                 status: item.status,
                 createdAt: item.createdAt

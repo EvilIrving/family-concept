@@ -23,7 +23,7 @@ struct MemberRoleSheet: View {
     }
 
     private var roleActionTitle: String {
-        member?.role == .admin ? "改为成员" : "设为副管理员"
+        member?.role == .admin ? L10n.tr("改为成员") : L10n.tr("设为副管理员")
     }
 
     private var roleActionTarget: KitchenRole {
@@ -36,7 +36,7 @@ struct MemberRoleSheet: View {
     }
 
     var body: some View {
-        AppSheetContainer(title: "成员", dismissTitle: "关闭", onDismiss: { dismiss() }) {
+        AppSheetContainer(title: L10n.tr("成员"), dismissTitle: L10n.tr("关闭"), onDismiss: { dismiss() }) {
             if let member {
                 VStack(alignment: .leading, spacing: AppSpacing.lg) {
                     memberHeader(member)
@@ -75,7 +75,7 @@ struct MemberRoleSheet: View {
                     .font(AppTypography.bodyStrong)
                     .foregroundStyle(AppSemanticColor.textPrimary)
                     .lineLimit(1)
-                Text(isSelf ? "这是我的账号 · \(member.role.title)" : "权限：\(member.role.title)")
+                Text(isSelf ? L10n.tr("这是我的账号 · %@", member.role.title) : L10n.tr("权限：%@", member.role.title))
                     .font(AppTypography.micro)
                     .foregroundStyle(AppSemanticColor.textSecondary)
             }
@@ -91,7 +91,7 @@ struct MemberRoleSheet: View {
             role: .secondary,
             phase: pendingAction == .role ? .initialLoading(label: title) : .idle
         ) {
-            run(.role, successMessage: "已\(title)", failureFallback: "\(title)失败，请稍后重试") {
+            run(.role, successMessage: L10n.tr("已%@", title), failureFallback: L10n.tr("%@失败，请稍后重试", title)) {
                 await store.updateMemberRole(accountID: member.accountId, role: roleActionTarget)
             }
         }
@@ -100,12 +100,12 @@ struct MemberRoleSheet: View {
 
     private func removeButton(_ member: Member) -> some View {
         AppButton(
-            title: "移除成员",
+            title: L10n.tr("移除成员"),
             leadingIcon: "person.badge.minus",
             role: .destructive,
-            phase: pendingAction == .remove ? .initialLoading(label: "移除成员") : .idle
+            phase: pendingAction == .remove ? .initialLoading(label: L10n.tr("移除成员")) : .idle
         ) {
-            run(.remove, successMessage: "已移除成员", failureFallback: "移除成员失败，请稍后重试", dismissOnSuccess: true) {
+            run(.remove, successMessage: L10n.tr("已移除成员"), failureFallback: L10n.tr("移除成员失败，请稍后重试"), dismissOnSuccess: true) {
                 await store.removeMember(accountID: member.accountId)
             }
         }

@@ -31,7 +31,7 @@ struct MenuDishFormScreen: View {
                     )
 
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Text("常用分类")
+                        Text(L10n.tr("常用分类"))
                             .font(AppTypography.micro)
                             .foregroundStyle(AppSemanticColor.textSecondary)
 
@@ -61,12 +61,12 @@ struct MenuDishFormScreen: View {
                             }
                         )
                         .confirmationDialog(
-                            "删除后会归档该菜品",
+                            L10n.tr("删除后会归档该菜品"),
                             isPresented: $archiveConfirmationPresented,
                             titleVisibility: .visible
                         ) {
-                            Button("删除菜品", role: .destructive, action: onDelete)
-                            Button("取消", role: .cancel) {}
+                            Button(L10n.tr("删除菜品"), role: .destructive, action: onDelete)
+                            Button(L10n.tr("取消"), role: .cancel) {}
                         }
                     }
                 }
@@ -109,7 +109,7 @@ struct MenuDishFormScreen: View {
 
     private var header: some View {
         HStack(alignment: .top) {
-            Button("关闭", action: onDismiss)
+            Button(L10n.tr("关闭"), action: onDismiss)
                 .font(AppTypography.bodyStrong)
                 .foregroundStyle(AppSemanticColor.textSecondary)
 

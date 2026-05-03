@@ -12,7 +12,7 @@ struct UpgradeSheet: View {
     @State private var selectedProductCode: PurchaseProduct = .dishesUnlimited
 
     var body: some View {
-        AppSheetContainer(title: nil, dismissTitle: "关闭", onDismiss: { dismiss() }) {
+        AppSheetContainer(title: nil, dismissTitle: L10n.tr("关闭"), onDismiss: { dismiss() }) {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: AppSpacing.md) {
                     statusMessage
@@ -27,7 +27,7 @@ struct UpgradeSheet: View {
                     AppButton(
                         title: continueTitle,
                         role: isContinueAvailable ? .primary : .secondary,
-                        phase: isPurchasing ? .initialLoading(label: "购买中…") : .idle
+                        phase: isPurchasing ? .initialLoading(label: L10n.tr("购买中…")) : .idle
                     ) {
                         continueTapped()
                     }
@@ -53,11 +53,11 @@ struct UpgradeSheet: View {
     @ViewBuilder
     private var statusMessage: some View {
         if store.pendingEntitlementUpgrade != nil {
-            inlineMessage("购买已完成，正在同步权限…")
+            inlineMessage(L10n.tr("购买已完成，正在同步权限…"))
         } else if store.entitlement.status == .pendingVerificationFailed {
-            inlineMessage("同步失败，当前展示的是上次已确认的权益，可稍后在设置中恢复购买。")
+            inlineMessage(L10n.tr("同步失败，当前展示的是上次已确认的权益，可稍后在设置中恢复购买。"))
         } else if store.entitlement.status == .revoked {
-            inlineMessage("该权益已被撤销，当前不可用。")
+            inlineMessage(L10n.tr("该权益已被撤销，当前不可用。"))
         }
     }
 
@@ -77,7 +77,7 @@ struct UpgradeSheet: View {
                 Text("商品信息加载失败，请稍后重试。")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.textSecondary)
-                AppLinkButton(title: "重试") {
+                AppLinkButton(title: L10n.tr("重试")) {
                     Task { await loadProducts() }
                 }
                 .disabled(purchaseManager.isLoadingProducts)
@@ -92,7 +92,7 @@ struct UpgradeSheet: View {
         ZStack {
             AppSemanticColor.surface.opacity(0.86)
                 .ignoresSafeArea()
-            AppLoadingIndicator(label: "购买处理中", tone: .primary)
+            AppLoadingIndicator(label: L10n.tr("购买处理中"), tone: .primary)
                 .padding(AppSpacing.md)
                 .background(AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
                 .overlay {
@@ -180,9 +180,9 @@ struct UpgradeSheet: View {
                 .font(AppTypography.cardTitle)
                 .foregroundStyle(AppSemanticColor.textPrimary)
             HStack(spacing: AppSpacing.sm) {
-                dishLimitItem(title: "免费", value: "10 道", isEmphasized: false)
-                dishLimitItem(title: "Essentials", value: "50 道", isEmphasized: true)
-                dishLimitItem(title: "Unlimited", value: "不限量", isEmphasized: true)
+                dishLimitItem(title: L10n.tr("免费"), value: L10n.tr("10 道"), isEmphasized: false)
+                dishLimitItem(title: "Essentials", value: L10n.tr("50 道"), isEmphasized: true)
+                dishLimitItem(title: "Unlimited", value: L10n.tr("不限量"), isEmphasized: true)
             }
         }
         .padding(AppSpacing.md)
@@ -227,11 +227,11 @@ struct UpgradeSheet: View {
     private var continueTitle: String {
         switch store.entitlement.planCode {
         case .free:
-            return "继续"
+            return L10n.tr("继续")
         case .dishesFifty:
-            return "即将支持"
+            return L10n.tr("即将支持")
         case .dishesUnlimited:
-            return "您已经是 ∞"
+            return L10n.tr("您已经是 ∞")
         }
     }
 
@@ -252,15 +252,15 @@ struct UpgradeSheet: View {
 
     private func priceTitle(for code: PurchaseProduct, product: Product?) -> String {
         if isCurrentPlan(code.plan) {
-            return "Current"
+            return L10n.tr("当前")
         }
         if store.entitlement.planCode == .dishesFifty && code == .dishesUnlimited {
-            return "即将支持"
+            return L10n.tr("即将支持")
         }
         if didFailLoadingProducts && product == nil {
-            return "加载失败"
+            return L10n.tr("加载失败")
         }
-        return product?.displayPrice ?? "价格加载中"
+        return product?.displayPrice ?? L10n.tr("价格加载中")
     }
 
     private func planTitle(for code: PurchaseProduct) -> String {
@@ -275,12 +275,12 @@ struct UpgradeSheet: View {
     private func planSubtitle(for code: PurchaseProduct) -> String {
         switch code {
         case .dishesFifty:
-            return "适合刚开始整理家庭菜单"
+            return L10n.tr("适合刚开始整理家庭菜单")
         case .dishesUnlimited:
             if store.entitlement.planCode == .dishesFifty {
-                return "Essentials 升级即将支持"
+                return L10n.tr("Essentials 升级即将支持")
             }
-            return "适合长期记录全部菜谱"
+            return L10n.tr("适合长期记录全部菜谱")
         }
     }
 
@@ -291,7 +291,7 @@ struct UpgradeSheet: View {
             return
         }
         guard let product = selectedProduct else {
-            localError = "商品信息尚未加载完成，请稍后重试"
+            localError = L10n.tr("商品信息尚未加载完成，请稍后重试")
             return
         }
         Task { await buy(product) }
@@ -300,11 +300,11 @@ struct UpgradeSheet: View {
     private var unavailableContinueMessage: String {
         switch store.entitlement.planCode {
         case .free:
-            return didFailLoadingProducts ? "商品信息加载失败，请重试后继续" : "商品信息尚未加载完成，请稍后重试"
+            return didFailLoadingProducts ? L10n.tr("商品信息加载失败，请重试后继续") : L10n.tr("商品信息尚未加载完成，请稍后重试")
         case .dishesFifty:
-            return "Essentials 升级到 Unlimited 即将支持。"
+            return L10n.tr("Essentials 升级到 Unlimited 即将支持。")
         case .dishesUnlimited:
-            return "当前已经是 Unlimited，无需重复购买。"
+            return L10n.tr("当前已经是 Unlimited，无需重复购买。")
         }
     }
 
@@ -323,7 +323,7 @@ struct UpgradeSheet: View {
                   let kitchenID = store.kitchen?.id,
                   let token = AppAccountTokenBuilder.build(accountID: accountID, kitchenID: kitchenID)
             else {
-                localError = "账户信息不完整，无法发起购买"
+                localError = L10n.tr("账户信息不完整，无法发起购买")
                 return
             }
             let outcome = try await purchaseManager.purchase(product, appAccountToken: token)
@@ -334,9 +334,9 @@ struct UpgradeSheet: View {
             case .userCancelled:
                 break
             case .pending:
-                localError = "购买待家长同意或等待处理"
+                localError = L10n.tr("购买待家长同意或等待处理")
             case .verificationFailed:
-                localError = "交易验证失败，请稍后重试"
+                localError = L10n.tr("交易验证失败，请稍后重试")
             }
         } catch {
             localError = error.localizedDescription
