@@ -41,7 +41,7 @@ struct OrderItemRow: View {
             statusControl
                 .fixedSize()
         }
-        .frame(minHeight: 52)
+        .frame(minHeight: AppDimension.listRowMinHeight)
         .contentShape(Rectangle())
     }
 

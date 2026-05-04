@@ -32,7 +32,7 @@ private extension UIImage.Orientation {
 }
 
 enum VisionSubjectExtractor {
-    private static let ciContext: CIContext = {
+    nonisolated private static let ciContext: CIContext = {
         CIContext(options: [.workingColorSpace: CGColorSpaceCreateDeviceRGB()])
     }()
 
@@ -43,7 +43,7 @@ enum VisionSubjectExtractor {
         }
         let orientation = image.imageOrientation.cgImagePropertyOrientation
         return try await Task.detached(priority: .userInitiated) {
-            let subject = try performExtract(cgImage: cgImage, orientation: orientation)
+            let subject = try await performExtract(cgImage: cgImage, orientation: orientation)
             let canvas = composeOnCanvas(subject: subject)
             return try applyOutlineRing(
                 canvasImage: canvas,
@@ -56,7 +56,7 @@ enum VisionSubjectExtractor {
     private nonisolated static func performExtract(
         cgImage: CGImage,
         orientation: CGImagePropertyOrientation
-    ) throws -> UIImage {
+    ) async throws -> UIImage {
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
         let request = VNGenerateForegroundInstanceMaskRequest()
         try handler.perform([request])

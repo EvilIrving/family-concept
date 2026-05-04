@@ -105,6 +105,8 @@ extension AppStore {
             shoppingListItems = []
             orderHistory = []
             selectedOrderDetail = nil
+            orderDetailFeedback = nil
+            isLoadingOrderDetail = false
             return true
         } catch {
             consumeError(error)
@@ -128,11 +130,16 @@ extension AppStore {
 
     @discardableResult
     func fetchOrderDetail(orderID: String) async -> OrderDetail? {
+        selectedOrderDetail = nil
+        orderDetailFeedback = nil
+        isLoadingOrderDetail = true
+        defer { isLoadingOrderDetail = false }
         do {
             let detail = try await apiClient.fetchOrderDetail(orderID: orderID, authToken: authToken)
             selectedOrderDetail = detail
             return detail
         } catch {
+            orderDetailFeedback = feedback(for: error)
             consumeError(error)
             return nil
         }

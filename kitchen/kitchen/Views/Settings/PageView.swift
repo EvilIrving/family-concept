@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 struct SettingsView: View {
@@ -9,7 +10,7 @@ struct SettingsView: View {
     @AppStorage("themeMode") private var themeMode = "system"
     @StateObject private var modalRouter = ModalRouter<SheetRoute>()
     @State private var signOutPendingConfirm = false
-    @State private var isRedeemingCode = false
+    @State private var isOfferCodeRedemptionPresented = false
 
     private let privacyPolicyURL = URL(string: "https://evilirving.github.io/family-concept")!
 
@@ -60,10 +61,9 @@ struct SettingsView: View {
                             onTap: { Task { await restorePurchases() } }
                         )
                         MenuRow(
-                            title: isRedeemingCode ? L10n.tr("Opening redeem flow") : L10n.tr("Redeem Offer Code"),
+                            title: L10n.tr("Redeem Offer Code"),
                             showsDivider: false,
-                            isEnabled: isRedeemingCode == false,
-                            onTap: { redeemCode() }
+                            onTap: { isOfferCodeRedemptionPresented = true }
                         )
                     }
                 }
@@ -122,6 +122,14 @@ struct SettingsView: View {
                     .presentationDragIndicator(.hidden)
             }
         }
+        .offerCodeRedemption(isPresented: $isOfferCodeRedemptionPresented) { result in
+            switch result {
+            case .success:
+                feedbackRouter.show(.low(message: L10n.tr("Redeem flow opened"), systemImage: "ticket"))
+            case .failure(let error):
+                feedbackRouter.show(store.feedback(for: error))
+            }
+        }
     }
 
     private var modalRouteBinding: Binding<SheetRoute?> {
@@ -150,25 +158,15 @@ struct SettingsView: View {
         }
     }
 
-    private func redeemCode() {
-        isRedeemingCode = true
-        purchaseManager.redeemCode()
-        feedbackRouter.show(.low(message: L10n.tr("Redeem flow opened"), systemImage: "ticket"))
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1))
-            isRedeemingCode = false
-        }
-    }
-
     private func copyInviteCode(_ inviteCode: String) {
         UIPasteboard.general.string = inviteCode
         feedbackRouter.show(AppFeedback.low(message: L10n.tr("Invite code copied")), placement: .centerToast)
     }
 
     private func presentOrderHistory() {
+        modalRouter.present(.history)
         Task {
             await store.fetchOrderHistory()
-            modalRouter.present(.history)
         }
     }
 }

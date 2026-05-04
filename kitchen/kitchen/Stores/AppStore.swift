@@ -29,7 +29,9 @@ final class AppStore: ObservableObject {
     @Published var menuFeedback: AppFeedback?
     @Published var ordersFeedback: AppFeedback?
     @Published var historyFeedback: AppFeedback?
+    @Published var orderDetailFeedback: AppFeedback?
     @Published var isLoadingOrderHistory: Bool = false
+    @Published var isLoadingOrderDetail: Bool = false
     @Published var colorScheme: ColorScheme?
     @Published var entitlement: KitchenEntitlement = .free()
     @Published var pendingEntitlementUpgrade: PendingEntitlementUpgrade?
@@ -262,6 +264,8 @@ final class AppStore: ObservableObject {
         orderItems = []
         orderHistory = []
         selectedOrderDetail = nil
+        orderDetailFeedback = nil
+        isLoadingOrderDetail = false
         cartItems = []
         currentOrder = nil
         entitlement = .free()

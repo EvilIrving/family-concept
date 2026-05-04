@@ -14,6 +14,7 @@ struct ShoppingListSheet: View {
             title: L10n.tr("Shopping List"),
             dismissTitle: L10n.tr("Close"),
             confirmTitle: L10n.tr("Export"),
+            confirmSystemImage: "square.and.arrow.up",
             onDismiss: { dismiss() },
             onConfirm: exportShoppingList
         ) {

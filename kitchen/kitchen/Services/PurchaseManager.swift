@@ -88,12 +88,6 @@ final class PurchaseManager: ObservableObject {
         }
     }
 
-    // MARK: - Redeem Code
-
-    func redeemCode() {
-        SKPaymentQueue.default().presentCodeRedemptionSheet()
-    }
-
     // MARK: - Restore
 
     func restore() async throws -> Int {

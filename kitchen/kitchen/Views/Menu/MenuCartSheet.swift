@@ -10,6 +10,7 @@ struct MenuCartSheet: View {
             title: L10n.tr("Selected"),
             dismissTitle: L10n.tr("Close"),
             confirmTitle: L10n.tr("Place Order"),
+            confirmSystemImage: "paperplane",
             onDismiss: { dismiss() },
             onConfirm: {
                 Task {
