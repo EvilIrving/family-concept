@@ -27,55 +27,29 @@ struct OrdersView: View {
                     },
                     skeletonView: nil as (() -> EmptyView)?,
                     content: { groupedItems in
-                        ScrollView(showsIndicators: false) {
-                            VStack(spacing: AppSpacing.lg) {
-                                AppCard {
-                                    ForEach(groupedItems) { item in
-                                        OrderItemRow(
-                                            item: item,
-                                            canChangeStatus: store.canManageOrders,
-                                            canEditWaiting: store.canEditWaitingOrderItems,
-                                            onTap: { Task { await store.cycleStatuses(for: item.itemIDs) } },
-                                            onReduce: {
-                                                Task {
-                                                    if await store.reduceWaitingItemQuantity(for: item) {
-                                                        feedbackRouter.show(.low(message: L10n.tr("Removed 1 serving of %@", item.dishName)))
-                                                    }
-                                                }
-                                            },
-                                            onCancel: {
-                                                Task {
-                                                    if await store.cancelWaitingItems(for: item) {
-                                                        feedbackRouter.show(.low(message: L10n.tr("Cancelled %@", item.dishName)))
-                                                    }
-                                                }
-                                            }
-                                        )
-                                        if item.id != groupedItems.last?.id {
-                                            Divider().overlay(AppSemanticColor.border)
-                                        }
-                                    }
-                                }
-
-                                if shouldShowFinishButton {
-                                    AppButton(title: L10n.tr("Meal's ready"), role: .primary) {
-                                        Task {
-                                            let didFinish = await store.finishOrder()
-                                            if didFinish {
-                                                feedbackRouter.show(.low(message: L10n.tr("Meal wrapped up")))
-                                            }
-                                        }
-                                    }
+                        List {
+                            Section {
+                                ForEach(groupedItems) { item in
+                                    orderRow(for: item)
                                 }
                             }
+                            .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.md, bottom: 0, trailing: AppSpacing.md))
+                            .listRowSeparatorTint(AppSemanticColor.border)
+                            .listRowBackground(AppComponentColor.Card.background)
                         }
-                        .padding(.horizontal, AppSpacing.md)
-                        .padding(.top, AppSpacing.lg)
-                        .padding(.bottom, AppSpacing.md)
-                        .scrollClipDisabled()
+                        .listStyle(.insetGrouped)
+                        .scrollContentBackground(.hidden)
+                        .contentMargins(.top, AppSpacing.lg, for: .scrollContent)
+                        .contentMargins(.bottom, AppSpacing.md, for: .scrollContent)
                     },
                     onRetry: { Task { await store.refreshOrderItems() } }
                 )
+
+                if shouldShowFinishButton {
+                    finishOrderButton
+                        .padding(.horizontal, AppSpacing.md)
+                        .padding(.bottom, AppSpacing.md)
+                }
 
                 if store.orderItems.contains(where: { $0.status != .cancelled }) {
                     ordersShoppingListBar
@@ -133,6 +107,17 @@ struct OrdersView: View {
 
     // MARK: - Subviews
 
+    private var finishOrderButton: some View {
+        AppButton(title: L10n.tr("Meal's ready"), role: .primary) {
+            Task {
+                let didFinish = await store.finishOrder()
+                if didFinish {
+                    feedbackRouter.show(.low(message: L10n.tr("Meal wrapped up")))
+                }
+            }
+        }
+    }
+
     private var ordersShoppingListBar: some View {
         VStack(spacing: 0) {
             Rectangle().fill(AppSemanticColor.border).frame(height: 1)
@@ -156,6 +141,49 @@ struct OrdersView: View {
                 .background(AppSemanticColor.surface)
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    private func orderRow(for item: GroupedOrderItem) -> some View {
+        OrderItemRow(
+            item: item,
+            canChangeStatus: store.canManageOrders,
+            canEditWaiting: store.canEditWaitingOrderItems,
+            onTap: { Task { await store.cycleStatuses(for: item.itemIDs) } },
+            onReduce: { reduceWaitingItem(item) },
+            onCancel: { cancelWaitingItem(item) }
+        )
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if store.canEditWaitingOrderItems && item.status == .waiting {
+                Button(role: .destructive) {
+                    cancelWaitingItem(item)
+                } label: {
+                    Label(L10n.tr("Cancel"), systemImage: "xmark")
+                }
+
+                Button {
+                    reduceWaitingItem(item)
+                } label: {
+                    Label(L10n.tr("Remove 1 serving"), systemImage: "minus")
+                }
+                .tint(AppSemanticColor.textSecondary)
+            }
+        }
+    }
+
+    private func reduceWaitingItem(_ item: GroupedOrderItem) {
+        Task {
+            if await store.reduceWaitingItemQuantity(for: item) {
+                feedbackRouter.show(.low(message: L10n.tr("Removed 1 serving of %@", item.dishName)))
+            }
+        }
+    }
+
+    private func cancelWaitingItem(_ item: GroupedOrderItem) {
+        Task {
+            if await store.cancelWaitingItems(for: item) {
+                feedbackRouter.show(.low(message: L10n.tr("Cancelled %@", item.dishName)))
+            }
         }
     }
 

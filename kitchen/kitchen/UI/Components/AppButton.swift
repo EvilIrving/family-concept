@@ -36,7 +36,7 @@ struct AppButton: View {
         } label: {
             HStack(spacing: AppSpacing.xs) {
                 if phase.isLoading {
-                    AppLoadingIndicator(label: loadingLabel, tone: loadingTone, controlSize: .small)
+                    AppLoadingIndicator(tone: loadingTone, controlSize: .small)
                 } else if let leadingIcon {
                     Image(systemName: leadingIcon)
                         .font(.system(size: AppIconSize.sm, weight: .semibold))
@@ -73,11 +73,6 @@ struct AppButton: View {
         case .secondary, .ghost:
             return .secondary
         }
-    }
-
-    private var loadingLabel: String? {
-        guard case .loading(let context) = phase else { return nil }
-        return context.label == title ? nil : context.label
     }
 
     private var minHeight: CGFloat {

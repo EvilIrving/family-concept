@@ -7,12 +7,7 @@ enum AppFeedbackSeverity: Int, Equatable {
     case error
 
     var defaultPlacement: AppFeedbackPlacement {
-        switch self {
-        case .warning, .error:
-            return .topBanner
-        case .info, .success:
-            return .topToast
-        }
+        .centerToast
     }
 
     var defaultHaptic: AppHapticIntent? {
@@ -140,7 +135,8 @@ struct AppFeedback: Equatable {
                 message: message,
                 icon: systemImage,
                 severity: .error,
-                persistence: .persistent
+                persistence: .persistent,
+                placement: .topBanner
             )
         )
     }
@@ -157,7 +153,8 @@ struct AppFeedback: Equatable {
                 message: message,
                 icon: systemImage,
                 severity: .error,
-                persistence: .persistent
+                persistence: .persistent,
+                placement: .topBanner
             )
         )
     }

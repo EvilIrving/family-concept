@@ -19,31 +19,27 @@ struct OrderItemRow: View {
                 .fill(statusColor)
                 .frame(width: AppDimension.statusDot, height: AppDimension.statusDot)
 
-            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
-                    Text(item.dishName)
-                        .font(AppTypography.bodyStrong)
-                        .foregroundStyle(AppSemanticColor.textPrimary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+            HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
+                Text(item.dishName)
+                    .font(AppTypography.bodyStrong)
+                    .foregroundStyle(AppSemanticColor.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .layoutPriority(1)
 
-                    Text(L10n.tr("%lld servings", item.quantity))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppSemanticColor.textSecondary)
-                        .fixedSize()
-                }
+                Text("×\(item.quantity)")
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppSemanticColor.textSecondary)
+                    .padding(.horizontal, AppSpacing.xs)
+                    .padding(.vertical, AppSpacing.xxs)
+                    .background(AppSemanticColor.surfaceSecondary, in: Capsule())
+                    .fixedSize()
+                    .accessibilityLabel(L10n.tr("%lld servings", item.quantity))
             }
-
-            Spacer()
-
-            if canEditWaiting && item.status == .waiting {
-                HStack(spacing: AppSpacing.xxs) {
-                    AppIconActionButton(systemImage: "minus", tone: .neutral, size: .sm, action: onReduce)
-                    AppIconActionButton(systemImage: "xmark", tone: .danger, size: .sm, action: onCancel)
-                }
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             statusControl
+                .fixedSize()
         }
         .frame(minHeight: 52)
         .contentShape(Rectangle())

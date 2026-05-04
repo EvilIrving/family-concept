@@ -108,9 +108,8 @@ struct FeedbackSheet: View {
     private var submitButton: some View {
         AppButton(
             title: L10n.tr("Submit"),
-            leadingIcon: "paperplane.fill",
             role: .primary,
-            phase: isSubmitting ? .loading(label: L10n.tr("Submitting")) : .idle
+            phase: isSubmitting ? .initialLoading() : .idle
         ) {
             submit()
         }
