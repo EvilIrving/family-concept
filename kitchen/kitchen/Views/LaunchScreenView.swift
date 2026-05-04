@@ -80,7 +80,7 @@ struct LaunchScreenView: View {
     // MARK: - Tagline Section
 
     private var taglineSection: some View {
-        Text("家的味道，值得等待")
+        Text("Home flavors are worth the wait")
             .font(AppTypography.bodyStrong)
             .foregroundStyle(AppSemanticColor.textPrimary)
     }

@@ -17,7 +17,7 @@ struct FeedbackSheet: View {
     }
 
     var body: some View {
-        AppSheetContainer(title: L10n.tr("需求和反馈"), dismissTitle: L10n.tr("关闭"), onDismiss: { dismiss() }) {
+        AppSheetContainer(title: L10n.tr("Requests & Feedback"), dismissTitle: L10n.tr("Close"), onDismiss: { dismiss() }) {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: AppSpacing.lg) {
                     inputCard
@@ -32,12 +32,12 @@ struct FeedbackSheet: View {
 
     private var inputCard: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
-            fieldLabel(L10n.tr("想提的需求和吐槽"))
+            fieldLabel(L10n.tr("Requests or feedback"))
             feedbackEditor
-            fieldLabel(L10n.tr("联系方式"))
+            fieldLabel(L10n.tr("Contact"))
             platformPicker
             AppTextField(
-                title: L10n.tr("留下 %@ 联系方式", contactPlatform.displayName),
+                title: L10n.tr("Leave your %@ contact", contactPlatform.displayName),
                 text: $contactHandle,
                 focusedField: $focusedField,
                 field: .contact,
@@ -59,7 +59,7 @@ struct FeedbackSheet: View {
             .background(AppComponentColor.Input.background, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
             .overlay(alignment: .topLeading) {
                 if message.isEmpty {
-                    Text("把所有想要的功能、遇到的问题、吐槽都写在这里")
+                    Text("Write feature requests, issues, or comments here")
                         .font(AppTypography.body)
                         .foregroundStyle(AppComponentColor.Input.placeholder)
                         .padding(.horizontal, AppSpacing.md)
@@ -96,7 +96,7 @@ struct FeedbackSheet: View {
                 .scaledToFit()
                 .frame(width: 168, height: 168)
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
-            Text("也可以扫码直接联系 TG")
+            Text("Or scan to reach us on Telegram")
                 .font(AppTypography.caption)
                 .foregroundStyle(AppSemanticColor.textSecondary)
         }
@@ -107,10 +107,10 @@ struct FeedbackSheet: View {
 
     private var submitButton: some View {
         AppButton(
-            title: L10n.tr("提交"),
+            title: L10n.tr("Submit"),
             leadingIcon: "paperplane.fill",
             role: .primary,
-            phase: isSubmitting ? .loading(label: L10n.tr("提交中")) : .idle
+            phase: isSubmitting ? .loading(label: L10n.tr("Submitting")) : .idle
         ) {
             submit()
         }
@@ -135,12 +135,12 @@ struct FeedbackSheet: View {
         validationTrigger += 1
         guard !messageTrimmed.isEmpty else {
             focusedField = .message
-            feedbackRouter.show(.low(message: L10n.tr("请先填写需求或吐槽")), hint: .centerToast)
+            feedbackRouter.show(.low(message: L10n.tr("Please write your request or comment first")), hint: .centerToast)
             return
         }
         guard !contactTrimmed.isEmpty else {
             focusedField = .contact
-            feedbackRouter.show(.low(message: L10n.tr("请留下联系方式")), hint: .centerToast)
+            feedbackRouter.show(.low(message: L10n.tr("Please leave a contact")), hint: .centerToast)
             return
         }
 
@@ -155,7 +155,7 @@ struct FeedbackSheet: View {
                 )
                 await MainActor.run {
                     isSubmitting = false
-                    feedbackRouter.show(.high(message: L10n.tr("已提交反馈")), hint: .centerToast)
+                    feedbackRouter.show(.high(message: L10n.tr("Feedback submitted")), hint: .centerToast)
                     dismiss()
                 }
             } catch {

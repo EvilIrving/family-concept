@@ -13,7 +13,7 @@ struct MenuSearchBar: View {
                     .foregroundStyle(AppSemanticColor.textTertiary)
 
                 AppTextField(
-                    title: L10n.tr("搜菜名"),
+                    title: L10n.tr("Search dishes"),
                     text: $searchText,
                     focusedField: $focusedField,
                     field: .search,
@@ -45,10 +45,10 @@ struct MenuSearchBar: View {
             }
 
             if canManageDishes {
-                AppButton(title: L10n.tr("新增"), role: .ghost, size: .md, fullWidth: false) {
+                AppButton(title: L10n.tr("Add"), role: .ghost, size: .md, fullWidth: false) {
                     onAddDish()
                 }
-                .accessibilityLabel(L10n.tr("新增菜品"))
+                .accessibilityLabel(L10n.tr("Add Dish"))
             }
         }
     }
@@ -63,7 +63,7 @@ struct MenuCategoryChips: View {
             HStack(spacing: AppSpacing.xs) {
                 ForEach(categories, id: \.self) { category in
                     AppChipButton(
-                        title: category == "全部" ? L10n.tr("全部") : category,
+                        title: category == "All" ? L10n.tr("All") : category,
                         isSelected: selection == category
                     ) {
                         selection = category

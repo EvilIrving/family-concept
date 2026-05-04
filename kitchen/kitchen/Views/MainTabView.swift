@@ -7,9 +7,9 @@ private enum MainTab: CaseIterable {
 
     var title: String {
         switch self {
-        case .menu: "菜单"
-        case .orders: "订单"
-        case .settings: "设置"
+        case .menu: L10n.tr("Menu")
+        case .orders: L10n.tr("Orders")
+        case .settings: L10n.tr("Settings")
         }
     }
 

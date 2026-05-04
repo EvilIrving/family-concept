@@ -27,7 +27,7 @@ struct OrderItemRow: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
 
-                    Text(L10n.tr("%lld 份", item.quantity))
+                    Text(L10n.tr("%lld servings", item.quantity))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppSemanticColor.textSecondary)
                         .fixedSize()
@@ -65,9 +65,9 @@ struct OrderItemRow: View {
     private var statusActionLabel: String {
         switch item.status {
         case .waiting:
-            return L10n.tr("开始制作 %@", item.dishName)
+            return L10n.tr("Start cooking %@", item.dishName)
         case .cooking:
-            return L10n.tr("完成 %@", item.dishName)
+            return L10n.tr("Mark %@ done", item.dishName)
         case .done, .cancelled:
             return item.status.title
         }

@@ -7,7 +7,7 @@ struct MenuView: View {
 
     @State private var searchText = ""
     @State private var debouncedSearchText = ""
-    @State private var selectedCategory = "全部"
+    @State private var selectedCategory = "All"
     @State private var dishFlowItem: MenuDishFlowItem?
     @State private var visibleDishCount = 12
     @State private var isCartButtonCollapsed = false
@@ -133,17 +133,17 @@ struct MenuView: View {
     }
 
     private var filterCategories: [String] {
-        ["全部"] + store.dishCategories
+        ["All"] + store.dishCategories
     }
 
     private var quickCategories: [String] {
-        ["自定义"] + store.dishCategories
+        ["Custom"] + store.dishCategories
     }
 
     private var filteredDishes: [Dish] {
         let keyword = debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return store.activeDishes.filter { dish in
-            let matchesCategory = selectedCategory == "全部" || dish.category == selectedCategory
+            let matchesCategory = selectedCategory == "All" || dish.category == selectedCategory
             let matchesSearch = keyword.isEmpty || dish.name.localizedCaseInsensitiveContains(keyword)
             return matchesCategory && matchesSearch
         }
@@ -151,13 +151,13 @@ struct MenuView: View {
 
     private var menuPhase: LoadingPhase<[Dish]> {
         if store.isLoading && !filteredDishes.isEmpty {
-            return .refreshing(visibleDishes, label: L10n.tr("刷新菜单"))
+            return .refreshing(visibleDishes, label: L10n.tr("Refreshing menu"))
         }
         if let feedback = store.menuFeedback {
             return .failure(feedback, retainedValue: filteredDishes.isEmpty ? nil : visibleDishes)
         }
         if !store.hasLoadedKitchenData && filteredDishes.isEmpty {
-            return .initialLoading(label: L10n.tr("加载菜单"))
+            return .initialLoading(label: L10n.tr("Loading menu"))
         }
         if filteredDishes.isEmpty {
             let kind: AppEmptyKind = debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .noData : .noSearchResult
@@ -183,11 +183,11 @@ struct MenuView: View {
     }
 
     private var emptySearchHint: String {
-        store.canManageDishes ? L10n.tr("换个关键词，或点搜索栏右侧「新增」。") : L10n.tr("换个关键词试试。")
+        store.canManageDishes ? L10n.tr("menu.emptySearch.hintWhenCanAdd") : L10n.tr("menu.emptySearch.tryOtherKeywordShort")
     }
 
     private var emptyMenuTitle: String {
-        debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? L10n.tr("菜单还没有菜品") : L10n.tr("没有找到匹配的菜品")
+        debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? L10n.tr("Menu is empty") : L10n.tr("No matching dishes")
     }
 
     private var cartRouteBinding: Binding<MenuModalRoute?> {
@@ -221,13 +221,13 @@ struct MenuView: View {
     private func handleDishFlowResult(_ result: MenuDishFlowResult) {
         switch result {
         case .added(let name):
-            feedbackRouter.show(.low(message: L10n.tr("已新增 %@", name)))
+            feedbackRouter.show(.low(message: L10n.tr("Added %@", name)))
         case .updated(let name):
-            feedbackRouter.show(.low(message: L10n.tr("已更新 %@", name)))
+            feedbackRouter.show(.low(message: L10n.tr("Updated %@", name)))
         case .deleted(let name):
             feedbackRouter.show(
                 .low(
-                    message: L10n.tr("%@ 已移入归档", name),
+                    message: L10n.tr("%@ archived", name),
                     systemImage: "checkmark.circle.fill"
                 ),
                 hint: .centerToast

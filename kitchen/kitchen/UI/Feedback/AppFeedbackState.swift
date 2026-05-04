@@ -119,8 +119,8 @@ struct AppFeedback: Equatable {
     }
 
     static func network(
-        title: String = L10n.tr("网络连接异常"),
-        message: String? = L10n.tr("请检查网络后重试"),
+        title: String = L10n.tr("Network issue"),
+        message: String? = L10n.tr("Check your connection and retry"),
         systemImage: String = "wifi.exclamationmark"
     ) -> AppFeedback {
         AppFeedback(
@@ -136,8 +136,8 @@ struct AppFeedback: Equatable {
     }
 
     static func auth(
-        title: String = L10n.tr("登录状态已失效"),
-        message: String? = L10n.tr("请重新登录后继续"),
+        title: String = L10n.tr("Sign-in expired"),
+        message: String? = L10n.tr("Please sign in again to continue"),
         systemImage: String = "lock.slash"
     ) -> AppFeedback {
         AppFeedback(
@@ -153,8 +153,8 @@ struct AppFeedback: Equatable {
     }
 
     static func generic(
-        title: String = L10n.tr("加载失败"),
-        message: String? = L10n.tr("请稍后重试"),
+        title: String = L10n.tr("Load failed"),
+        message: String? = L10n.tr("Try again later"),
         systemImage: String = "exclamationmark.triangle"
     ) -> AppFeedback {
         AppFeedback(

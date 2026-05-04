@@ -10,11 +10,11 @@ struct PreferencesSection: View {
     var body: some View {
         AppCard {
             VStack(spacing: 0) {
-                toggleRow(title: L10n.tr("通知"), isOn: $notificationsEnabled)
+                toggleRow(title: L10n.tr("Notifications"), isOn: $notificationsEnabled)
                 rowDivider
                 languageRow
                 rowDivider
-                toggleRow(title: L10n.tr("触感反馈"), isOn: $hapticsEnabled)
+                toggleRow(title: L10n.tr("Haptic Feedback"), isOn: $hapticsEnabled)
                 rowDivider
                 ThemeSelectionRow(themeMode: $themeMode)
             }
@@ -23,11 +23,11 @@ struct PreferencesSection: View {
 
     private var languageRow: some View {
         HStack {
-            Text("语言")
+            Text("Language")
                 .font(AppTypography.bodyStrong)
                 .foregroundStyle(AppSemanticColor.textPrimary)
             Spacer()
-            Picker("语言", selection: $languageStore.language) {
+            Picker("Language", selection: $languageStore.language) {
                 ForEach(AppLanguage.allCases) { language in
                     Text(language.displayName).tag(language)
                 }

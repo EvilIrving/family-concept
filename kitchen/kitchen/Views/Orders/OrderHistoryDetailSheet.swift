@@ -7,8 +7,8 @@ struct OrderHistoryDetailSheet: View {
 
     var body: some View {
         AppSheetContainer(
-            title: L10n.tr("历史订单详情"),
-            dismissTitle: L10n.tr("关闭"),
+            title: L10n.tr("Order Details"),
+            dismissTitle: L10n.tr("Close"),
             onDismiss: { dismiss() }
         ) {
             ScrollView(showsIndicators: false) {
@@ -16,11 +16,11 @@ struct OrderHistoryDetailSheet: View {
                     if let detail = store.selectedOrderDetail {
                         HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
                             AppPill(
-                                title: L10n.tr("共 %lld 道菜", totalDishCount(detail)),
+                                title: L10n.tr("%lld dishes total", totalDishCount(detail)),
                                 tint: AppSemanticColor.primary,
                                 background: AppSemanticColor.interactiveSecondary
                             )
-                            Text(displayOrderDate(detail.finishedAt) ?? L10n.tr("已收好的这一顿"))
+                            Text(displayOrderDate(detail.finishedAt) ?? L10n.tr("Wrapped meals"))
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppSemanticColor.textSecondary)
                             Spacer(minLength: 0)
@@ -39,7 +39,7 @@ struct OrderHistoryDetailSheet: View {
                             }
                         }
                     } else {
-                        Text(L10n.tr("没有可展示的历史详情"))
+                        Text(L10n.tr("No order details to show"))
                             .font(AppTypography.body)
                             .foregroundStyle(AppSemanticColor.textSecondary)
                             .frame(maxWidth: .infinity, alignment: .center)
@@ -52,7 +52,7 @@ struct OrderHistoryDetailSheet: View {
     }
 
     private func dishName(for dishID: String) -> String {
-        store.dishes.first(where: { $0.id == dishID })?.name ?? L10n.tr("未知菜品")
+        store.dishes.first(where: { $0.id == dishID })?.name ?? L10n.tr("Unknown dish")
     }
 
     private func totalDishCount(_ detail: OrderDetail) -> Int {

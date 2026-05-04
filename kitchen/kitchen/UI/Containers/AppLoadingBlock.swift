@@ -11,7 +11,7 @@ struct AppLoadingBlock<Value, Content: View, Empty: View, Skeleton: View>: View 
 
     let phase: LoadingPhase<Value>
     var strategy = LoadingBlockStrategy()
-    var retryTitle: String = L10n.tr("重试")
+    var retryTitle: String = L10n.tr("Retry")
     let emptyView: ((AppFeedback) -> Empty)?
     let skeletonView: (() -> Skeleton)?
     let content: (Value) -> Content
@@ -20,7 +20,7 @@ struct AppLoadingBlock<Value, Content: View, Empty: View, Skeleton: View>: View 
     init(
         phase: LoadingPhase<Value>,
         strategy: LoadingBlockStrategy = LoadingBlockStrategy(),
-        retryTitle: String = L10n.tr("重试"),
+        retryTitle: String = L10n.tr("Retry"),
         emptyView: ((AppFeedback) -> Empty)? = nil,
         skeletonView: (() -> Skeleton)? = nil,
         @ViewBuilder content: @escaping (Value) -> Content,
@@ -132,7 +132,7 @@ extension AppLoadingBlock where Empty == EmptyView, Skeleton == EmptyView {
     init(
         phase: LoadingPhase<Value>,
         strategy: LoadingBlockStrategy = LoadingBlockStrategy(),
-        retryTitle: String = L10n.tr("重试"),
+        retryTitle: String = L10n.tr("Retry"),
         @ViewBuilder content: @escaping (Value) -> Content,
         onRetry: (() -> Void)? = nil
     ) {

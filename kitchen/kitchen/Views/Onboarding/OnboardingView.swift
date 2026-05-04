@@ -107,7 +107,7 @@ struct OnboardingView: View {
     private var authModeLink: some View {
         HStack {
             Spacer()
-            AppLinkButton(title: authMode == .login ? L10n.tr("还没有账号？注册") : L10n.tr("已有账号？登录"), role: .secondary) {
+            AppLinkButton(title: authMode == .login ? L10n.tr("No account? Sign up") : L10n.tr("Have an account? Sign in"), role: .secondary) {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     authMode = authMode == .login ? .register : .login
                     store.error = nil
@@ -121,8 +121,8 @@ struct OnboardingView: View {
 
     private var kitchenSegments: [AppSegmentedButton<KitchenMode>.Segment] {
         [
-            .init(value: .join, title: L10n.tr("邀请码"), accessibilityLabel: L10n.tr("输入邀请码加入")),
-            .init(value: .create, title: L10n.tr("创建私厨"), accessibilityLabel: L10n.tr("创建私厨"))
+            .init(value: .join, title: L10n.tr("onboarding.field.inviteCode"), accessibilityLabel: L10n.tr("Join with Invite Code")),
+            .init(value: .create, title: L10n.tr("Create Kitchen"), accessibilityLabel: L10n.tr("Create Kitchen"))
         ]
     }
 
@@ -142,13 +142,13 @@ struct OnboardingView: View {
 
     private var hintText: String {
         switch authMode {
-        case .login: return kitchenMode == .join ? L10n.tr("登录并加入私厨") : L10n.tr("登录并创建私厨")
-        case .register: return L10n.tr("创建新账号")
+        case .login: return kitchenMode == .join ? L10n.tr("Sign in & join kitchen") : L10n.tr("Sign in & create kitchen")
+        case .register: return L10n.tr("Create new account")
         }
     }
 
     private var buttonTitle: String {
-        return authMode == .login ? L10n.tr("登录") : L10n.tr("注册")
+        return authMode == .login ? L10n.tr("Sign In") : L10n.tr("Sign Up")
     }
 
     private func submit() {

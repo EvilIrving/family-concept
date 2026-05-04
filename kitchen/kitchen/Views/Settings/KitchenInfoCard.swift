@@ -22,7 +22,7 @@ struct KitchenInfoCard: View {
                         }
                         Spacer()
                         if kitchen != nil {
-                            Text(L10n.tr("共 %lld 人", Int64(store.members.count)))
+                            Text(L10n.tr("%lld members", Int64(store.members.count)))
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppSemanticColor.textSecondary)
                         }
@@ -39,7 +39,7 @@ struct KitchenInfoCard: View {
                             inviteCode: kitchen.inviteCode,
                             onCopy: {
                                 UIPasteboard.general.string = kitchen.inviteCode
-                                feedbackRouter.show(AppFeedback.low(message: L10n.tr("已复制邀请码")), hint: .centerToast)
+                                feedbackRouter.show(AppFeedback.low(message: L10n.tr("Invite code copied")), hint: .centerToast)
                             }
                         )
                     }

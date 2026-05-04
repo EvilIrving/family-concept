@@ -15,7 +15,7 @@ struct KitchenForm: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             AppTextField(
-                title: kitchenMode == .join ? L10n.tr("邀请码") : L10n.tr("私厨名称"),
+                title: kitchenMode == .join ? L10n.tr("onboarding.field.inviteCode") : L10n.tr("Kitchen Name"),
                 text: $kitchenInput,
                 focusedField: $focusedField,
                 field: .kitchen,

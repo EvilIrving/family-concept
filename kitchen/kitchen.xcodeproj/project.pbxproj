@@ -39,8 +39,11 @@
 			membershipExceptions = (
 				AGENTS.md,
 				CLAUDE.md,
+				Design/AGENTS.md,
 				Design/CLAUDE.md,
 				Info.plist,
+				Models/AGENTS.md,
+				Models/CLAUDE.md,
 				Stores/AGENTS.md,
 				Stores/CLAUDE.md,
 				UI/Components/AGENTS.md,
@@ -239,7 +242,7 @@
 				};
 			};
 			buildConfigurationList = A4B95C432F877BEE003ABDB1 /* Build configuration list for PBXProject "kitchen" */;
-			developmentRegion = "zh-Hans";
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,

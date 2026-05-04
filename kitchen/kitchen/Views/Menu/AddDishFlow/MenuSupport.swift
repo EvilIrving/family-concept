@@ -10,7 +10,7 @@ enum MenuField: Hashable {
 struct AddDishDraft {
     var editingDishID: String?
     var name = ""
-    var selectedQuickCategory = "自定义"
+    var selectedQuickCategory = "Custom"
     var customCategory = ""
     var ingredientTags: [String] = []
     var ingredientInput = ""
@@ -27,7 +27,7 @@ struct AddDishDraft {
 
     var resolvedCategory: String {
         let custom = customCategory.trimmingCharacters(in: .whitespacesAndNewlines)
-        return selectedQuickCategory == "自定义" ? custom : selectedQuickCategory
+        return selectedQuickCategory == "Custom" ? custom : selectedQuickCategory
     }
 
     var hasIngredients: Bool {
@@ -35,7 +35,7 @@ struct AddDishDraft {
     }
 
     var hasCategory: Bool {
-        if selectedQuickCategory == "自定义" {
+        if selectedQuickCategory == "Custom" {
             return !resolvedCategory.isEmpty
         }
         return !selectedQuickCategory.isEmpty
@@ -56,7 +56,7 @@ struct AddDishDraft {
         if quickCategories.contains(dish.category) {
             draft.selectedQuickCategory = dish.category
         } else {
-            draft.selectedQuickCategory = "自定义"
+            draft.selectedQuickCategory = "Custom"
             draft.customCategory = dish.category
         }
         return draft

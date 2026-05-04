@@ -25,7 +25,7 @@ extension AppStore {
 
             if inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                kitchenName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                error = L10n.tr("这个账号还没有加入私厨，请输入邀请码或创建私厨")
+                error = L10n.tr("This account hasn't joined a kitchen yet. Enter an invite code or create one.")
             } else {
                 await completeOnboarding(inviteCode: inviteCode, kitchenName: kitchenName)
             }

@@ -11,9 +11,9 @@ struct ShoppingListSheet: View {
 
     var body: some View {
         AppSheetContainer(
-            title: L10n.tr("采购清单"),
-            dismissTitle: L10n.tr("关闭"),
-            confirmTitle: L10n.tr("导出"),
+            title: L10n.tr("Shopping List"),
+            dismissTitle: L10n.tr("Close"),
+            confirmTitle: L10n.tr("Export"),
             onDismiss: { dismiss() },
             onConfirm: exportShoppingList
         ) {
@@ -21,8 +21,8 @@ struct ShoppingListSheet: View {
                 AppErrorPlaceholder(
                     feedback: .empty(
                         kind: .noData,
-                        title: L10n.tr("采购清单还没有内容"),
-                        message: L10n.tr("先到菜单页下单，这里会按食材自动聚合。")
+                        title: L10n.tr("Shopping list is empty"),
+                        message: L10n.tr("Place an order from Menu first; ingredients will appear here automatically.")
                     )
                 )
             } else {
@@ -34,7 +34,7 @@ struct ShoppingListSheet: View {
                                     .font(AppTypography.bodyStrong)
                                     .foregroundStyle(AppSemanticColor.textPrimary)
                                 Spacer()
-                                AppPill(title: L10n.tr("%lld 道菜", item.dishCount), tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
+                                AppPill(title: L10n.tr("%lld dishes", item.dishCount), tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
                             }
                             if item.ingredient != store.shoppingListItems.last?.ingredient {
                                 Divider().overlay(AppSemanticColor.border)
@@ -53,7 +53,7 @@ struct ShoppingListSheet: View {
         guard let image = renderShoppingListImage() else {
             feedbackRouter.show(
                 .low(
-                    message: L10n.tr("采购清单图片生成失败，请稍后重试。"),
+                    message: L10n.tr("Could not create shopping list image. Try again later."),
                     systemImage: "xmark.octagon.fill"
                 ),
                 hint: .centerToast
@@ -85,7 +85,7 @@ struct ShoppingListExportCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.lg) {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text(L10n.tr("采购清单"))
+                Text(L10n.tr("Shopping List"))
                     .font(AppTypography.pageTitle)
                     .foregroundStyle(AppSemanticColor.textPrimary)
                 Text(exportDateText)
@@ -99,7 +99,7 @@ struct ShoppingListExportCard: View {
                         Text(item.ingredient)
                             .font(AppTypography.bodyStrong)
                             .foregroundStyle(AppSemanticColor.textPrimary)
-                        Text(L10n.tr("* %lld", item.dishCount))
+                        Text(L10n.tr("format.starDishCount", item.dishCount))
                             .font(AppTypography.caption)
                             .foregroundStyle(AppSemanticColor.textSecondary)
                     }
@@ -116,7 +116,7 @@ struct ShoppingListExportCard: View {
             .background(AppSemanticColor.surface, in: RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
 
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text(L10n.tr("所需菜品"))
+                Text(L10n.tr("Required dishes"))
                     .font(AppTypography.micro)
                     .foregroundStyle(AppSemanticColor.textTertiary)
 
@@ -129,7 +129,7 @@ struct ShoppingListExportCard: View {
             .padding(.vertical, AppSpacing.md)
             .background(AppSemanticColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
 
-            Text(L10n.tr("私厨 • 采购清单"))
+            Text(L10n.tr("Kitchen • Shopping List"))
                 .font(AppTypography.micro)
                 .foregroundStyle(AppSemanticColor.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .trailing)
@@ -149,14 +149,14 @@ struct ShoppingListExportCard: View {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: AppLanguage.resolved().rawValue)
         formatter.setLocalizedDateFormatFromTemplate("MdHm")
-        return L10n.tr("导出时间 %@", formatter.string(from: Date()))
+        return L10n.tr("Exported %@", formatter.string(from: Date()))
     }
 
     private var allDishNamesText: String {
         let names = items
             .flatMap(\.dishNames)
         let uniqueNames = Array(Set(names)).sorted()
-        return uniqueNames.isEmpty ? L10n.tr("暂无菜品") : uniqueNames.joined(separator: L10n.tr("、"))
+        return uniqueNames.isEmpty ? L10n.tr("No dishes yet") : uniqueNames.joined(separator: L10n.tr("punctuation.listCommaSpace"))
     }
 }
 
@@ -183,8 +183,8 @@ final class ShoppingListShareItemSource: NSObject, UIActivityItemSource {
         formatter.setLocalizedDateFormatFromTemplate("MdHm")
         let timestamp = formatter.string(from: Date())
 
-        self.title = L10n.tr("采购清单")
-        self.subtitle = L10n.tr("导出时间 %@", timestamp)
+        self.title = L10n.tr("Shopping List")
+        self.subtitle = L10n.tr("Exported %@", timestamp)
         super.init()
     }
 

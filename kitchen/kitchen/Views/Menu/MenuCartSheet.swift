@@ -7,15 +7,15 @@ struct MenuCartSheet: View {
 
     var body: some View {
         AppSheetContainer(
-            title: L10n.tr("已选菜品"),
-            dismissTitle: L10n.tr("关闭"),
-            confirmTitle: L10n.tr("下单"),
+            title: L10n.tr("Selected"),
+            dismissTitle: L10n.tr("Close"),
+            confirmTitle: L10n.tr("Place Order"),
             onDismiss: { dismiss() },
             onConfirm: {
                 Task {
                     await store.submitCart()
                     guard store.error == nil else { return }
-                    feedbackRouter.show(.low(message: L10n.tr("已下单")))
+                    feedbackRouter.show(.low(message: L10n.tr("Order placed")))
                     dismiss()
                 }
             },
@@ -25,7 +25,7 @@ struct MenuCartSheet: View {
             ScrollView {
                 VStack(spacing: AppSpacing.sm) {
                     if store.cartItems.isEmpty {
-                        Text(L10n.tr("购物车是空的"))
+                        Text(L10n.tr("Your cart is empty"))
                             .font(AppTypography.body)
                             .foregroundStyle(AppSemanticColor.textSecondary)
                             .frame(maxWidth: .infinity)

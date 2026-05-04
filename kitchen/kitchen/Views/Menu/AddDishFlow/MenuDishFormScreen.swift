@@ -31,18 +31,18 @@ struct MenuDishFormScreen: View {
                     )
 
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Text(L10n.tr("常用分类"))
+                        Text(L10n.tr("Common categories"))
                             .font(AppTypography.micro)
                             .foregroundStyle(AppSemanticColor.textSecondary)
 
                         quickCategoryChips
 
-                        if draft.selectedQuickCategory == "自定义" {
-                            formTextField(L10n.tr("自定义分类"), text: $draft.customCategory, field: .customCategory)
+                        if draft.selectedQuickCategory == "Custom" {
+                            formTextField(L10n.tr("Custom category"), text: $draft.customCategory, field: .customCategory)
                         }
                     }
 
-                    formTextField(L10n.tr("菜名"), text: $draft.name, field: .name)
+                    formTextField(L10n.tr("Dish name"), text: $draft.name, field: .name)
 
                     IngredientTagInput(
                         tags: $draft.ingredientTags,
@@ -54,19 +54,19 @@ struct MenuDishFormScreen: View {
 
                     if let onDelete {
                         AppButton(
-                            title: L10n.tr("删除菜品"),
+                            title: L10n.tr("Delete Dish"),
                             role: .destructive,
                             action: {
                                 archiveConfirmationPresented = true
                             }
                         )
                         .confirmationDialog(
-                            L10n.tr("删除后会归档该菜品"),
+                            L10n.tr("Deleting will archive this dish"),
                             isPresented: $archiveConfirmationPresented,
                             titleVisibility: .visible
                         ) {
-                            Button(L10n.tr("删除菜品"), role: .destructive, action: onDelete)
-                            Button(L10n.tr("取消"), role: .cancel) {}
+                            Button(L10n.tr("Delete Dish"), role: .destructive, action: onDelete)
+                            Button(L10n.tr("Cancel"), role: .cancel) {}
                         }
                     }
                 }
@@ -109,7 +109,7 @@ struct MenuDishFormScreen: View {
 
     private var header: some View {
         HStack(alignment: .top) {
-            Button(L10n.tr("关闭"), action: onDismiss)
+            Button(L10n.tr("Close"), action: onDismiss)
                 .font(AppTypography.bodyStrong)
                 .foregroundStyle(AppSemanticColor.textSecondary)
 
@@ -136,7 +136,7 @@ struct MenuDishFormScreen: View {
             HStack(spacing: AppSpacing.xs) {
                 ForEach(quickCategories, id: \.self) { category in
                     AppChipButton(
-                        title: category == "自定义" ? L10n.tr("自定义") : category,
+                        title: category == "Custom" ? L10n.tr("Custom") : category,
                         isSelected: draft.selectedQuickCategory == category
                     ) {
                         draft.selectedQuickCategory = category

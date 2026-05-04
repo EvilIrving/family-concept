@@ -11,7 +11,7 @@ struct OrderHistoryDetailRow: View {
                 Text(dishName)
                     .font(AppTypography.bodyStrong)
                     .foregroundStyle(AppSemanticColor.textPrimary)
-                Text(L10n.tr("×%lld", item.quantity))
+                Text(L10n.tr("format.quantityTimes", item.quantity))
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.textSecondary)
             }

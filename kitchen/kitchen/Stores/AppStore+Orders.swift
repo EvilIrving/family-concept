@@ -91,7 +91,7 @@ extension AppStore {
     }
 
     func title(for itemID: String) -> String {
-        guard let item = orderItems.first(where: { $0.id == itemID }) else { return L10n.tr("待制作") }
+        guard let item = orderItems.first(where: { $0.id == itemID }) else { return L10n.tr("To cook") }
         return item.status.title
     }
 

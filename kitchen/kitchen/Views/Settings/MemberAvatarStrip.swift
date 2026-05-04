@@ -37,12 +37,12 @@ struct MemberAvatarStrip: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel(
                 hasOverflow
-                    ? L10n.tr("私厨成员，共 %lld 人，横向滑动可查看全部", Int64(members.count))
-                    : L10n.tr("私厨成员，共 %lld 人", Int64(members.count))
+                    ? L10n.tr("Kitchen members, %lld total. Swipe to view all.", Int64(members.count))
+                    : L10n.tr("Kitchen members, %lld total", Int64(members.count))
             )
 
             if hasOverflow {
-                Text("向左滑动查看更多成员")
+                Text("Swipe left to view more members")
                     .font(AppTypography.micro)
                     .foregroundStyle(AppSemanticColor.textTertiary)
             }
@@ -78,7 +78,7 @@ struct MemberAvatarStrip: View {
             .shadow(color: AppSemanticColor.shadowSubtle, radius: 1, y: 1)
         }
         .buttonStyle(MemberAvatarButtonStyle())
-        .accessibilityLabel(L10n.tr("%@，%@，点按查看详情", member.nickName, member.role.title))
+        .accessibilityLabel(L10n.tr("%@, %@. Tap for details.", member.nickName, member.role.title))
     }
 }
 

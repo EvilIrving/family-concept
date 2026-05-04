@@ -23,7 +23,7 @@ struct MemberRoleSheet: View {
     }
 
     private var roleActionTitle: String {
-        member?.role == .admin ? L10n.tr("改为成员") : L10n.tr("设为副管理员")
+        member?.role == .admin ? L10n.tr("Demote to Member") : L10n.tr("Make Admin")
     }
 
     private var roleActionTarget: KitchenRole {
@@ -36,7 +36,7 @@ struct MemberRoleSheet: View {
     }
 
     var body: some View {
-        AppSheetContainer(title: L10n.tr("成员"), dismissTitle: L10n.tr("关闭"), onDismiss: { dismiss() }) {
+        AppSheetContainer(title: L10n.tr("Member"), dismissTitle: L10n.tr("Close"), onDismiss: { dismiss() }) {
             if let member {
                 VStack(alignment: .leading, spacing: AppSpacing.lg) {
                     memberHeader(member)
@@ -49,7 +49,7 @@ struct MemberRoleSheet: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             } else {
-                Text("该成员已不在私厨中")
+                Text("Member is no longer in this kitchen")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppSemanticColor.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -75,7 +75,7 @@ struct MemberRoleSheet: View {
                     .font(AppTypography.bodyStrong)
                     .foregroundStyle(AppSemanticColor.textPrimary)
                     .lineLimit(1)
-                Text(isSelf ? L10n.tr("这是我的账号 · %@", member.role.title) : L10n.tr("权限：%@", member.role.title))
+                Text(isSelf ? L10n.tr("My account · %@", member.role.title) : L10n.tr("Role: %@", member.role.title))
                     .font(AppTypography.micro)
                     .foregroundStyle(AppSemanticColor.textSecondary)
             }
@@ -91,7 +91,7 @@ struct MemberRoleSheet: View {
             role: .secondary,
             phase: pendingAction == .role ? .initialLoading(label: title) : .idle
         ) {
-            run(.role, successMessage: L10n.tr("已%@", title), failureFallback: L10n.tr("%@失败，请稍后重试", title)) {
+            run(.role, successMessage: L10n.tr("%@ done", title), failureFallback: L10n.tr("%@ failed. Try again later.", title)) {
                 await store.updateMemberRole(accountID: member.accountId, role: roleActionTarget)
             }
         }
@@ -100,12 +100,12 @@ struct MemberRoleSheet: View {
 
     private func removeButton(_ member: Member) -> some View {
         AppButton(
-            title: L10n.tr("移除成员"),
+            title: L10n.tr("Remove Member"),
             leadingIcon: "person.badge.minus",
             role: .destructive,
-            phase: pendingAction == .remove ? .initialLoading(label: L10n.tr("移除成员")) : .idle
+            phase: pendingAction == .remove ? .initialLoading(label: L10n.tr("Remove Member")) : .idle
         ) {
-            run(.remove, successMessage: L10n.tr("已移除成员"), failureFallback: L10n.tr("移除成员失败，请稍后重试"), dismissOnSuccess: true) {
+            run(.remove, successMessage: L10n.tr("Member removed"), failureFallback: L10n.tr("Failed to remove member. Try again later."), dismissOnSuccess: true) {
                 await store.removeMember(accountID: member.accountId)
             }
         }

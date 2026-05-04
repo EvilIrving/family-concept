@@ -8,7 +8,7 @@ struct MenuEmptyStateView: View {
         VStack(spacing: AppSpacing.sm) {
             Spacer(minLength: 0)
 
-            Text(feedback.title ?? L10n.tr("暂无内容"))
+            Text(feedback.title ?? L10n.tr("Nothing here yet"))
                 .font(AppTypography.sectionTitle)
                 .foregroundStyle(AppSemanticColor.textPrimary)
                 .multilineTextAlignment(.center)

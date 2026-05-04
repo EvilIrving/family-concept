@@ -23,7 +23,7 @@ struct AuthForm: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             AppTextField(
-                title: L10n.tr("用户名"),
+                title: L10n.tr("Username"),
                 text: $userName,
                 focusedField: $focusedField,
                 field: .userName,
@@ -38,7 +38,7 @@ struct AuthForm: View {
             }
 
             AppTextField(
-                title: L10n.tr("密码"),
+                title: L10n.tr("Password"),
                 text: $password,
                 focusedField: $focusedField,
                 field: .password,
@@ -62,7 +62,7 @@ struct AuthForm: View {
 
             if isRegisterMode {
                 AppTextField(
-                    title: L10n.tr("昵称"),
+                    title: L10n.tr("Nickname"),
                     text: $nickName,
                     focusedField: $focusedField,
                     field: .nickName,

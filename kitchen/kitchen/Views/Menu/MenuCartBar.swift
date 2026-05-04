@@ -25,6 +25,6 @@ struct MenuCartBar: View {
         }
         .buttonStyle(.plain)
         .opacity(isCollapsed ? 0.2 : 1.0)
-        .accessibilityLabel(L10n.tr("已选 %lld 道菜", cartCount))
+        .accessibilityLabel(L10n.tr("%lld selected", cartCount))
     }
 }

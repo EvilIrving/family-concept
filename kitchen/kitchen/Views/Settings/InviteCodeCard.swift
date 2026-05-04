@@ -12,7 +12,7 @@ struct InviteCodeCard: View {
         } label: {
             HStack(spacing: AppSpacing.sm) {
                 HStack(spacing: AppSpacing.xxs) {
-                    Text("邀请码：")
+                    Text(L10n.tr("settings.inviteCode.prefix"))
                         .font(AppTypography.bodyStrong)
                         .foregroundStyle(AppSemanticColor.textSecondary)
                     Text(inviteCode)
@@ -30,7 +30,7 @@ struct InviteCodeCard: View {
             .padding(AppInset.card)
         }
         .buttonStyle(InviteCodeCardStyle())
-        .accessibilityLabel(L10n.tr("复制邀请码"))
+        .accessibilityLabel(L10n.tr("Copy invite code"))
     }
 }
 

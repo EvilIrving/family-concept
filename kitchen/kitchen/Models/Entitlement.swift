@@ -18,9 +18,9 @@ enum PlanCode: String, Codable {
 
     var displayName: String {
         switch self {
-        case .free: return L10n.tr("免费档")
-        case .dishesFifty: return L10n.tr("50 道菜")
-        case .dishesUnlimited: return L10n.tr("无限道菜")
+        case .free: return L10n.tr("Free Tier")
+        case .dishesFifty: return L10n.tr("50 dishes total")
+        case .dishesUnlimited: return L10n.tr("Infinite dishes")
         }
     }
 }

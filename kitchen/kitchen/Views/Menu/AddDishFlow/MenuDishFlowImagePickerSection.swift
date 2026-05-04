@@ -13,13 +13,13 @@ struct MenuDishFlowImagePickerSection: View {
             case .empty:
                 pickerButtons
             case .processing:
-                progressState(L10n.tr("处理中…"))
+                progressState(L10n.tr("Processing…"))
             case .remote(let previewImage, _):
                 imagePreview(previewImage, showsRemoveButton: false)
             case .ready(let previewImage, _):
                 imagePreview(previewImage, showsRemoveButton: true)
             case .uploading:
-                progressState(L10n.tr("上传中…"))
+                progressState(L10n.tr("dishFlow.progress.uploading"))
             case .uploadFailed(let previewImage, _, let message):
                 VStack(spacing: AppSpacing.xs) {
                     imagePreview(previewImage, showsRemoveButton: true)
@@ -51,11 +51,11 @@ struct MenuDishFlowImagePickerSection: View {
 
     private var pickerButtons: some View {
         HStack(spacing: AppSpacing.sm) {
-            AppButton(title: L10n.tr("相册"), leadingIcon: "photo.on.rectangle", role: .secondary, size: .sm) {
+            AppButton(title: L10n.tr("Photo Library"), leadingIcon: "photo.on.rectangle", role: .secondary, size: .sm) {
                 onPhotoLibraryRequest()
             }
 
-            AppButton(title: L10n.tr("拍照"), leadingIcon: "camera", role: .secondary, size: .sm) {
+            AppButton(title: L10n.tr("Camera"), leadingIcon: "camera", role: .secondary, size: .sm) {
                 onCameraRequest()
             }
         }

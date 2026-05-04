@@ -107,7 +107,7 @@ struct MenuDishCard: View {
                 .font(.system(size: 30, weight: .medium))
                 .foregroundStyle(AppSemanticColor.textSecondary)
 
-            Text(L10n.tr("暂无图片"))
+            Text(L10n.tr("No photo yet"))
                 .font(AppTypography.micro)
                 .foregroundStyle(AppSemanticColor.textSecondary)
         }

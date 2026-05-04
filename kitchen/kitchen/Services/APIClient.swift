@@ -214,7 +214,7 @@ final class APIClient {
         }
 
         if data.isEmpty {
-            return .invalidResponse(L10n.tr("服务器返回为空"))
+            return .invalidResponse(L10n.tr("Empty server response"))
         }
 
         if let payload = try? APIClient.decodeJSON(ServerErrorPayload.self, from: data) {
@@ -228,12 +228,12 @@ final class APIClient {
             .trimmingCharacters(in: .whitespacesAndNewlines),
            !message.isEmpty {
             if looksLikeHTML(message) {
-                return .invalidResponse(L10n.tr("服务器内部错误，请稍后再试"))
+                return .invalidResponse(L10n.tr("Server error. Try again later."))
             }
             return .serverMessage(message)
         }
 
-        return .invalidResponse(L10n.tr("错误响应格式异常"))
+        return .invalidResponse(L10n.tr("Unexpected error response format"))
     }
 
     private func looksLikeHTML(_ message: String) -> Bool {
@@ -311,15 +311,15 @@ enum APIError: LocalizedError {
     var userMessage: String {
         switch self {
         case .invalidURL:
-            return L10n.tr("请求地址无效")
+            return L10n.tr("Invalid request URL")
         case .network:
-            return L10n.tr("网络错误，请检查连接")
+            return L10n.tr("Network error. Check your connection.")
         case .unauthorized:
-            return L10n.tr("登录已过期，请重新登录")
+            return L10n.tr("Session expired. Sign in again.")
         case .invalidResponse(let msg), .serverMessage(let msg):
             return msg
         case .decoding(let error):
-            return L10n.tr("数据解析失败：%@", error.localizedDescription)
+            return L10n.tr("Failed to parse data: %@", error.localizedDescription)
         }
     }
 }

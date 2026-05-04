@@ -30,13 +30,13 @@ struct EmptyFeedbackStyle {
     var title: (AppEmptyKind) -> String = { kind in
         switch kind {
         case .noData:
-            return L10n.tr("暂无内容")
+            return L10n.tr("Nothing here yet")
         case .noSearchResult:
-            return L10n.tr("没有找到结果")
+            return L10n.tr("No results")
         case .noPermission:
-            return L10n.tr("暂无访问权限")
+            return L10n.tr("No access")
         case .missingResource:
-            return L10n.tr("内容不存在")
+            return L10n.tr("Content unavailable")
         }
     }
 
@@ -45,11 +45,11 @@ struct EmptyFeedbackStyle {
         case .noData:
             return nil
         case .noSearchResult:
-            return L10n.tr("换个关键词试试")
+            return L10n.tr("menu.emptySearch.tryOtherKeyword")
         case .noPermission:
-            return L10n.tr("请确认当前账号权限")
+            return L10n.tr("Check this account's permissions")
         case .missingResource:
-            return L10n.tr("资源暂时不可用")
+            return L10n.tr("Resource temporarily unavailable")
         }
     }
 }
@@ -251,7 +251,7 @@ struct AppErrorPlaceholder: View {
         if let emptyKind = feedback.emptyKind {
             return emptyStyle.title(emptyKind)
         }
-        return L10n.tr("加载失败")
+        return L10n.tr("Load failed")
     }
 
     private var resolvedMessage: String? {
@@ -261,7 +261,7 @@ struct AppErrorPlaceholder: View {
         if let emptyKind = feedback.emptyKind {
             return emptyStyle.message(emptyKind)
         }
-        return L10n.tr("请稍后重试")
+        return L10n.tr("Try again later")
     }
 
     private var resolvedSystemImage: String {
