@@ -71,18 +71,18 @@ struct OrderItemRow: View {
 
     private var statusColor: Color {
         switch item.status {
-        case .waiting: AppSemanticColor.infoForeground
+        case .waiting: AppSemanticColor.pendingForeground
         case .cooking: AppSemanticColor.warning
-        case .done: AppSemanticColor.primary
+        case .done: AppSemanticColor.success
         case .cancelled: AppSemanticColor.danger
         }
     }
 
     private var statusBackground: Color {
         switch item.status {
-        case .waiting: AppSemanticColor.infoBackground
+        case .waiting: AppSemanticColor.pendingBackground
         case .cooking: AppSemanticColor.warningBackground
-        case .done: AppSemanticColor.interactiveSecondary
+        case .done: AppSemanticColor.successBackground
         case .cancelled: AppSemanticColor.dangerBackground
         }
     }

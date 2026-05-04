@@ -23,14 +23,13 @@ enum AppSemanticColor {
 
     // MARK: - Text
 
-    static let textPrimary = AppPalette.gray900
+    static let textPrimary = AppPalette.inkBlack
     static let textSecondary = AppPalette.gray600
     static let textTertiary = AppPalette.gray500
 
-    // MARK: - Border & Divider
+    // MARK: - Border
 
     static let border = AppPalette.gray200
-    static let divider = AppPalette.gray300
 
     // MARK: - Status (foreground)
 
@@ -44,8 +43,13 @@ enum AppSemanticColor {
     static let successBackground = AppPalette.green100
     static let warningBackground = AppPalette.yellow100
     static let dangerBackground = AppPalette.red100
-    static let infoBackground = AppPalette.green100
-    static let infoForeground = AppPalette.green700
+    static let infoBackground = AppPalette.infoSoft
+    static let infoForeground = AppPalette.info
+
+    // MARK: - Pending (queued, low-urgency)
+
+    static let pendingForeground = AppPalette.gray900
+    static let pendingBackground = AppPalette.cream
 
     // MARK: - Overlay & Special
 
@@ -59,14 +63,14 @@ enum AppSemanticColor {
 
     // MARK: - Camera / Crop
 
-    static let cameraBackdrop = AppPalette.gray900
+    static let cameraBackdrop = AppPalette.inkBlack
     static let cropBackdropGradientCenter = AppPalette.green900
-    static let cropBackdropGradientEdge = AppPalette.gray900
-    static let cropOverlay = AppPalette.gray900.opacity(0.55)
+    static let cropBackdropGradientEdge = AppPalette.inkBlack
+    static let cropOverlay = AppPalette.inkBlack.opacity(0.55)
     static let cropViewportBorder = AppPalette.gray000.opacity(0.85)
-    static let cropViewportShadow = AppPalette.gray900.opacity(0.45)
+    static let cropViewportShadow = AppPalette.inkBlack.opacity(0.45)
     static let cropControlForeground = AppPalette.gray000
     static let cropControlBorder = AppPalette.gray000.opacity(0.55)
     static let cropConfirmBackground = AppPalette.gray000
-    static let cropConfirmForeground = AppPalette.gray900
+    static let cropConfirmForeground = AppPalette.inkBlack
 }

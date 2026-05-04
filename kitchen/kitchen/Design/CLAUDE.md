@@ -18,7 +18,7 @@ Design 目录是全局视觉语言的唯一来源。UI 代码通过 token 使用
 
 本项目不采用纯后台工具风，也不采用餐饮海报式高饱和风。界面应避免生硬、锐利、拥挤和强商业化表达，而应让操作看起来像在整理家里的厨房事务。
 
-视觉上允许借鉴精致的自定义控件风格，例如圆角弹层、柔和卡片、低对比描边、轻阴影和集中式操作区，但必须转换到本项目的绿色主题，不直接使用暖棕或米杏色作为全局主视觉。
+视觉上允许借鉴精致的自定义控件风格，例如圆角弹层、柔和卡片、低对比描边、轻阴影和集中式操作区，并在本项目的绿色主基底上以米杏、暖棕等暖色作为局部点缀（fill、badge、chip、图表强调），不让暖色反客为主。
 
 ---
 
@@ -28,7 +28,7 @@ Design 目录是全局视觉语言的唯一来源。UI 代码通过 token 使用
 
 全局固定为绿色系，表达“新鲜、整理、有秩序、可恢复”。绿色承担主交互色、选中态、积极状态和局部强调，不延伸成大面积高饱和品牌涂满。
 
-辅助色只服务于状态表达和食物生活感，不反客为主。允许少量使用偏奶白、浅雾绿、暖灰绿，构建柔和而非冰冷的界面基底。
+辅助色只服务于状态表达和食物生活感，不反客为主。允许少量使用偏奶白、浅雾绿、暖灰绿、米杏与暖棕，构建柔和而非冰冷的界面基底；暖色仅出现在小面积装饰或提醒态，不做大块铺底。
 
 ### 形状方向
 
@@ -43,8 +43,6 @@ Design 目录是全局视觉语言的唯一来源。UI 代码通过 token 使用
 只使用 SwiftUI 默认转场、淡入淡出、位移和尺寸变化。动效应像界面自己呼吸，不像在播放特效。
 
 ### 不采用的方向
-
-不采用米杏色、暖棕色作为全局主色。
 
 不采用黑白极简后台风。
 
@@ -72,11 +70,17 @@ Design 目录是全局视觉语言的唯一来源。UI 代码通过 token 使用
 
 ### 基础视觉取值
 
-Brand 基准色为 `green900 #1F4D3A`、`green800 #2D6A4F`、`green700 #3F8A67`、`green500 #78B798`、`green300 #BFE3CF`、`green200 #DCEFE3`、`green100 #EEF7F1`。Neutral 基准色为 `backgroundBase #F4F8F5`、`backgroundElevated #FAFCFA`、`surfacePrimary #FFFFFF`、`surfaceSecondary #F7FAF7`、`surfaceTertiary #F1F5F1`、`lineSoft #E3EBE4`、`lineStrong #D2DDD4`。
+具体色值不在本规范中编码，统一以 `Assets.xcassets` 的 colorset 为准（同时定义 Any / Dark）。本节只描述层级与用途约定，调色变更直接改资产文件，不回填到本文档。
 
-Text 基准色为 `textPrimary #1E2A22`、`textSecondary #5F6F64`、`textTertiary #8A968E`、`textOnBrand #FFFFFF`。Semantic 基准色为 `success #2D6A4F`、`successSoft #E7F4EC`、`warning #C98A2E`、`warningSoft #FAF0DE`、`danger #D85C4A`、`dangerSoft #FCE9E6`、`info #5F8F7A`、`infoSoft #EAF4EF`。
+Brand 系按由深到浅划分若干档：最深档承担主按钮按下态；次深档承担主按钮和强调；中档承担次级强调、链接、辅助状态；浅档承担次按钮底色、选中弱底、状态浅底；更浅档承担页面级浅高光。
 
-主按钮填充建议映射到 `green800`，主按钮按下态映射到 `green900`，次按钮与选中弱底映射到 `green100`，选中描边或弱高亮映射到 `green300`，页面局部高光容器映射到 `green200`。
+Neutral 系按由浅到深划分：最浅档为页面背景，更白档为卡片/弹层表面，灰档分别承担次级容器、禁用填充、常规描边和强分割。
+
+Text 系包含主文本、次级文本、占位/禁用文本，以及品牌色背景上的反白文本。
+
+Semantic 状态色至少覆盖 success / warning / danger / info 四组，每组提供前景色与浅底两层；warning 走暖杏色系，info 走低饱和雾蓝绿，与 brand 绿明显区分。
+
+装饰暖色提供 cream（米杏）与 apricot（暖杏）两档，仅用于 badge、chip、chart accent、提醒态浅底等小面积装饰；不允许作为正文背景或主交互色。
 
 ### 分层结构
 
@@ -94,7 +98,6 @@ Palette → Semantic → Component → UI 使用
 // AppPalette.swift
 static let green900 = Color("green900")
 static let green800 = Color("green800")
-static let green500 = Color("green500")
 static let green100 = Color("green100")
 ```
 
@@ -145,6 +148,7 @@ AppSemanticColor.infoBackground    // 提示背景
 
 // 特殊
 AppSemanticColor.brandAccent     // 品牌强调
+AppSemanticColor.warmAccent      // 米杏装饰，仅用于 badge / chip / chart
 AppSemanticColor.scrim           // 遮罩
 AppSemanticColor.toastBackground // Toast 背景
 ```
@@ -183,7 +187,7 @@ let color = colorScheme == .dark ? Color.white : Color.black
 
 | 规则 | 说明 |
 |---|---|
-| UI 禁用 Palette | 不写 `AppPalette.green800`、`Color("green500")` 等 |
+| UI 禁用 Palette | 不写 `AppPalette.green800`、`Color("green300")` 等 |
 | UI 禁用 hex/RGB | 不写 `.foregroundStyle(Color(hex: "#1a7a3c"))` |
 | 不允许内联计算颜色 | 组件内部不自行 `.opacity()` 推导新语义，走现有 token |
 | 状态必须有 token | pressed / disabled 不用 `.opacity(0.5)` 代替，使用 `primaryPressed`、`primaryDisabled` 等 |
@@ -269,7 +273,7 @@ AppTypography.badge        // caption2.bold — 数字徽章
 
 ## 阴影与动效（AppStyleToken.swift）
 
-只保留轻阴影，卡片阴影基准为 y `8`、blur `22`、color `rgba(31, 77, 58, 0.12)`，Sheet 阴影基准为 y `12`、blur `28`、color `rgba(31, 77, 58, 0.12)`。禁止使用黑色重阴影、超大模糊或多层高对比投影。
+只保留轻阴影，整体走低偏移、中等模糊、低不透明的柔和投影；具体的偏移、模糊半径、阴影色与不透明度以 `AppStyleToken.swift` / `AppSemanticColor` 中的 token 为准，本规范不锁死数值。禁止使用黑色重阴影、超大模糊或多层高对比投影。
 
 ### 阴影（AppShadow）
 

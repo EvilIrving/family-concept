@@ -11,9 +11,9 @@ struct OrdersView: View {
                 AppCard {
                     VStack(alignment: .leading, spacing: AppSpacing.md) {
                         HStack(spacing: AppSpacing.xs) {
-                            statusPill(title: L10n.tr("To cook"), value: waitingCount, tint: AppSemanticColor.infoForeground, background: AppSemanticColor.infoBackground)
+                            statusPill(title: L10n.tr("To cook"), value: waitingCount, tint: AppSemanticColor.pendingForeground, background: AppSemanticColor.pendingBackground)
                             statusPill(title: L10n.tr("Cooking"), value: cookingCount, tint: AppSemanticColor.warning, background: AppSemanticColor.warningBackground)
-                            statusPill(title: L10n.tr("Done"), value: doneCount, tint: AppSemanticColor.primary, background: AppSemanticColor.interactiveSecondary)
+                            statusPill(title: L10n.tr("Done"), value: doneCount, tint: AppSemanticColor.success, background: AppSemanticColor.successBackground)
                         }
                     }
                 }
