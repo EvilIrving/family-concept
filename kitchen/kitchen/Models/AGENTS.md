@@ -9,6 +9,7 @@
 - `Domain.swift`：账号、私厨、成员、菜品、订单、购物车、认证响应等核心模型
 - `DishDraftImageState.swift`：新增菜品流程里的图片状态机
 - `DishImageSpec.swift`：菜品图片处理规格
+- `Entitlement.swift`：付费档位、购买商品、权益快照和 AppAccountToken 构建
 
 ## 核心模型
 
@@ -86,6 +87,40 @@ struct OrderItem: Identifiable, Codable, Equatable {
     let updatedAt: String
 }
 ```
+
+### PlanCode / PurchaseProduct
+```swift
+enum PlanCode: String, Codable {
+    case free
+    case dishesFifty = "dishes_fifty"
+    case dishesUnlimited = "dishes_unlimited"
+}
+
+enum PurchaseProduct: String, CaseIterable {
+    case dishesFifty = "kitchen.dishes.essentials"
+    case dishesUnlimited = "kitchen.dishes.unlimited"
+}
+```
+PlanCode 定义付费档位和菜品上限，PurchaseProduct 对应 App Store Connect 商品 ID。
+
+### KitchenEntitlement
+```swift
+struct KitchenEntitlement: Codable, Equatable {
+    let status: EntitlementStatus
+    let planCode: PlanCode
+    let dishLimit: Int?
+    let isUnlimited: Bool
+    let activeDishCount: Int
+    // ...
+}
+```
+厨房当前权益快照，以服务端为权威。提供 `remainingQuota`、`isAtLimit` 等计算属性。
+
+### PendingEntitlementUpgrade
+购买已完成但尚未完成服务端同步时的本地过渡态。
+
+### AppAccountTokenBuilder
+用 `accountID + kitchenID` 经 SHA256 截断生成 UUID v5 风格的 AppAccountToken，用于 App Store 购买关联。
 
 ### 本地专用模型
 

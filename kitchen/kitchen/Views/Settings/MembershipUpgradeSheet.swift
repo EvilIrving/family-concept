@@ -126,27 +126,26 @@ struct MembershipUpgradeSheet: View {
                     Image(systemName: isSelected && isSelectable ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: AppIconSize.lg, weight: .semibold))
                         .foregroundStyle(isSelected && isSelectable ? AppSemanticColor.primary : AppSemanticColor.textTertiary)
+                        .frame(width: 28, height: 28)
 
                     Spacer(minLength: AppSpacing.xs)
 
-                    if code == .dishesUnlimited {
-                        Text("Recommended")
-                            .font(AppTypography.micro)
-                            .foregroundStyle(AppSemanticColor.primary)
-                            .padding(.horizontal, AppSpacing.xs)
-                            .padding(.vertical, AppSpacing.xxs)
-                            .background(AppSemanticColor.interactiveSecondary, in: Capsule())
-                    }
+                    recommendedBadge(isVisible: code == .dishesUnlimited, isSelected: isSelected && isSelectable)
                 }
+                .frame(height: 28)
 
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(planTitle(for: code))
                         .font(AppTypography.bodyStrong)
                         .foregroundStyle(AppSemanticColor.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
                     Text(planSubtitle(for: code))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppSemanticColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .allowsTightening(true)
                 }
 
                 Spacer(minLength: AppSpacing.xs)
@@ -155,6 +154,9 @@ struct MembershipUpgradeSheet: View {
                     Text(priceTitle(for: code, product: product))
                         .font(AppTypography.bodyStrong)
                         .foregroundStyle(isCurrent ? AppSemanticColor.textSecondary : AppSemanticColor.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                        .allowsTightening(true)
                     if isCurrent {
                         Text("Current")
                             .font(AppTypography.micro)
@@ -172,6 +174,20 @@ struct MembershipUpgradeSheet: View {
         }
         .disabled(!isSelectable)
         .accessibilityAddTraits(isSelected && isSelectable ? .isSelected : [])
+    }
+
+    private func recommendedBadge(isVisible: Bool, isSelected: Bool) -> some View {
+        Image(systemName: "star.fill")
+            .font(.system(size: AppIconSize.sm, weight: .semibold))
+            .foregroundStyle(isSelected ? AppSemanticColor.primary : AppSemanticColor.textSecondary)
+            .frame(width: 28, height: 28)
+            .background(
+                isSelected ? AppSemanticColor.interactiveSecondary : AppSemanticColor.surfaceSecondary,
+                in: Circle()
+            )
+            .opacity(isVisible ? 1 : 0)
+            .accessibilityHidden(!isVisible)
+            .accessibilityLabel(L10n.tr("Recommended"))
     }
 
     private var planComparison: some View {
@@ -198,9 +214,16 @@ struct MembershipUpgradeSheet: View {
             Text(title)
                 .font(AppTypography.caption)
                 .foregroundStyle(AppSemanticColor.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .allowsTightening(true)
             Text(value)
                 .font(AppTypography.bodyStrong)
                 .foregroundStyle(isEmphasized ? AppSemanticColor.primary : AppSemanticColor.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.58)
+                .allowsTightening(true)
+                .layoutPriority(1)
         }
         .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
