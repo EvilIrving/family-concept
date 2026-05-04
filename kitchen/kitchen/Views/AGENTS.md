@@ -16,8 +16,8 @@
 - `Menu/`：
   - `MenuView.swift`：菜单搜索、分类筛选、加菜入口、购物车入口
   - `MenuCartSheet.swift`：购物车弹层
-  - `AddDishFlow/`：新增/编辑菜品流程，包含表单页面、图片选择区、食材输入和流程状态类型
-  - `DishImageFlow/`：相机拍照、取景裁切及其画布/遮罩支持视图
+  - `AddDishFlow/`：新增/编辑菜品流程，包含表单页面、图片选择区、食材输入和流程状态类型；选图/拍照后由 `VisionSubjectExtractor` 自动抠主体并加白色描边，不再走二次取景裁切
+  - `DishImageFlow/`：相机拍照及图片处理工具；旧的取景裁切视图保留为兼容路由，当前主流程不再使用
 
 ## 导航与弹层约束
 

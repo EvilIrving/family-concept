@@ -2,6 +2,7 @@ import UIKit
 
 enum DishDraftImageState {
     case empty
+    case extracting
     case processing
     case remote(previewImage: UIImage, remoteURL: URL)
     case ready(previewImage: UIImage, fileURL: URL)
@@ -16,6 +17,8 @@ extension DishDraftImageState {
         switch self {
         case .empty:
             return L10n.tr("Add a photo")
+        case .extracting:
+            return L10n.tr("subjectExtract.status.extracting")
         case .processing:
             return L10n.tr("Optimizing image")
         case .remote:
@@ -35,6 +38,8 @@ extension DishDraftImageState {
         switch self {
         case .empty:
             return L10n.tr("After taking or choosing a photo, frame your dish in the square")
+        case .extracting:
+            return L10n.tr("subjectExtract.status.extracting")
         case .processing:
             return L10n.tr("Generating dish cover")
         case .remote:

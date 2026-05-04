@@ -12,17 +12,19 @@ struct MenuDishFlowImagePickerSection: View {
             switch coordinator.imageState {
             case .empty:
                 pickerButtons
+            case .extracting:
+                previewWithLoading(L10n.tr("subjectExtract.status.extracting"))
             case .processing:
-                progressState(L10n.tr("Processing…"))
+                previewWithLoading(L10n.tr("Processing…"))
             case .remote(let previewImage, _):
-                imagePreview(previewImage, showsRemoveButton: false)
+                previewBox(content: { fittedImage(previewImage) }, removable: true)
             case .ready(let previewImage, _):
-                imagePreview(previewImage, showsRemoveButton: true)
+                previewBox(content: { fittedImage(previewImage) }, removable: true)
             case .uploading:
-                progressState(L10n.tr("dishFlow.progress.uploading"))
+                previewWithLoading(L10n.tr("dishFlow.progress.uploading"))
             case .uploadFailed(let previewImage, _, let message):
                 VStack(spacing: AppSpacing.xs) {
-                    imagePreview(previewImage, showsRemoveButton: true)
+                    previewBox(content: { fittedImage(previewImage) }, removable: true)
                     Text(message)
                         .font(AppTypography.caption)
                         .foregroundStyle(AppSemanticColor.danger)
@@ -61,51 +63,46 @@ struct MenuDishFlowImagePickerSection: View {
         }
     }
 
-    private func progressState(_ title: String) -> some View {
-        AppLoadingIndicator(label: title, tone: .primary, controlSize: .regular)
-            .frame(maxWidth: .infinity, minHeight: AppDimension.progressBlockMinHeight)
-            .background(AppSemanticColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppRadius.sm))
+    private func previewWithLoading(_ label: String) -> some View {
+        previewBox(
+            content: {
+                AppLoadingIndicator(label: label, tone: .primary, controlSize: .regular)
+            },
+            removable: false
+        )
     }
 
-    private func imagePreview(
-        _ image: UIImage,
-        showsRemoveButton: Bool
+    private func fittedImage(_ image: UIImage) -> some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(AppSpacing.md)
+    }
+
+    @ViewBuilder
+    private func previewBox<Content: View>(
+        @ViewBuilder content: () -> Content,
+        removable: Bool
     ) -> some View {
-        VStack(spacing: AppSpacing.xs) {
-            ZStack(alignment: .topTrailing) {
-                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                    .fill(AppSemanticColor.surfaceSecondary)
-                    .frame(maxWidth: .infinity, minHeight: 188)
-                    .overlay {
-                        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                            GeometryReader { proxy in
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: proxy.size.width, height: proxy.size.width)
-                                    .clipShape(
-                                        RoundedRectangle(
-                                            cornerRadius: DishImageSpec.viewportCornerRadius,
-                                            style: .continuous
-                                        )
-                                    )
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                            }
-                            .aspectRatio(1, contentMode: .fit)
-                        }
-                        .padding(AppSpacing.md)
-                    }
-                    .clipped()
-
-                if showsRemoveButton {
-                    AppIconActionButton(systemImage: "xmark.circle.fill", tone: .neutral, size: .lg) {
-                        coordinator.clearImage()
-                    }
-                    .padding(AppInset.badgeHorizontal)
+        ZStack(alignment: .topTrailing) {
+            Color.clear
+                .aspectRatio(4.0 / 3.0, contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .overlay {
+                    content()
                 }
-            }
 
-            pickerButtons
+            if removable {
+                Button {
+                    coordinator.clearImage()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(AppSemanticColor.textSecondary)
+                }
+                .padding(AppInset.badgeHorizontal)
+            }
         }
     }
 }

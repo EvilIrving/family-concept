@@ -66,19 +66,9 @@ struct MenuDishFlowContainer: View {
                 case .camera(let sessionID):
                     DishCameraCaptureView(
                         onCapture: { image in
-                            Task {
-                                let standardized = await standardizedCropImage(from: image)
-                                await MainActor.run {
-                                    navigationPath.append(
-                                        .crop(
-                                            CropRoute(
-                                                id: UUID(),
-                                                image: standardized,
-                                                source: .camera
-                                            )
-                                        )
-                                    )
-                                }
+                            imageCoordinator.extractAndProcess(image)
+                            if case .camera = navigationPath.last {
+                                popLastRoute()
                             }
                         },
                         onCancel: {
@@ -120,17 +110,8 @@ struct MenuDishFlowContainer: View {
             Task {
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let image = UIImage(data: data) {
-                    let standardized = await standardizedCropImage(from: image)
                     await MainActor.run {
-                        navigationPath.append(
-                            .crop(
-                                CropRoute(
-                                    id: UUID(),
-                                    image: standardized,
-                                    source: .photoLibrary
-                                )
-                            )
-                        )
+                        imageCoordinator.extractAndProcess(image)
                     }
                 }
                 await MainActor.run {
@@ -192,12 +173,6 @@ struct MenuDishFlowContainer: View {
                 navigationPath.append(.camera(currentCameraSessionID))
             }
         }
-    }
-
-    private func standardizedCropImage(from image: UIImage) async -> UIImage {
-        await Task.detached(priority: .userInitiated) {
-            image.standardizedForCrop()
-        }.value
     }
 
     private func seedRemoteImageIfNeeded() async {

@@ -17,6 +17,25 @@ final class DishImageCoordinator: ObservableObject {
         }
     }
 
+    /// 选图/拍照后调用：Vision 抠主体 + 白边 → 导出 PNG → ready
+    /// 失败立即回到 .empty 并通过全局 feedback 路由弹 toast。
+    func extractAndProcess(_ image: UIImage) {
+        imageState = .extracting
+        Task {
+            do {
+                let composed = try await VisionSubjectExtractor.extractAndCompose(image)
+                let (preview, fileURL) = try await composed.exportForDishUpload()
+                imageState = .ready(previewImage: preview, fileURL: fileURL)
+            } catch {
+                imageState = .empty
+                AppFeedbackRouter.shared.show(
+                    .low(message: L10n.tr("subjectExtract.toast.failed")),
+                    placement: .centerToast
+                )
+            }
+        }
+    }
+
     func clearImage() {
         removeTempFileIfNeeded()
         imageState = .empty

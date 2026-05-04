@@ -11,7 +11,7 @@ kitchen/
 ├── kitchenApp.swift      # App 入口，注入全局 AppStore
 ├── Design/               # 设计 token（颜色、间距、圆角、字体）
 ├── Models/               # 领域模型和本地草稿状态
-├── Services/             # APIClient、Endpoint、图片处理与上传编排
+├── Services/             # APIClient、Endpoint、图片处理、Vision 主体抠图与上传编排
 ├── Stores/               # 全局状态与副作用入口
 ├── Views/                # 业务页面（入驻、菜单、订单、设置）
 └── UI/
