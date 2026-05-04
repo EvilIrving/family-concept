@@ -6,12 +6,12 @@ enum AppFeedbackSeverity: Int, Equatable {
     case warning
     case error
 
-    var prefersBanner: Bool {
+    var defaultPlacement: AppFeedbackPlacement {
         switch self {
         case .warning, .error:
-            return true
+            return .topBanner
         case .info, .success:
-            return false
+            return .topToast
         }
     }
 
@@ -29,6 +29,12 @@ enum AppFeedbackSeverity: Int, Equatable {
     }
 }
 
+enum AppFeedbackPlacement: Equatable {
+    case topBanner
+    case topToast
+    case centerToast
+}
+
 enum AppFeedbackPersistence: Equatable {
     case autoDismiss
     case persistent
@@ -41,6 +47,7 @@ struct AppFeedbackPayload: Equatable {
     let actionLabel: String?
     let severity: AppFeedbackSeverity
     let persistence: AppFeedbackPersistence
+    let placement: AppFeedbackPlacement?
 
     init(
         title: String? = nil,
@@ -48,14 +55,17 @@ struct AppFeedbackPayload: Equatable {
         icon: String? = nil,
         actionLabel: String? = nil,
         severity: AppFeedbackSeverity = .info,
-        persistence: AppFeedbackPersistence = .autoDismiss
+        persistence: AppFeedbackPersistence = .autoDismiss,
+        placement: AppFeedbackPlacement? = nil
     ) {
         self.title = title
         self.message = message
         self.icon = icon
         self.actionLabel = actionLabel
         self.severity = severity
-        self.persistence = severity.prefersBanner ? persistence : .autoDismiss
+        self.placement = placement
+        let resolvedPlacement = placement ?? severity.defaultPlacement
+        self.persistence = resolvedPlacement == .topBanner ? persistence : .autoDismiss
     }
 }
 

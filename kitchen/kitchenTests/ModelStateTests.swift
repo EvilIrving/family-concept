@@ -236,8 +236,13 @@ struct ModelStateTests {
     func appFeedbackRouterRoutesInfoPayloadToToast() {
         let router = AppFeedbackRouter(duplicateWindow: 0.2)
 
-        router.show(.low(message: "已复制邀请码"))
+        let result = router.show(.low(message: "已复制邀请码"))
 
+        guard case .shown(let id) = result else {
+            Issue.record("Expected shown toast")
+            return
+        }
+        #expect(router.topToasts.first == id)
         #expect(router.topToasts.count == 1)
         #expect(router.centerToasts.isEmpty)
         #expect(router.currentBannerID == nil)
@@ -248,21 +253,27 @@ struct ModelStateTests {
     func appFeedbackRouterRoutesSuccessPayloadToToast() {
         let router = AppFeedbackRouter(duplicateWindow: 0.2)
 
-        router.show(.high(message: "保存成功"))
+        let result = router.show(.high(message: "保存成功"))
 
+        guard case .shown(let id) = result else {
+            Issue.record("Expected shown toast")
+            return
+        }
+        #expect(router.topToasts.first == id)
         #expect(router.topToasts.count == 1)
         #expect(router.centerToasts.isEmpty)
         #expect(router.currentBannerID == nil)
         #expect(router.isBannerActive == false)
     }
 
-    @Test("AppFeedbackRouter 在 banner active 时丢弃 toast")
-    func appFeedbackRouterDropsToastWhenBannerIsActive() {
+    @Test("AppFeedbackRouter 在 banner active 时返回 blockedByActiveBanner")
+    func appFeedbackRouterReportsToastBlockedWhenBannerIsActive() {
         let router = AppFeedbackRouter(duplicateWindow: 0.2)
 
         router.show(.network(message: "保存成功"))
-        router.show(.low(message: "已复制邀请码"))
+        let result = router.show(.low(message: "已复制邀请码"))
 
+        #expect(result == .blockedByActiveBanner)
         #expect(router.currentBannerID != nil)
         #expect(router.topToasts.isEmpty)
         #expect(router.centerToasts.isEmpty)
@@ -273,8 +284,9 @@ struct ModelStateTests {
         let router = AppFeedbackRouter(duplicateWindow: 5)
 
         router.show(.low(message: "重复消息"))
-        router.show(.low(message: "重复消息"))
+        let result = router.show(.low(message: "重复消息"))
 
+        #expect(result == .ignoredDuplicate)
         #expect(router.topToasts.count == 1)
         #expect(router.centerToasts.isEmpty)
         #expect(router.currentBannerID == nil)
@@ -334,9 +346,34 @@ struct ModelStateTests {
             )
         )
 
-        router.show(warningFeedback)
+        let result = router.show(warningFeedback)
 
+        #expect(result == .blockedByActiveBanner)
         #expect(router.currentBannerID == firstBannerID)
+    }
+
+    @Test("AppFeedbackRouter 支持显式 placement 覆盖 severity 默认位置")
+    func appFeedbackRouterSupportsExplicitPlacementOverride() throws {
+        let router = AppFeedbackRouter(duplicateWindow: 0.2)
+
+        let successBanner = router.show(.high(message: "保存成功"), placement: .topBanner)
+        let bannerID: UUID
+        guard case .shown(let shownBannerID) = successBanner else {
+            Issue.record("Expected shown banner")
+            return
+        }
+        bannerID = shownBannerID
+        #expect(router.currentBannerID == bannerID)
+
+        router.dismissBanner(id: bannerID)
+        let centerToast = router.show(.low(message: "已复制邀请码"), placement: .centerToast)
+
+        guard case .shown(let toastID) = centerToast else {
+            Issue.record("Expected shown center toast")
+            return
+        }
+        #expect(router.centerToasts.first == toastID)
+        #expect(router.topToasts.isEmpty)
     }
 
     @Test("展示态带意图的 feedback 只在首次展示时触发一次震动")

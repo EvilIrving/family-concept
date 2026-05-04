@@ -56,7 +56,7 @@ struct ShoppingListSheet: View {
                     message: L10n.tr("Could not create shopping list image. Try again later."),
                     systemImage: "xmark.octagon.fill"
                 ),
-                hint: .centerToast
+                placement: .centerToast
             )
             return
         }

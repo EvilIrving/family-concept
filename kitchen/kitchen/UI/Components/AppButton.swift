@@ -118,14 +118,7 @@ struct AppButton: View {
     }
 
     private var automaticHapticIntent: AppHapticIntent {
-        switch role {
-        case .primary, .secondary:
-            return .light
-        case .destructive:
-            return .warning
-        case .ghost:
-            return .selection
-        }
+        .selection
     }
 }
 

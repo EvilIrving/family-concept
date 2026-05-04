@@ -125,7 +125,7 @@ struct MemberRoleSheet: View {
             pendingAction = nil
 
             if success {
-                feedbackRouter.show(.high(message: successMessage), hint: .centerToast)
+                feedbackRouter.show(.high(message: successMessage), placement: .centerToast)
                 if dismissOnSuccess { dismiss() }
             } else {
                 feedbackRouter.show(
@@ -133,7 +133,7 @@ struct MemberRoleSheet: View {
                         message: store.error ?? failureFallback,
                         systemImage: "xmark.octagon.fill"
                     ),
-                    hint: .centerToast
+                    placement: .centerToast
                 )
             }
         }

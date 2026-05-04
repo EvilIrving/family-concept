@@ -135,12 +135,12 @@ struct FeedbackSheet: View {
         validationTrigger += 1
         guard !messageTrimmed.isEmpty else {
             focusedField = .message
-            feedbackRouter.show(.low(message: L10n.tr("Please write your request or comment first")), hint: .centerToast)
+            feedbackRouter.show(.low(message: L10n.tr("Please write your request or comment first")), placement: .centerToast)
             return
         }
         guard !contactTrimmed.isEmpty else {
             focusedField = .contact
-            feedbackRouter.show(.low(message: L10n.tr("Please leave a contact")), hint: .centerToast)
+            feedbackRouter.show(.low(message: L10n.tr("Please leave a contact")), placement: .centerToast)
             return
         }
 
@@ -155,13 +155,13 @@ struct FeedbackSheet: View {
                 )
                 await MainActor.run {
                     isSubmitting = false
-                    feedbackRouter.show(.high(message: L10n.tr("Feedback submitted")), hint: .centerToast)
+                    feedbackRouter.show(.high(message: L10n.tr("Feedback submitted")), placement: .centerToast)
                     dismiss()
                 }
             } catch {
                 await MainActor.run {
                     isSubmitting = false
-                    feedbackRouter.show(store.feedback(for: error), hint: .centerToast)
+                    feedbackRouter.show(store.feedback(for: error), placement: .centerToast)
                 }
             }
         }

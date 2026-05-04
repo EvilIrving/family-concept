@@ -106,7 +106,7 @@ kitchen/
 
 - 业务逻辑和 UI 都需要配套测试代码
 - View 不强制单测，但必须能正常编译和 Preview
-- 执行 iOS `build`、`test`、运行或安装时，默认目标设备为真机 `“xujinghui”的 iPhone`，`destination id=00008150-0019546A2100401C`
+- 执行 iOS `build`、`test`、运行或安装时，默认目标设备为真机: `iPhone 14 (18.1) (00008110-000A48C41141401E)`
 - 除非用户明确要求 simulator，否则不要默认选择 `iphonesimulator`、`simulatorId` 或任何模拟器目标
 - 如工具支持显式目标参数，优先传 `platform=iOS` 与上述 `deviceId`，避免回退到 simulator
  

@@ -230,7 +230,7 @@ struct MenuView: View {
                     message: L10n.tr("%@ archived", name),
                     systemImage: "checkmark.circle.fill"
                 ),
-                hint: .centerToast
+                placement: .centerToast
             )
         }
     }

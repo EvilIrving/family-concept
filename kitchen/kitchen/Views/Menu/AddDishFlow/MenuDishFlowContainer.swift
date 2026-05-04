@@ -105,6 +105,12 @@ struct MenuDishFlowContainer: View {
             }
         }
         .background(AppSemanticColor.surface)
+        .overlay {
+            if isSaving {
+                savingOverlay
+            }
+        }
+        .animation(.easeInOut(duration: 0.18), value: isSaving)
         .photosPicker(isPresented: $isPhotoPickerPresented, selection: $selectedPhotoItem, matching: .images)
         .task(id: item.id) {
             await seedRemoteImageIfNeeded()
@@ -132,6 +138,24 @@ struct MenuDishFlowContainer: View {
                 }
             }
         }
+    }
+
+    private var savingOverlay: some View {
+        ZStack {
+            AppSemanticColor.surface.opacity(0.75)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+            AppLoadingIndicator(label: L10n.tr("Saving…"), tone: .primary, controlSize: .large)
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.vertical, AppSpacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                        .fill(AppSemanticColor.surface)
+                        .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+                )
+        }
+        .transition(.opacity)
+        .accessibilityAddTraits(.isModal)
     }
 
     private func popLastRoute() {
@@ -239,21 +263,21 @@ struct MenuDishFlowContainer: View {
         guard !addedName.isEmpty else {
             draft.invalidName = true
             draft.validationTrigger += 1
-            feedbackRouter.show(.low(message: L10n.tr("Enter a dish name")), hint: .centerToast)
+            feedbackRouter.show(.low(message: L10n.tr("Enter a dish name")), placement: .centerToast)
             focusedField.wrappedValue = .name
             return
         }
         guard !finalCategory.isEmpty else {
             draft.invalidCategory = true
             draft.validationTrigger += 1
-            feedbackRouter.show(.low(message: L10n.tr("Enter a category")), hint: .centerToast)
+            feedbackRouter.show(.low(message: L10n.tr("Enter a category")), placement: .centerToast)
             focusedField.wrappedValue = draft.selectedQuickCategory == "Custom" ? .customCategory : .name
             return
         }
         guard !draft.ingredientTags.isEmpty else {
             draft.invalidIngredients = true
             draft.validationTrigger += 1
-            feedbackRouter.show(.low(message: L10n.tr("Please add ingredients")), hint: .centerToast)
+            feedbackRouter.show(.low(message: L10n.tr("Please add ingredients")), placement: .centerToast)
             focusedField.wrappedValue = .ingredient
             return
         }
@@ -263,7 +287,7 @@ struct MenuDishFlowContainer: View {
             defer { isSaving = false }
             guard store.kitchen != nil else {
                 await MainActor.run {
-                    feedbackRouter.show(.low(message: L10n.tr("No active kitchen")), hint: .centerToast)
+                    feedbackRouter.show(.low(message: L10n.tr("No active kitchen")), placement: .centerToast)
                 }
                 return
             }
@@ -272,7 +296,6 @@ struct MenuDishFlowContainer: View {
             let imageFileURL: URL?
             switch imageCoordinator.imageState {
             case .ready(_, let url), .uploadFailed(_, let url, _):
-                imageCoordinator.imageState = .uploading
                 imageFileURL = url
             case .remote:
                 imageFileURL = nil
@@ -302,7 +325,7 @@ struct MenuDishFlowContainer: View {
             guard let dish = result else {
                 await MainActor.run {
                     let errorMsg = store.error ?? L10n.tr("Save failed")
-                    feedbackRouter.show(.low(message: errorMsg), hint: .centerToast)
+                    feedbackRouter.show(.low(message: errorMsg), placement: .centerToast)
                     if let imageFileURL {
                         restoreUploadState(
                             previousState: previousImageState,

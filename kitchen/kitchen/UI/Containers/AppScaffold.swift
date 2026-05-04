@@ -39,13 +39,7 @@ struct AppSheetContainer<Content: View>: View {
                 .padding(.bottom, AppSpacing.md)
 
             if title != nil || subtitle != nil || confirmTitle != nil {
-                HStack(alignment: .top) {
-                    Button(dismissTitle, action: onDismiss)
-                        .font(AppTypography.bodyStrong)
-                        .foregroundStyle(AppSemanticColor.textSecondary)
-
-                    Spacer()
-
+                ZStack(alignment: .top) {
                     VStack(spacing: AppSpacing.xxs) {
                         if let title {
                             Text(title)
@@ -58,27 +52,38 @@ struct AppSheetContainer<Content: View>: View {
                                 .foregroundStyle(AppSemanticColor.textSecondary)
                         }
                     }
+                    .frame(maxWidth: .infinity)
+                    .allowsHitTesting(false)
 
-                    Spacer()
-
-                    if let confirmTitle, let onConfirm {
-                        Button(action: onConfirm) {
-                            Group {
-                                if isConfirmLoading {
-                                    AppLoadingIndicator(tone: .primary, controlSize: .small)
-                                } else {
-                                    Text(confirmTitle)
-                                }
-                            }
-                            .font(AppTypography.bodyStrong)
-                            .foregroundStyle(isConfirmDisabled ? AppSemanticColor.textTertiary : AppSemanticColor.primary)
-                        }
-                        .disabled(isConfirmDisabled || isConfirmLoading)
-                    } else {
+                    HStack(alignment: .top) {
                         Button(dismissTitle, action: onDismiss)
                             .font(AppTypography.bodyStrong)
-                            .hidden()
-                            .accessibilityHidden(true)
+                            .foregroundStyle(isConfirmLoading ? AppSemanticColor.textTertiary : AppSemanticColor.textSecondary)
+                            .disabled(isConfirmLoading)
+
+                        Spacer(minLength: AppSpacing.md)
+
+                        if let confirmTitle, let onConfirm {
+                            Button(action: onConfirm) {
+                                ZStack {
+                                    Text(confirmTitle)
+                                        .opacity(isConfirmLoading ? 0 : 1)
+                                    if isConfirmLoading {
+                                        AppLoadingIndicator(tone: .primary, controlSize: .small)
+                                    }
+                                }
+                                .font(AppTypography.bodyStrong)
+                                .foregroundStyle(isConfirmDisabled ? AppSemanticColor.textTertiary : AppSemanticColor.primary)
+                                .animation(.easeInOut(duration: 0.15), value: isConfirmLoading)
+                            }
+                            .disabled(isConfirmDisabled || isConfirmLoading)
+                            .accessibilityLabel(confirmTitle)
+                        } else {
+                            Text(dismissTitle)
+                                .font(AppTypography.bodyStrong)
+                                .hidden()
+                                .accessibilityHidden(true)
+                        }
                     }
                 }
                 .padding(.horizontal, AppSpacing.lg)

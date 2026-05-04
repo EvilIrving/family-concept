@@ -1,8 +1,10 @@
 import Combine
 import SwiftUI
 
-enum AppFeedbackHint {
-    case centerToast
+enum AppFeedbackPresentationResult: Equatable {
+    case shown(UUID)
+    case ignoredDuplicate
+    case blockedByActiveBanner
 }
 
 @MainActor
@@ -33,16 +35,21 @@ final class AppFeedbackRouter: ObservableObject {
         return bannerStore[currentBannerID]?.autoDismissDuration
     }
 
-    func show(_ feedback: AppFeedback, hint: AppFeedbackHint? = nil) {
-        guard shouldAccept(feedback) else { return }
+    @discardableResult
+    func show(
+        _ feedback: AppFeedback,
+        placement: AppFeedbackPlacement? = nil
+    ) -> AppFeedbackPresentationResult {
+        guard shouldAccept(feedback) else { return .ignoredDuplicate }
 
-        if feedback.severity.prefersBanner {
-            showBanner(feedback)
-            return
+        let resolvedPlacement = placement ?? feedback.payload.placement ?? feedback.severity.defaultPlacement
+        switch resolvedPlacement {
+        case .topBanner:
+            return showBanner(feedback)
+        case .topToast, .centerToast:
+            guard isBannerActive == false else { return .blockedByActiveBanner }
+            return showToast(feedback, placement: resolvedPlacement)
         }
-
-        guard isBannerActive == false else { return }
-        showToast(feedback, hint: hint)
     }
 
     func dismissToast(id: UUID) {
@@ -87,12 +94,12 @@ final class AppFeedbackRouter: ObservableObject {
         return true
     }
 
-    private func showToast(_ feedback: AppFeedback, hint: AppFeedbackHint?) {
+    private func showToast(_ feedback: AppFeedback, placement: AppFeedbackPlacement) -> AppFeedbackPresentationResult {
         let tokens = FeedbackPresentationTokens(feedback: feedback)
         let toast = AppToastData(
             text: feedback.messageText,
             duration: .seconds(2.2),
-            placement: hint == .centerToast ? .center : .top,
+            placement: placement == .centerToast ? .center : .top,
             showsIcon: tokens.iconSystemName != nil,
             iconSystemName: tokens.iconSystemName,
             haptic: feedback.haptic,
@@ -109,10 +116,11 @@ final class AppFeedbackRouter: ObservableObject {
                 centerToasts = [toast.id]
             }
         }
+        return .shown(toast.id)
     }
 
-    private func showBanner(_ feedback: AppFeedback) {
-        guard shouldReplaceCurrentBanner(with: feedback.severity) else { return }
+    private func showBanner(_ feedback: AppFeedback) -> AppFeedbackPresentationResult {
+        guard shouldReplaceCurrentBanner(with: feedback.severity) else { return .blockedByActiveBanner }
         let tokens = FeedbackPresentationTokens(feedback: feedback)
         let banner = TopBannerData(
             text: feedback.messageText,
@@ -129,6 +137,7 @@ final class AppFeedbackRouter: ObservableObject {
         withAnimation(bannerAnimation) {
             currentBannerID = banner.id
         }
+        return .shown(banner.id)
     }
 
     private func shouldReplaceCurrentBanner(with severity: AppFeedbackSeverity) -> Bool {

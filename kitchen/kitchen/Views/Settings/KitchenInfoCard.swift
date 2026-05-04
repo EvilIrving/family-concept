@@ -39,7 +39,7 @@ struct KitchenInfoCard: View {
                             inviteCode: kitchen.inviteCode,
                             onCopy: {
                                 UIPasteboard.general.string = kitchen.inviteCode
-                                feedbackRouter.show(AppFeedback.low(message: L10n.tr("Invite code copied")), hint: .centerToast)
+                                feedbackRouter.show(AppFeedback.low(message: L10n.tr("Invite code copied")), placement: .centerToast)
                             }
                         )
                     }
