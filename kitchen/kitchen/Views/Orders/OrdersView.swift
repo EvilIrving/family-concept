@@ -6,68 +6,56 @@ struct OrdersView: View {
     @StateObject private var modalRouter = ModalRouter<OrdersModalRoute>()
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            VStack(alignment: .leading, spacing: 0) {
-                AppCard {
-                    VStack(alignment: .leading, spacing: AppSpacing.md) {
-                        HStack(spacing: AppSpacing.xs) {
-                            statusPill(title: L10n.tr("To cook"), value: waitingCount, tint: AppSemanticColor.pendingForeground, background: AppSemanticColor.pendingBackground)
-                            statusPill(title: L10n.tr("Cooking"), value: cookingCount, tint: AppSemanticColor.warning, background: AppSemanticColor.warningBackground)
-                            statusPill(title: L10n.tr("Done"), value: doneCount, tint: AppSemanticColor.success, background: AppSemanticColor.successBackground)
-                        }
+        VStack(alignment: .leading, spacing: 0) {
+            AppCard {
+                VStack(alignment: .leading, spacing: AppSpacing.md) {
+                    HStack(spacing: AppSpacing.xs) {
+                        statusPill(title: L10n.tr("To cook"), value: waitingCount, tint: AppSemanticColor.pendingForeground, background: AppSemanticColor.pendingBackground)
+                        statusPill(title: L10n.tr("Cooking"), value: cookingCount, tint: AppSemanticColor.warning, background: AppSemanticColor.warningBackground)
+                        statusPill(title: L10n.tr("Done"), value: doneCount, tint: AppSemanticColor.success, background: AppSemanticColor.successBackground)
                     }
                 }
-                .padding(.horizontal, AppSpacing.md)
-                .padding(.top, AppSpacing.xs)
+            }
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.top, AppSpacing.xs)
 
-                AppLoadingBlock(
-                    phase: ordersPhase,
-                    emptyView: { feedback in
-                        AppErrorPlaceholder(feedback: feedback)
-                    },
-                    skeletonView: nil as (() -> EmptyView)?,
-                    content: { groupedItems in
-                        List {
-                            Section {
-                                ForEach(groupedItems) { item in
-                                    orderRow(for: item)
-                                }
+            AppLoadingBlock(
+                phase: ordersPhase,
+                emptyView: { feedback in
+                    AppErrorPlaceholder(feedback: feedback)
+                },
+                skeletonView: nil as (() -> EmptyView)?,
+                content: { groupedItems in
+                    List {
+                        Section {
+                            ForEach(groupedItems) { item in
+                                orderRow(for: item)
                             }
-                            .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.md, bottom: 0, trailing: AppSpacing.md))
-                            .listRowSeparatorTint(AppSemanticColor.border)
-                            .listRowBackground(AppComponentColor.Card.background)
                         }
-                        .listStyle(.insetGrouped)
-                        .scrollContentBackground(.hidden)
-                        .contentMargins(.top, AppSpacing.lg, for: .scrollContent)
-                        .contentMargins(.bottom, AppSpacing.md, for: .scrollContent)
-                    },
-                    onRetry: { Task { await store.refreshOrderItems() } }
-                )
+                        .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.md, bottom: 0, trailing: AppSpacing.md))
+                        .listRowSeparatorTint(AppSemanticColor.border)
+                        .listRowBackground(AppComponentColor.Card.background)
+                    }
+                    .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
+                    .contentMargins(.top, AppSpacing.lg, for: .scrollContent)
+                    .contentMargins(.bottom, AppSpacing.md, for: .scrollContent)
+                },
+                onRetry: { Task { await store.refreshOrderItems() } }
+            )
 
-                if shouldShowFinishButton {
-                    finishOrderButton
-                        .padding(.horizontal, AppSpacing.md)
-                        .padding(.bottom, AppSpacing.md)
-                }
-
-                if store.orderItems.contains(where: { $0.status != .cancelled }) {
-                    ordersShoppingListBar
-                }
+            if shouldShowFinishButton {
+                finishOrderButton
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.bottom, AppSpacing.md)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .appPageBackground()
 
-            FloatButton(systemImage: "clock.arrow.circlepath") {
-                Task {
-                    await store.fetchOrderHistory()
-                    modalRouter.present(.history)
-                }
+            if store.orderItems.contains(where: { $0.status != .cancelled }) {
+                ordersShoppingListBar
             }
-            .padding(.trailing, AppSpacing.md)
-            .padding(.bottom, store.orderItems.contains(where: { $0.status != .cancelled }) ? AppSpacing.xl + shoppingListBarHeight : AppSpacing.xl)
-            .accessibilityLabel(L10n.tr("View order history"))
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .appPageBackground()
         .sheet(item: modalRouteBinding, onDismiss: { modalRouter.handleDismissedCurrent() }) { route in
             ordersSheet(for: route)
         }
@@ -194,9 +182,6 @@ struct OrdersView: View {
                 ShoppingListSheet()
                     .environmentObject(store)
                     .environmentObject(feedbackRouter)
-            case .history:
-                OrderHistorySheet()
-                    .environmentObject(store)
             }
         }
         .presentationDetents([.medium, .large])

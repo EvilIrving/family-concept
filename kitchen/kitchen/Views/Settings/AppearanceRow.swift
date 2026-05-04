@@ -1,13 +1,12 @@
 import SwiftUI
 
-/// 主题选择行组件
-struct ThemeSelectionRow: View {
+struct AppearanceRow: View {
     @Binding var themeMode: String
     @EnvironmentObject private var store: AppStore
 
     var body: some View {
         HStack(spacing: AppSpacing.sm) {
-            Text("Appearance")
+            Text(L10n.tr("Appearance"))
                 .font(AppTypography.bodyStrong)
                 .foregroundStyle(AppSemanticColor.textPrimary)
             Spacer()

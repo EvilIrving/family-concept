@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// 成员角色 Sheet 组件
-struct MemberRoleSheet: View {
+struct MemberManagementSheet: View {
     let memberAccountID: String
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var feedbackRouter: AppFeedbackRouter

@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// 成员头像横向滚动条组件
 struct MemberAvatarStrip: View {
     let members: [Member]
     let currentAccountID: String?

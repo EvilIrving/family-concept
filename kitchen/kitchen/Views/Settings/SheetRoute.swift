@@ -1,10 +1,10 @@
 import Foundation
 
-/// Settings 页面路由枚举
-enum SettingsModalRoute: Identifiable, Equatable {
+enum SheetRoute: Identifiable, Equatable {
     case member(MemberSheetToken)
     case upgrade
     case feedback
+    case history
 
     var id: String {
         switch self {
@@ -14,6 +14,8 @@ enum SettingsModalRoute: Identifiable, Equatable {
             return "upgrade"
         case .feedback:
             return "feedback"
+        case .history:
+            return "history"
         }
     }
 
@@ -21,13 +23,12 @@ enum SettingsModalRoute: Identifiable, Equatable {
         switch self {
         case .member(let token):
             return token
-        case .upgrade, .feedback:
+        case .upgrade, .feedback, .history:
             return nil
         }
     }
 }
 
-/// 成员 Sheet 标识
 struct MemberSheetToken: Identifiable, Equatable {
     let accountID: String
     var id: String { accountID }

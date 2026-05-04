@@ -1,0 +1,697 @@
+简体中文 (zh-Hans) — Localizable.xcstrings
+
+%@ archived
+	%@ 已归档
+
+%@ done
+	%@·已完成
+
+%@ failed. Try again later.
+	%@失败 · 稍后重试
+
+%@, %@. Tap for details.
+	%@ · %@
+
+%lld
+	%lld
+
+%lld / %lld used
+	已用 %lld/%lld
+
+%lld dishes
+	%lld 道菜
+
+%lld dishes total
+	共 %lld 道菜
+
+%lld members
+	共 %lld 人
+
+%lld selected
+	已选 %lld 道
+
+%lld servings
+	%lld 份
+
+%lld%%
+	%lld%%
+
+* %lld
+	* %lld
+
+, 
+	、
+
+10 dishes
+	10 道
+
+50 dishes
+	50 道
+
+50 dishes total
+	50 道
+
+Account & Privacy
+	账户 · 隐私
+
+Account info incomplete. Cannot start purchase.
+	资料不全 · 无法购买
+
+Add
+	新增
+
+Add Dish
+	新建
+
+Add a photo
+	添加照片
+
+Added %@
+	已新增 %@
+
+Admin
+	副管理员
+
+After taking or choosing a photo, frame your dish in the square
+	方框内对齐菜品
+
+All
+	全部
+
+Appearance
+	外观
+
+Back
+	返回
+
+Best for keeping every recipe
+	保留全部菜谱
+
+Camera
+	相机
+
+Camera unavailable
+	相机不可用
+
+Cancel
+	取消
+
+Cancelled
+	已取消
+
+Cancelled %@
+	已取消 %@
+
+Check this account's permissions
+	请核对权限
+
+Check your connection and retry
+	请检查网络
+
+Close
+	关闭
+
+Coming later
+	稍后推出
+
+Coming soon
+	即将上线
+
+Common categories
+	常用
+
+Confirm Sign Out
+	退出登录？
+
+Contact
+	联系方式
+
+Content unavailable
+	无法载入
+
+Continue
+	继续
+
+Cooking
+	制作中
+
+Copy invite code
+	复制邀请码
+
+Could not create shopping list image. Try again later.
+	清单图失败 · 稍后重试
+
+Create Kitchen
+	创建私厨
+
+Create new account
+	新建账号
+
+Current
+	当前
+
+Custom
+	自定义
+
+Custom category
+	自定义
+
+Dark
+	深色
+
+Delete
+	删除
+
+Delete Dish
+	删除
+
+Deleting will archive this dish
+	删除后将归档
+
+Demote to Member
+	降为成员
+
+Dish cover ready
+	封面就绪
+
+Dish limit comparison
+	上限对比
+
+Dish limit reached. Please upgrade.
+	已达上限 · 升级
+
+Dish name
+	菜名
+
+Done
+	已完成
+
+Edit Dish
+	编辑
+
+Empty API response
+	空响应
+
+Empty server response
+	空响应
+
+Enter a category
+	分类
+
+Enter a dish name
+	菜名
+
+Essentials upgrades coming soon
+	Essentials 将更新
+
+Export
+	导出
+
+Export failed
+	导出失败
+
+Exported %@
+	导出 · %@
+
+Failed to parse data: %@
+	解析失败：%@
+
+Failed to remove member. Try again later.
+	移除失败 · 稍后重试
+
+Feedback
+	意见反馈
+
+Feedback submitted
+	已提交
+
+Free
+	免费
+
+Free Tier
+	免费档
+
+Generating dish cover
+	生成封面中…
+
+Great for starting a family menu
+	家庭菜单入门
+
+Haptic Feedback
+	触感反馈
+
+Have an account? Sign in
+	已有账号 · 登录
+
+Help & Feedback
+	帮助与反馈
+
+Home flavors are worth the wait
+	好饭值得等
+
+Image load failed
+	图片加载失败
+
+Image ready
+	就绪
+
+Infinite dishes
+	不限量
+
+Invalid request URL
+	地址无效
+
+Invite Code
+	邀请码
+
+Invite code copied
+	已复制
+
+Invite code: 
+	邀请码：
+
+Join with Invite Code
+	邀请码加入
+
+Kitchen Name
+	私厨名称
+
+Kitchen members, %lld total
+	成员 · %lld
+
+Kitchen members, %lld total. Swipe to view all.
+	%lld 人 · 滑动查看
+
+Kitchen • Shopping List
+	私厨 · 清单
+
+Language
+	语言
+
+Leave your %@ contact
+	%@ 联系方式
+
+Light
+	浅色
+
+Load failed
+	加载失败
+
+Loading
+	加载中
+
+Loading history
+	载入中…
+
+Loading menu
+	载入中…
+
+Loading orders
+	载入中…
+
+Loading price
+	载入中…
+
+Make Admin
+	设为副管理员
+
+Mark %@ done
+	完成 · %@
+
+Meal wrapped up
+	这顿收好了
+
+Meal's ready
+	这顿好了
+
+Member
+	成员
+
+Member is no longer in this kitchen
+	已不在此私厨
+
+Member removed
+	已移除
+
+Membership
+	会员套餐
+
+Menu
+	菜单
+
+Menu is empty
+	暂无菜品
+
+My account · %@
+	账号 · %@
+
+Network error. Check your connection.
+	网络异常
+
+Network issue
+	网络异常
+
+Nickname
+	昵称
+
+No access
+	无权限
+
+No account? Sign up
+	没账号？注册
+
+No active kitchen
+	未加入私厨
+
+No active meals yet
+	暂无出餐
+
+No dishes yet
+	暂无菜品
+
+No history yet
+	暂无记录
+
+No matching dishes
+	无匹配菜式
+
+No order details to show
+	无详情
+
+No photo yet
+	暂无图片
+
+No purchases to restore
+	无可恢复项
+
+No results
+	无结果
+
+Nothing here yet
+	暂无
+
+Notifications
+	通知
+
+Opening redeem flow
+	开启中…
+
+Optimizing image
+	优化中…
+
+Or scan to reach us on Telegram
+	Telegram 扫码
+
+Order Details
+	详情
+
+Order History
+	历史
+
+Order placed
+	已下单
+
+Orders
+	订单
+
+Owner
+	管理员
+
+Password
+	密码
+
+Photo Library
+	相册
+
+Place Order
+	下单
+
+Place an order from Menu first; ingredients will appear here automatically.
+	请先在菜单下单
+
+Please add ingredients
+	请补充食材
+
+Please leave a contact
+	请留联系方式
+
+Please sign in again to continue
+	请重新登录
+
+Please write your request or comment first
+	请先写反馈
+
+Preferences
+	偏好
+
+Privacy Policy
+	隐私说明
+
+Processing failed
+	处理失败
+
+Processing purchase
+	正在处理…
+
+Processing…
+	处理中…
+
+Product info failed to load. Retry to continue.
+	方案加载失败 · 重试
+
+Product info failed to load. Try again later.
+	方案加载失败
+
+Product info still loading. Try again later.
+	方案载入中 · 稍后
+
+Purchase awaiting approval
+	待人核准付费
+
+Purchase complete. Syncing access…
+	购买完成 · 同步中…
+
+Purchases restored
+	已恢复
+
+Purchasing…
+	购买中…
+
+Ready to sync
+	待同步
+
+Recommended
+	推荐
+
+Redeem Offer Code
+	兑换优惠码
+
+Redeem flow opened
+	已打开
+
+Refreshing history
+	更新中…
+
+Refreshing menu
+	更新中…
+
+Refreshing orders
+	更新中…
+
+Remove Member
+	移除
+
+Removed 1 serving of %@
+	少 1 份 %@
+
+Requests & Feedback
+	反馈
+
+Requests or feedback
+	反馈
+
+Required dishes
+	所需菜品
+
+Reselect
+	重新选图
+
+Resource temporarily unavailable
+	暂不可用
+
+Restore Purchases
+	恢复购买
+
+Restoring purchases
+	恢复购买中
+
+Retake
+	重新拍照
+
+Retry
+	重试
+
+Role: %@
+	角色：%@
+
+Save
+	保存
+
+Save failed
+	保存失败
+
+Search dishes
+	搜索
+
+Selected
+	已选
+
+Server error. Try again later.
+	服务器错误 · 稍后重试
+
+Session expired. Sign in again.
+	登录过期 · 请重登
+
+Settings
+	设置
+
+Shopping List
+	采购清单
+
+Shopping list is empty
+	暂无清单
+
+Sign In
+	登录
+
+Sign Out
+	退出登录
+
+Sign Up
+	注册
+
+Sign in & create kitchen
+	登录并创建
+
+Sign in & join kitchen
+	登录并加入
+
+Sign-in expired
+	登录已失效
+
+Start cooking %@
+	开始 · %@
+
+Submit
+	提交
+
+Submit from Menu — your active order shows up here.
+	菜单提交后显示于此
+
+Submitting
+	提交中…
+
+Swipe left to view more members
+	滑动查看更多
+
+Sync failed. Showing your last confirmed access; you can restore purchases later in Settings.
+	同步失败 · 沿用上次 · 设置可还原
+
+System
+	跟随系统
+
+This access has been revoked.
+	此权益已被撤销
+
+This account hasn't joined a kitchen yet. Enter an invite code or create one.
+	未加入私厨 · 邀请码或创建
+
+To cook
+	待制作
+
+Transaction verification failed. Try again later.
+	验证失败 · 稍后重试
+
+Try again later
+	稍后再试
+
+Try another keyword
+	换个关键词
+
+Try another keyword, or tap Add on the right of the search bar.
+	换词或点右侧新建
+
+Try another keyword.
+	换个关键词。
+
+Unexpected API response: %@
+	异常响应：%@
+
+Unexpected error response format
+	错误格式异常
+
+Unknown dish
+	未知菜品
+
+Unlimited
+	不限量
+
+Unlimited dishes
+	无菜品上限
+
+Updated %@
+	已更新 %@
+
+Upgrade
+	升级
+
+Upgrading from Essentials to Unlimited is coming soon.
+	将支援升至 Unlimited
+
+Upload failed
+	上传失败
+
+Uploading
+	上传中
+
+Uploading…
+	上传中…
+
+Use Cropped Image
+	用裁剪图
+
+Use space to add multiple ingredients
+	用空格隔开多个食材
+
+Username
+	用户名
+
+Using the uploaded image
+	使用上传图
+
+View order history
+	历史
+
+View shopping list
+	清单
+
+Wrapped meals
+	已收桌
+
+Write feature requests, issues, or comments here
+	需求、问题、备注…
+
+You already have Unlimited — no need to purchase again.
+	已是 Unlimited
+
+You're on ∞
+	您已是 ∞
+
+Your cart is empty
+	购物车空
+
+×%lld
+	×%lld
+
+(空 key)
+  ''

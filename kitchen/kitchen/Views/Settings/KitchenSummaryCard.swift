@@ -1,9 +1,7 @@
 import SwiftUI
 
-/// 厨房信息卡片组件
-struct KitchenInfoCard: View {
+struct KitchenSummaryCard: View {
     @EnvironmentObject private var store: AppStore
-    @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
     let onMemberTap: (Member) -> Void
 
     private var kitchen: Kitchen? {
@@ -33,16 +31,6 @@ struct KitchenInfoCard: View {
                         currentAccountID: store.currentAccount?.id,
                         onMemberTap: onMemberTap
                     )
-
-                    if let kitchen {
-                        InviteCodeCard(
-                            inviteCode: kitchen.inviteCode,
-                            onCopy: {
-                                UIPasteboard.general.string = kitchen.inviteCode
-                                feedbackRouter.show(AppFeedback.low(message: L10n.tr("Invite code copied")), placement: .centerToast)
-                            }
-                        )
-                    }
                 }
             }
         }

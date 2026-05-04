@@ -1,7 +1,7 @@
 import SwiftUI
 import StoreKit
 
-struct UpgradeSheet: View {
+struct MembershipUpgradeSheet: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var purchaseManager: PurchaseManager
     @Environment(\.dismiss) private var dismiss

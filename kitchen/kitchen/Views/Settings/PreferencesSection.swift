@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// 偏好设置区域组件
 struct PreferencesSection: View {
     @EnvironmentObject private var languageStore: AppLanguageStore
     @Binding var notificationsEnabled: Bool
@@ -10,24 +9,24 @@ struct PreferencesSection: View {
     var body: some View {
         AppCard {
             VStack(spacing: 0) {
-                toggleRow(title: L10n.tr("Notifications"), isOn: $notificationsEnabled)
-                rowDivider
                 languageRow
                 rowDivider
-                toggleRow(title: L10n.tr("Haptic Feedback"), isOn: $hapticsEnabled)
+                toggleRow(title: L10n.tr("Notifications"), isOn: $notificationsEnabled)
                 rowDivider
-                ThemeSelectionRow(themeMode: $themeMode)
+                toggleRow(title: L10n.tr("Haptics"), isOn: $hapticsEnabled)
+                rowDivider
+                AppearanceRow(themeMode: $themeMode)
             }
         }
     }
 
     private var languageRow: some View {
         HStack {
-            Text("Language")
+            Text(L10n.tr("Language"))
                 .font(AppTypography.bodyStrong)
                 .foregroundStyle(AppSemanticColor.textPrimary)
             Spacer()
-            Picker("Language", selection: $languageStore.language) {
+            Picker(L10n.tr("Language"), selection: $languageStore.language) {
                 ForEach(AppLanguage.allCases) { language in
                     Text(language.displayName).tag(language)
                 }
