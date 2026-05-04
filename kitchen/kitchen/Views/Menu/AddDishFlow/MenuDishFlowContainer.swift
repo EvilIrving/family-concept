@@ -286,9 +286,7 @@ struct MenuDishFlowContainer: View {
         Task { @MainActor in
             defer { isSaving = false }
             guard store.kitchen != nil else {
-                await MainActor.run {
-                    feedbackRouter.show(.low(message: L10n.tr("No active kitchen")), placement: .centerToast)
-                }
+                feedbackRouter.show(.low(message: L10n.tr("No active kitchen")), placement: .centerToast)
                 return
             }
 
@@ -323,16 +321,14 @@ struct MenuDishFlowContainer: View {
             }
 
             guard let dish = result else {
-                await MainActor.run {
-                    let errorMsg = store.error ?? L10n.tr("Save failed")
-                    feedbackRouter.show(.low(message: errorMsg), placement: .centerToast)
-                    if let imageFileURL {
-                        restoreUploadState(
-                            previousState: previousImageState,
-                            fileURL: imageFileURL,
-                            message: errorMsg
-                        )
-                    }
+                let errorMsg = store.error ?? L10n.tr("Save failed")
+                feedbackRouter.show(.low(message: errorMsg), placement: .centerToast)
+                if let imageFileURL {
+                    restoreUploadState(
+                        previousState: previousImageState,
+                        fileURL: imageFileURL,
+                        message: errorMsg
+                    )
                 }
                 return
             }
@@ -341,12 +337,10 @@ struct MenuDishFlowContainer: View {
                 imageCoordinator.cleanupAfterUpload(fileURL: imageFileURL)
             }
 
-            await MainActor.run {
-                if editingDishID == nil {
-                    onComplete(.added(dish.name))
-                } else {
-                    onComplete(.updated(dish.name))
-                }
+            if editingDishID == nil {
+                onComplete(.added(dish.name))
+            } else {
+                onComplete(.updated(dish.name))
             }
         }
     }
