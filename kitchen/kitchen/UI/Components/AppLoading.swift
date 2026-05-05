@@ -149,6 +149,49 @@ struct AppProgressIndicator: View {
     }
 }
 
+struct ShimmerModifier: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isInitialState = true
+    var isActive: Bool = true
+
+    private static let bandSize: CGFloat = 0.3
+    private static let gradient = Gradient(colors: [
+        .black.opacity(0.3),
+        .black,
+        .black.opacity(0.3)
+    ])
+    private static let animation = Animation.linear(duration: 1.5).delay(0.25).repeatForever(autoreverses: false)
+
+    private var startPoint: UnitPoint {
+        isInitialState ? UnitPoint(x: -Self.bandSize, y: -Self.bandSize) : UnitPoint(x: 1, y: 1)
+    }
+
+    private var endPoint: UnitPoint {
+        isInitialState ? UnitPoint(x: 0, y: 0) : UnitPoint(x: 1 + Self.bandSize, y: 1 + Self.bandSize)
+    }
+
+    func body(content: Content) -> some View {
+        if isActive && !reduceMotion {
+            content
+                .mask(LinearGradient(gradient: Self.gradient, startPoint: startPoint, endPoint: endPoint))
+                .animation(Self.animation, value: isInitialState)
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now()) {
+                        isInitialState = false
+                    }
+                }
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    func shimmering(isActive: Bool = true) -> some View {
+        modifier(ShimmerModifier(isActive: isActive))
+    }
+}
+
 struct SkeletonPrimitive: View {
     @Environment(\.loadingStyle) private var style
     @State private var shimmerOffset: CGFloat = -1.2

@@ -18,6 +18,7 @@ struct MenuDishGridSkeletonView: View {
         }
         .scrollDisabled(true)
         .accessibilityHidden(true)
+        .shimmering()
     }
 }
 
@@ -32,36 +33,19 @@ private struct MenuDishCardSkeleton: View {
                     topTrailingRadius: AppRadius.md,
                     style: .continuous
                 )
-                .fill(.clear)
+                .fill(AppSemanticColor.textSecondary.opacity(0.12))
                 .frame(height: AppDimension.dishArtworkHeight)
-                .overlay {
-                    SkeletonPrimitive(cornerRadius: AppRadius.md)
-                }
-                .clipShape(
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: AppRadius.md,
-                        bottomLeadingRadius: 0,
-                        bottomTrailingRadius: 0,
-                        topTrailingRadius: AppRadius.md,
-                        style: .continuous
-                    )
-                )
 
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                    SkeletonPrimitive(cornerRadius: AppRadius.sm)
+                    RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
+                        .fill(AppSemanticColor.textSecondary.opacity(0.12))
                         .frame(height: 16)
                         .frame(maxWidth: .infinity)
 
-                    SkeletonPrimitive(cornerRadius: AppRadius.sm)
-                        .frame(width: 72, height: 14)
-
                     HStack {
-                        SkeletonPrimitive(cornerRadius: AppRadius.sm)
-                            .frame(width: AppDimension.iconButtonSide, height: AppDimension.iconButtonSide)
-
                         Spacer()
-
-                        SkeletonPrimitive(cornerRadius: AppRadius.sm)
+                        RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
+                            .fill(AppSemanticColor.textSecondary.opacity(0.12))
                             .frame(width: AppDimension.iconButtonSide, height: AppDimension.iconButtonSide)
                     }
                 }

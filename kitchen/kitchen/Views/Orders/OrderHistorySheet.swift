@@ -95,32 +95,31 @@ private struct OrderHistoryListSkeleton: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             AppCardList {
-                VStack(spacing: .zero) {
-                    ForEach(0..<5, id: \.self) { index in
-                        OrderHistoryRowSkeleton()
-                            .padding(.vertical, AppSpacing.xs)
-                        if index < 4 {
-                            Divider().overlay(AppSemanticColor.border)
-                        }
+                ForEach(0..<5, id: \.self) { index in
+                    HStack(spacing: AppSpacing.sm) {
+                        AppPill(
+                            title: L10n.tr("%lld dishes", 4),
+                            tint: AppSemanticColor.primary,
+                            background: AppSemanticColor.interactiveSecondary
+                        )
+                        Text("00/00 00:00")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppSemanticColor.textSecondary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: AppIconSize.xs, weight: .semibold))
+                            .foregroundStyle(AppSemanticColor.textTertiary)
+                    }
+
+                    if index < 4 {
+                        Divider().overlay(AppSemanticColor.border)
                     }
                 }
             }
         }
         .scrollDisabled(true)
         .accessibilityHidden(true)
-    }
-}
-
-private struct OrderHistoryRowSkeleton: View {
-    var body: some View {
-        HStack(spacing: AppSpacing.sm) {
-            SkeletonPrimitive(cornerRadius: AppRadius.pill)
-                .frame(width: 64, height: 22)
-            SkeletonPrimitive(cornerRadius: AppRadius.sm)
-                .frame(width: 96, height: 14)
-            Spacer()
-            SkeletonPrimitive(cornerRadius: AppRadius.sm)
-                .frame(width: 10, height: 14)
-        }
+        .redacted(reason: .placeholder)
+        .shimmering()
     }
 }

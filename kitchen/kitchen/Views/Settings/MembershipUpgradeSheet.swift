@@ -103,12 +103,16 @@ struct MembershipUpgradeSheet: View {
     }
 
     private var productsList: some View {
-        HStack(alignment: .top, spacing: AppSpacing.sm) {
+        let isLoading = purchaseManager.isLoadingProducts && purchaseManager.products.isEmpty
+        return HStack(alignment: .top, spacing: AppSpacing.sm) {
             ForEach(PurchaseProduct.allCases, id: \.rawValue) { code in
                 productOption(for: code)
                     .frame(maxWidth: .infinity)
             }
         }
+        .redacted(reason: isLoading ? .placeholder : [])
+        .shimmering(isActive: isLoading)
+        .disabled(isLoading)
     }
 
     private func productOption(for code: PurchaseProduct) -> some View {

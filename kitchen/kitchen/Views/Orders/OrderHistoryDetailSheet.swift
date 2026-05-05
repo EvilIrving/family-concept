@@ -95,21 +95,37 @@ struct HistoryDetailToken: Identifiable {
 }
 
 private struct OrderHistoryDetailSkeleton: View {
+    private let placeholderItem = OrderItem(
+        id: "placeholder",
+        orderId: "placeholder",
+        dishId: "placeholder",
+        addedByAccountId: "placeholder",
+        quantity: 1,
+        status: .done,
+        createdAt: "",
+        updatedAt: ""
+    )
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: AppSpacing.sm) {
-                HStack(spacing: AppSpacing.xs) {
-                    SkeletonPrimitive(cornerRadius: AppRadius.pill)
-                        .frame(width: 80, height: 22)
-                    SkeletonPrimitive(cornerRadius: AppRadius.sm)
-                        .frame(width: 96, height: 14)
-                    Spacer()
+                HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
+                    AppPill(
+                        title: L10n.tr("%lld dishes total", 8),
+                        tint: AppSemanticColor.primary,
+                        background: AppSemanticColor.interactiveSecondary
+                    )
+                    Text("00/00 00:00")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppSemanticColor.textSecondary)
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, AppSpacing.sm)
 
                 VStack(spacing: .zero) {
                     ForEach(0..<5, id: \.self) { index in
-                        OrderHistoryDetailRowSkeleton()
+                        OrderHistoryDetailRow(item: placeholderItem, dishName: "Placeholder dish")
                             .padding(.vertical, AppSpacing.md)
                         if index < 4 {
                             Divider().overlay(AppSemanticColor.border)
@@ -121,20 +137,8 @@ private struct OrderHistoryDetailSkeleton: View {
         }
         .scrollDisabled(true)
         .accessibilityHidden(true)
-    }
-}
-
-private struct OrderHistoryDetailRowSkeleton: View {
-    var body: some View {
-        HStack(spacing: AppSpacing.sm) {
-            SkeletonPrimitive(cornerRadius: AppRadius.sm)
-                .frame(width: 120, height: 16)
-            SkeletonPrimitive(cornerRadius: AppRadius.sm)
-                .frame(width: 32, height: 12)
-            Spacer()
-            SkeletonPrimitive(cornerRadius: AppRadius.pill)
-                .frame(width: 56, height: 22)
-        }
+        .redacted(reason: .placeholder)
+        .shimmering()
     }
 }
 

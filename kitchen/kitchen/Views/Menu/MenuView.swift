@@ -16,7 +16,7 @@ struct MenuView: View {
     @FocusState private var focusedField: MenuField?
 
     private let dishPageSize = 12
-    private let preloadScreenCount = 12
+    private let preloadScreenCount = 4
     private let cartButtonRevealDelay: Duration = .seconds(1)
 
     var body: some View {
