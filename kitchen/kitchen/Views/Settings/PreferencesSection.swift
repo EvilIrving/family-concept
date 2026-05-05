@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct PreferencesSection: View {
-    @EnvironmentObject private var languageStore: AppLanguageStore
     // TODO: 通知开关未实现，恢复时打开下面的 Binding 与 toggleRow。
     // @Binding var notificationsEnabled: Bool
     @Binding var hapticsEnabled: Bool
@@ -22,20 +21,7 @@ struct PreferencesSection: View {
     }
 
     private var languageRow: some View {
-        HStack {
-            Text(L10n.tr("Language"))
-                .font(AppTypography.bodyStrong)
-                .foregroundStyle(AppSemanticColor.textPrimary)
-            Spacer()
-            Picker(L10n.tr("Language"), selection: $languageStore.language) {
-                ForEach(AppLanguage.allCases) { language in
-                    Text(language.displayName).tag(language)
-                }
-            }
-            .labelsHidden()
-            .tint(AppSemanticColor.textSecondary)
-        }
-        .frame(minHeight: 44)
+        LanguageRow()
     }
 
     private var rowDivider: some View {
