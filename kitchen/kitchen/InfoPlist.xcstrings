@@ -7,19 +7,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kitchen List"
+            "value" : "Meal Planner"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "食単"
+            "value" : "きょうの献立"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "식단"
+            "value" : "오늘 뭐 먹지"
           }
         },
         "zh-Hans" : {
