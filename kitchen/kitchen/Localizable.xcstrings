@@ -6704,31 +6704,31 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invite code: "
+            "value" : "Invite code"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "招待コード："
+            "value" : "招待コード"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "초대 코드: "
+            "value" : "초대 코드"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "邀请码："
+            "value" : "邀请码"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "邀請碼："
+            "value" : "邀請碼"
           }
         }
       }
