@@ -1,7 +1,7 @@
 ---
 name: appstore-submission
 version: 1.0.0
-description: 扫描仓库，产出 App Store Connect「分发」页面所有可复制粘贴的字段，生成 appstore-submission.zh.md 与 appstore-submission.en.md。在用户准备上架 iOS App、需要填写 App Store Connect 元数据、或要求生成 App Store 上架清单时使用。
+description: 扫描仓库，产出 App Store Connect「分发」页面所有可复制粘贴的字段，生成 docs/app-store-submission.zh.md 与 docs/app-store-submission.en.md。在用户准备上架 iOS App、需要填写 App Store Connect 元数据、或要求生成 App Store 上架清单时使用。
 allowed-tools:
   - Read
   - Write
@@ -17,9 +17,9 @@ allowed-tools:
 
 ## 输出文件
 
-写到项目根目录：
-- `appstore-submission.zh.md` —— 简体中文（主语言）
-- `appstore-submission.en.md` —— English（兜底/海外）
+写到 `docs/`：
+- `docs/app-store-submission.zh.md` —— 简体中文（主语言）
+- `docs/app-store-submission.en.md` —— English（兜底/海外）
 
 ## 扫描清单（按重要性顺序）
 
@@ -31,7 +31,7 @@ allowed-tools:
 4. **网络代码 grep**：`URLSession`、`Alamofire`、第三方 SDK（Firebase、AdMob、Sentry、Bugsnag、AppsFlyer、友盟、神策…）→ 决定隐私问卷
 5. **StoreKit 配置 / `.storekit` 文件 / 订阅模型**：内购清单
 6. **加密相关**：`CryptoKit`、`CommonCrypto`、`CC_SHA`、HTTPS-only → 出口合规答案
-7. **`docs/`、`README.md`、`AGENTS.md`、`CLAUDE.md`、`LOGO_PROMPT.md`、`todo.md`**：app 定位、卖点、品牌描述
+7. **`docs/`（含 `app-icon-master-prompt.md`）、`README.md`、`AGENTS.md`、`CLAUDE.md`、`todo.md`**：app 定位、卖点、品牌描述
 8. **AdMob/IDFA 关键词**：`AppTrackingTransparency`、`ASIdentifierManager`、`GADMobileAds` → IDFA 问卷
 9. **登录/账号**：是否有用户系统 → 决定是否需要演示账号、是否触发 Sign in with Apple 强制项
 10. **儿童相关、UGC、聊天**：决定分级问卷答案
@@ -111,8 +111,8 @@ Bundle ID: `cain.com.kitchen`
 
 1. **盘点**：用 Glob/Grep 把上面 10 类来源全部摸一遍，做个内部 notes
 2. **决策**：对问卷题目（隐私、加密、IDFA、分级）逐题给答案，每题一句理由
-3. **草拟中文版**：按板块结构写 `appstore-submission.zh.md`
-4. **翻译英文版**：写 `appstore-submission.en.md`，App 名称/副标题/关键词/描述要重新本地化（不是机翻），关键词换成英文搜索词
+3. **草拟中文版**：按板块结构写 `docs/app-store-submission.zh.md`
+4. **翻译英文版**：写 `docs/app-store-submission.en.md`，App 名称/副标题/关键词/描述要重新本地化（不是机翻），关键词换成英文搜索词
 5. **末尾加 checklist**：一个总的 ✅ 待办列表，提醒用户哪些字段需要他自己补（联系电话、URL、截图、隐私政策链接等）
 
 ## 风格要求

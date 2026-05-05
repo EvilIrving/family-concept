@@ -37,7 +37,8 @@ swift-family-concept/
 
 - 设计总规格与业务规则：[`docs/family_v1_design.md`](docs/family_v1_design.md)
 - 视觉主题规范：[`docs/ui_theme.md`](docs/ui_theme.md)
-- iOS 上架清单：[`docs/ios_app_store_release_checklist.md`](docs/ios_app_store_release_checklist.md)
+- App Store 中英填表：[`docs/app-store-submission.zh.md`](docs/app-store-submission.zh.md) · [`docs/app-store-submission.en.md`](docs/app-store-submission.en.md)
+- 上架工具与竞品链接备忘：[`docs/app-store-tools-and-links.md`](docs/app-store-tools-and-links.md)
 - iOS 开发规范：[`kitchen/CLAUDE.md`](kitchen/CLAUDE.md)
 - 后端开发规范：[`worker/CLAUDE.md`](worker/CLAUDE.md)
 

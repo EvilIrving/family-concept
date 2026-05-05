@@ -19,7 +19,5 @@ Markup 灵感来源 https://mockey.ai/mockups/tech/iphone  https://www.riseshot.
 
 或者 拼接 URL，直接下载
  https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/pbakaus/impeccable/tree/main/.cursor/skills/impeccable
-# App Store Connect 提交指南
 
-## 一、App 基础信息（App Information）
-
+  
