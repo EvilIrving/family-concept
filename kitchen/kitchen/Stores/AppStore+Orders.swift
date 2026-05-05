@@ -30,18 +30,35 @@ extension AppStore {
 
     func cycleStatus(for itemID: String) async {
         guard let index = orderItems.firstIndex(where: { $0.id == itemID }) else { return }
-        let item = orderItems[index]
+        let original = orderItems[index]
         let next: ItemStatus
-        switch item.status {
+        switch original.status {
         case .waiting: next = .cooking
         case .cooking: next = .done
         case .done, .cancelled: return
         }
 
+        // 乐观更新：先本地切到下一态，请求失败再回滚
+        orderItems[index] = OrderItem(
+            id: original.id,
+            orderId: original.orderId,
+            dishId: original.dishId,
+            addedByAccountId: original.addedByAccountId,
+            quantity: original.quantity,
+            status: next,
+            createdAt: original.createdAt,
+            updatedAt: original.updatedAt
+        )
+
         do {
             let updated = try await apiClient.updateOrderItem(id: itemID, status: next, authToken: authToken)
-            orderItems[index] = updated
+            if let idx = orderItems.firstIndex(where: { $0.id == itemID }) {
+                orderItems[idx] = updated
+            }
         } catch {
+            if let idx = orderItems.firstIndex(where: { $0.id == itemID }) {
+                orderItems[idx] = original
+            }
             consumeError(error)
         }
     }
