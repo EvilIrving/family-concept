@@ -215,6 +215,7 @@ extension Array where Element == OrderItem {
         var orderedKeys: [GroupedOrderItemKey] = []
 
         for item in self where item.status != .cancelled {
+            guard let dishName = dishNames[item.dishId] else { continue }
             let key = GroupedOrderItemKey(dishId: item.dishId, status: item.status)
 
             if var existing = groupedByKey[key] {
@@ -233,7 +234,7 @@ extension Array where Element == OrderItem {
             groupedByKey[key] = GroupedOrderItem(
                 itemIDs: [item.id],
                 dishId: item.dishId,
-                dishName: dishNames[item.dishId] ?? L10n.tr("Unknown dish"),
+                dishName: dishName,
                 quantity: item.quantity,
                 status: item.status,
                 createdAt: item.createdAt
