@@ -11,11 +11,12 @@
 - `AppCardList.swift`：卡片列表容器
 - `AppChipButton.swift`：胶囊筛选与可移除标签按钮
 - `AppIconActionButton.swift`：小尺寸加减与图标动作按钮
+- `AppInputField.swift`：统一表单输入框，负责图标槽位、附件、聚焦、校验和禁用状态
 - `AppLinkButton.swift`：文本链接按钮
 - `AppLoading.swift`：加载、骨架、错误与空状态基础组件
 - `AppRowButton.swift`：卡片内整行点击按钮
 - `AppSegmentedButton.swift`：分段选择按钮
-- `AppTextField.swift`：原生输入行为 + 自定义外观与扩展命中区
+- `AppTextField.swift`：旧输入框 API 兼容包装
 - `FloatButton.swift`：悬浮按钮
 - `MenuDishCard.swift`：菜单网格卡片
 
@@ -123,12 +124,19 @@
 - 作为少量互斥选项的分段选择控件
 - 选中状态由外部绑定驱动，组件内只负责视觉态和触觉反馈
 
+### AppInputField
+
+- 作为新表单输入框的默认组件，外观、命中区、聚焦态、校验态、禁用态和左右附件由组件统一负责
+- 输入内核保留系统编辑能力，避免破坏中文输入法、光标、选择、粘贴和辅助功能
+- 可通过 `leadingSystemImage` 添加前置 SF Symbols 图标
+- 可通过 `trailingAccessory` 添加清除、密码显隐、尾部图标或箭头
+- 整个圆角输入框区域都应可触发聚焦，不能用透明覆盖层拦截系统输入控件
+
 ### AppTextField
 
-- 底层使用系统 `TextField` / `SecureField`
-- 支持 `.card` 与 `.inline` 两种 chrome
-- `.card` 模式提供额外 focus 命中区，视觉框和点击区分离
-- 校验态通过 `appValidationFeedback` 叠加
+- 仅作为旧调用点的兼容包装
+- `.card` 模式委托给 `AppInputField`
+- 新表单输入不再直接新增 `AppTextField` 调用
 
 ### MenuDishCard
 

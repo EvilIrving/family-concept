@@ -114,7 +114,6 @@ kitchen/
 ## 禁止事项
 
 - 禁止 `print()` 调试（用 `#if DEBUG` 包裹或删除）
-- 禁止注释掉的代码留在提交中
 - 禁止空的 `catch {}` 块
 - 禁止 `DispatchQueue.main.async` 替代 `@MainActor`
 - 禁止 `NotificationCenter` 替代 Store 状态传递
