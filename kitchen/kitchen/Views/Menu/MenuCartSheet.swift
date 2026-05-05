@@ -50,9 +50,6 @@ struct MenuCartSheet: View {
                                         AppIconActionButton(systemImage: "plus", tone: .brand) {
                                             store.updateCartQuantity(itemID: item.id, delta: 1)
                                         }
-                                        AppIconActionButton(systemImage: "xmark", tone: .danger) {
-                                            store.removeFromCart(itemID: item.id)
-                                        }
                                     }
                                     .disabled(store.isSubmittingCart)
                                 }
