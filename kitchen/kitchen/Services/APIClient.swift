@@ -186,6 +186,12 @@ final class APIClient {
             throw APIError.network
         }
 
+        #if DEBUG
+        let path = httpResponse.url?.path ?? "?"
+        let bodyPreview = String(data: data.prefix(512), encoding: .utf8) ?? "<non-utf8 \(data.count)B>"
+        print("🌐 [API] \(httpResponse.statusCode) \(path) → \(bodyPreview)")
+        #endif
+
         if httpResponse.statusCode == 401 {
             throw APIError.unauthorized
         }
