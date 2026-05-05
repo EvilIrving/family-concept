@@ -3,18 +3,17 @@ import SwiftUI
 struct MenuDishFormScreen: View {
     let title: String
     let confirmTitle: String
-    let requiresImage: Bool
+    let canSave: Bool
     @Binding var draft: AddDishDraft
     let quickCategories: [String]
     var focusedField: FocusState<MenuField?>.Binding
     @ObservedObject var imageCoordinator: DishImageCoordinator
-    @Binding var archiveConfirmationPresented: Bool
     let isSaving: Bool
     let onDismiss: () -> Void
     let onSave: () -> Void
     let onPhotoLibraryRequest: () -> Void
     let onCameraRequest: () -> Void
-    var onDelete: (() -> Void)? = nil
+    var onDelete: (() async -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -53,21 +52,11 @@ struct MenuDishFormScreen: View {
                     )
 
                     if let onDelete {
-                        AppButton(
+                        AppInlineConfirmButton(
                             title: L10n.tr("Delete Dish"),
-                            role: .destructive,
-                            action: {
-                                archiveConfirmationPresented = true
-                            }
+                            confirmTitle: L10n.tr("Confirm Delete Dish"),
+                            action: onDelete
                         )
-                        .confirmationDialog(
-                            L10n.tr("Deleting will archive this dish"),
-                            isPresented: $archiveConfirmationPresented,
-                            titleVisibility: .visible
-                        ) {
-                            Button(L10n.tr("Delete Dish"), role: .destructive, action: onDelete)
-                            Button(L10n.tr("Cancel"), role: .cancel) {}
-                        }
                     }
                 }
                 .padding(.horizontal, AppSpacing.lg)
@@ -97,14 +86,7 @@ struct MenuDishFormScreen: View {
     }
 
     private var isSaveDisabled: Bool {
-        isSaving || (draft.hasTriedSubmit && !formIsComplete)
-    }
-
-    private var formIsComplete: Bool {
-        draft.trimmedName.isEmpty == false &&
-        draft.hasCategory &&
-        draft.hasIngredients &&
-        (!requiresImage || imageCoordinator.hasImage)
+        isSaving || !canSave
     }
 
     private var header: some View {

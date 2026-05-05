@@ -17,9 +17,10 @@ struct MenuDishFlowContainer: View {
     @State private var navigationPath: [MenuDishFlowRoute] = []
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isPhotoPickerPresented = false
-    @State private var archiveConfirmationPresented = false
     @State private var currentCameraSessionID = UUID()
     @State private var isSaving = false
+
+    private let originalDraft: AddDishDraft
 
     init(
         item: MenuDishFlowItem,
@@ -33,7 +34,37 @@ struct MenuDishFlowContainer: View {
         self.focusedField = focusedField
         self.onDismiss = onDismiss
         self.onComplete = onComplete
-        _draft = State(initialValue: item.initialDraft)
+        let initial = item.initialDraft
+        _draft = State(initialValue: initial)
+        self.originalDraft = initial
+    }
+
+    private var isFormValid: Bool {
+        !draft.trimmedName.isEmpty &&
+        draft.hasCategory &&
+        draft.hasIngredients &&
+        (imageCoordinator.hasImage || draft.editingDishID != nil)
+    }
+
+    private var hasNewImage: Bool {
+        switch imageCoordinator.imageState {
+        case .ready, .uploadFailed:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var isDirty: Bool {
+        guard item.isEdit else { return true }
+        if draft.trimmedName != originalDraft.trimmedName { return true }
+        if draft.resolvedCategory != originalDraft.resolvedCategory { return true }
+        let pending = draft.ingredientInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        var current = draft.ingredientTags
+        if !pending.isEmpty { current.append(pending) }
+        if current != originalDraft.ingredientTags { return true }
+        if hasNewImage { return true }
+        return false
     }
 
     var body: some View {
@@ -41,12 +72,11 @@ struct MenuDishFlowContainer: View {
             MenuDishFormScreen(
                 title: item.title,
                 confirmTitle: L10n.tr("Save"),
-                requiresImage: item.isAdd,
+                canSave: isFormValid,
                 draft: $draft,
                 quickCategories: quickCategories,
                 focusedField: focusedField,
                 imageCoordinator: imageCoordinator,
-                archiveConfirmationPresented: $archiveConfirmationPresented,
                 isSaving: isSaving,
                 onDismiss: onDismiss,
                 onSave: saveDish,
@@ -57,9 +87,7 @@ struct MenuDishFlowContainer: View {
                     currentCameraSessionID = UUID()
                     navigationPath.append(.camera(currentCameraSessionID))
                 },
-                onDelete: item.isEdit ? {
-                    deleteDish()
-                } : nil
+                onDelete: deleteActionIfEditing
             )
             .navigationDestination(for: MenuDishFlowRoute.self) { route in
                 switch route {
@@ -132,8 +160,8 @@ struct MenuDishFlowContainer: View {
                 .background(
                     RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                         .fill(AppSemanticColor.surface)
-                        .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
                 )
+                .appShadow(AppShadow.card)
         }
         .transition(.opacity)
         .accessibilityAddTraits(.isModal)
@@ -218,6 +246,11 @@ struct MenuDishFlowContainer: View {
 
     private func saveDish() {
         guard !isSaving else { return }
+        guard isFormValid else { return }
+        if item.isEdit, !isDirty {
+            onDismiss()
+            return
+        }
         draft.hasTriedSubmit = true
         draft.resetValidation()
         let pendingIngredient = draft.ingredientInput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -320,14 +353,17 @@ struct MenuDishFlowContainer: View {
         }
     }
 
-    private func deleteDish() {
+    private var deleteActionIfEditing: (() async -> Void)? {
+        guard item.isEdit else { return nil }
+        return { await deleteDish() }
+    }
+
+    private func deleteDish() async {
         guard let dishID = draft.editingDishID,
               let dish = store.dishes.first(where: { $0.id == dishID }) else { return }
-        Task {
-            await store.archiveDish(id: dish.id)
-            await MainActor.run {
-                onComplete(.deleted(dish.name))
-            }
-        }
+        isSaving = true
+        await store.archiveDish(id: dish.id)
+        isSaving = false
+        onComplete(.deleted(dish.name))
     }
 }
