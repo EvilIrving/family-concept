@@ -24,9 +24,7 @@ struct MenuView: View {
             VStack(alignment: .leading, spacing: AppSpacing.md) {
                 MenuSearchBar(
                     searchText: $searchText,
-                    focusedField: $focusedField,
-                    canManageDishes: store.canManageDishes,
-                    onAddDish: { dishFlowItem = .add }
+                    focusedField: $focusedField
                 )
                 MenuCategoryChips(
                     categories: filterCategories,

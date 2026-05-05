@@ -3,8 +3,6 @@ import SwiftUI
 struct MenuSearchBar: View {
     @Binding var searchText: String
     @FocusState.Binding var focusedField: MenuField?
-    let canManageDishes: Bool
-    let onAddDish: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: AppSpacing.sm) {
@@ -42,13 +40,6 @@ struct MenuSearchBar: View {
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .stroke(AppSemanticColor.border, lineWidth: 1)
                     .allowsHitTesting(false)
-            }
-
-            if canManageDishes {
-                AppButton(title: L10n.tr("Add"), role: .ghost, size: .md, fullWidth: false) {
-                    onAddDish()
-                }
-                .accessibilityLabel(L10n.tr("Add Dish"))
             }
         }
     }

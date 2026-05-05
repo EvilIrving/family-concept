@@ -14,6 +14,30 @@ struct OrdersView: View {
                         statusPill(title: L10n.tr("Cooking"), value: cookingCount, tint: AppSemanticColor.warning, background: AppSemanticColor.warningBackground)
                         statusPill(title: L10n.tr("Done"), value: doneCount, tint: AppSemanticColor.success, background: AppSemanticColor.successBackground)
                     }
+
+                    if shouldShowShoppingListEntry {
+                        Button {
+                            openShoppingList()
+                        } label: {
+                            HStack(spacing: AppSpacing.sm) {
+                                Image(systemName: "list.bullet.rectangle.fill")
+                                    .font(.system(size: AppIconSize.md, weight: .semibold))
+                                    .foregroundStyle(AppSemanticColor.primary)
+                                    .frame(width: AppDimension.iconButtonSide, height: AppDimension.iconButtonSide)
+                                    .background(AppSemanticColor.interactiveSecondary, in: Circle())
+                                Text(L10n.tr("View shopping list"))
+                                    .font(AppTypography.bodyStrong)
+                                    .foregroundStyle(AppSemanticColor.textPrimary)
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: AppIconSize.xs, weight: .semibold))
+                                    .foregroundStyle(AppSemanticColor.textTertiary)
+                            }
+                            .frame(minHeight: AppDimension.regularControlHeight)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
             .padding(.horizontal, AppSpacing.md)
@@ -48,10 +72,6 @@ struct OrdersView: View {
                 finishOrderButton
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.bottom, AppSpacing.md)
-            }
-
-            if store.orderItems.contains(where: { $0.status != .cancelled }) {
-                ordersShoppingListBar
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -90,8 +110,9 @@ struct OrdersView: View {
         return .success(store.groupedOrderItems)
     }
 
-    private var shoppingListBarTitle: String { L10n.tr("View shopping list") }
-    private var shoppingListBarHeight: CGFloat { 40 }
+    private var shouldShowShoppingListEntry: Bool {
+        store.orderItems.contains { $0.status != .cancelled }
+    }
 
     // MARK: - Subviews
 
@@ -106,30 +127,10 @@ struct OrdersView: View {
         }
     }
 
-    private var ordersShoppingListBar: some View {
-        VStack(spacing: 0) {
-            Rectangle().fill(AppSemanticColor.border).frame(height: 1)
-            Button {
-                HapticManager.shared.fire(.selection)
-                store.fetchShoppingList()
-                modalRouter.present(.shoppingList)
-            } label: {
-                HStack(spacing: AppSpacing.sm) {
-                    Image(systemName: "list.bullet.rectangle.fill")
-                        .font(.system(size: AppIconSize.sm, weight: .semibold))
-                        .foregroundStyle(AppSemanticColor.primary)
-                    Text(shoppingListBarTitle)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppSemanticColor.textPrimary)
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, AppSpacing.md)
-                .frame(maxWidth: .infinity, minHeight: shoppingListBarHeight, alignment: .leading)
-                .background(AppSemanticColor.surface)
-            }
-            .buttonStyle(.plain)
-        }
+    private func openShoppingList() {
+        HapticManager.shared.fire(.selection)
+        store.fetchShoppingList()
+        modalRouter.present(.shoppingList)
     }
 
     private func orderRow(for item: GroupedOrderItem) -> some View {
