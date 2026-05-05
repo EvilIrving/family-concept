@@ -28,8 +28,9 @@ struct OrderHistoryDetailSheet: View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: AppSpacing.sm) {
                 HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xs) {
+                    let items = filteredItems(detail)
                     AppPill(
-                        title: L10n.tr("%lld dishes total", totalDishCount(detail)),
+                        title: L10n.tr("%lld dishes total", totalDishCount(items)),
                         tint: AppSemanticColor.primary,
                         background: AppSemanticColor.interactiveSecondary
                     )
@@ -41,11 +42,12 @@ struct OrderHistoryDetailSheet: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, AppSpacing.sm)
 
+                let rows = filteredItems(detail)
                 VStack(spacing: .zero) {
-                    ForEach(detail.items) { item in
+                    ForEach(rows) { item in
                         OrderHistoryDetailRow(item: item, dishName: dishName(for: item.dishId))
                             .padding(.vertical, AppSpacing.md)
-                        if item.id != detail.items.last?.id {
+                        if item.id != rows.last?.id {
                             Divider()
                                 .overlay(AppSemanticColor.border)
                         }
@@ -76,8 +78,13 @@ struct OrderHistoryDetailSheet: View {
         store.dishes.first(where: { $0.id == dishID })?.name ?? L10n.tr("Unknown dish")
     }
 
-    private func totalDishCount(_ detail: OrderDetail) -> Int {
-        detail.items.reduce(0) { $0 + $1.quantity }
+    private func totalDishCount(_ items: [OrderItem]) -> Int {
+        items.reduce(0) { $0 + $1.quantity }
+    }
+
+    private func filteredItems(_ detail: OrderDetail) -> [OrderItem] {
+        let dishIDs = Set(store.dishes.map(\.id))
+        return detail.items.filter { dishIDs.contains($0.dishId) }
     }
 }
 
