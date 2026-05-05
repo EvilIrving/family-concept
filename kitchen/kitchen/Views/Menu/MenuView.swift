@@ -70,6 +70,8 @@ struct MenuView: View {
                 }
             )
             .environmentObject(store)
+            .environmentObject(feedbackRouter)
+            .appToastHost()
             .interactiveDismissDisabled()
         }
         .task(id: searchText) {
