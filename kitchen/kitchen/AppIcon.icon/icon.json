@@ -1,18 +1,18 @@
 {
-  "fill" : "automatic",
+  "fill" : {
+    "automatic-gradient" : "extended-srgb:0.00000,0.47843,1.00000,1.00000"
+  },
   "groups" : [
     {
       "layers" : [
         {
-          "blend-mode" : "hard-light",
-          "fill" : "automatic",
+          "blend-mode" : "darken",
+          "fill" : "none",
           "glass" : false,
-          "image-name" : "1024 2.png",
-          "name" : "kitchen",
-          "opacity" : 1
+          "image-name" : "icon-1024@1x.png",
+          "name" : "icon-1024@1x"
         }
       ],
-      "name" : "Group",
       "shadow" : {
         "kind" : "neutral",
         "opacity" : 0.5
