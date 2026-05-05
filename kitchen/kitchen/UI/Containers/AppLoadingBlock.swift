@@ -13,7 +13,7 @@ struct AppLoadingBlock<Value, Content: View, Empty: View, Skeleton: View>: View 
     var strategy = LoadingBlockStrategy()
     var retryTitle: String = L10n.tr("Retry")
     let emptyView: ((AppFeedback) -> Empty)?
-    let skeletonView: (() -> Skeleton)?
+    let skeletonView: () -> Skeleton
     let content: (Value) -> Content
     let onRetry: (() -> Void)?
 
@@ -22,7 +22,7 @@ struct AppLoadingBlock<Value, Content: View, Empty: View, Skeleton: View>: View 
         strategy: LoadingBlockStrategy = LoadingBlockStrategy(),
         retryTitle: String = L10n.tr("Retry"),
         emptyView: ((AppFeedback) -> Empty)? = nil,
-        skeletonView: (() -> Skeleton)? = nil,
+        @ViewBuilder skeletonView: @escaping () -> Skeleton,
         @ViewBuilder content: @escaping (Value) -> Content,
         onRetry: (() -> Void)? = nil
     ) {
@@ -64,16 +64,8 @@ struct AppLoadingBlock<Value, Content: View, Empty: View, Skeleton: View>: View 
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(AppSpacing.md)
-        } else if let skeletonView, strategy.showsSkeletonOnInitialLoad {
-            skeletonView()
         } else if strategy.showsSkeletonOnInitialLoad {
-            VStack(spacing: style.blockSpacing) {
-                AppSkeletonBlock(height: AppDimension.progressBlockMinHeight)
-                AppSkeletonBlock(height: AppDimension.progressBlockMinHeight)
-                AppSkeletonBlock(height: AppDimension.progressBlockMinHeight)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(AppSpacing.md)
+            skeletonView()
         } else {
             overlayLoading(for: context)
         }
@@ -128,11 +120,12 @@ struct AppLoadingBlock<Value, Content: View, Empty: View, Skeleton: View>: View 
     }
 }
 
-extension AppLoadingBlock where Empty == EmptyView, Skeleton == EmptyView {
+extension AppLoadingBlock where Empty == EmptyView {
     init(
         phase: LoadingPhase<Value>,
         strategy: LoadingBlockStrategy = LoadingBlockStrategy(),
         retryTitle: String = L10n.tr("Retry"),
+        @ViewBuilder skeletonView: @escaping () -> Skeleton,
         @ViewBuilder content: @escaping (Value) -> Content,
         onRetry: (() -> Void)? = nil
     ) {
@@ -141,7 +134,7 @@ extension AppLoadingBlock where Empty == EmptyView, Skeleton == EmptyView {
             strategy: strategy,
             retryTitle: retryTitle,
             emptyView: nil,
-            skeletonView: nil,
+            skeletonView: skeletonView,
             content: content,
             onRetry: onRetry
         )

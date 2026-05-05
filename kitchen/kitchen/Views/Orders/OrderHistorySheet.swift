@@ -14,6 +14,7 @@ struct OrderHistorySheet: View {
         ) {
             AppLoadingBlock(
                 phase: historyPhase,
+                skeletonView: { OrderHistoryListSkeleton() },
                 content: { orders in
                     historyList(orders)
                 },
@@ -89,5 +90,39 @@ struct OrderHistorySheet: View {
             },
             set: { token in selectedOrderID = token?.orderID }
         )
+    }
+}
+
+private struct OrderHistoryListSkeleton: View {
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            AppCardList {
+                VStack(spacing: .zero) {
+                    ForEach(0..<5, id: \.self) { index in
+                        OrderHistoryRowSkeleton()
+                            .padding(.vertical, AppSpacing.xs)
+                        if index < 4 {
+                            Divider().overlay(AppSemanticColor.border)
+                        }
+                    }
+                }
+            }
+        }
+        .scrollDisabled(true)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct OrderHistoryRowSkeleton: View {
+    var body: some View {
+        HStack(spacing: AppSpacing.sm) {
+            SkeletonPrimitive(cornerRadius: AppRadius.pill)
+                .frame(width: 64, height: 22)
+            SkeletonPrimitive(cornerRadius: AppRadius.sm)
+                .frame(width: 96, height: 14)
+            Spacer()
+            SkeletonPrimitive(cornerRadius: AppRadius.sm)
+                .frame(width: 10, height: 14)
+        }
     }
 }

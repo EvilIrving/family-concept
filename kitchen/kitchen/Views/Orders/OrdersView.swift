@@ -24,7 +24,7 @@ struct OrdersView: View {
                 emptyView: { feedback in
                     AppErrorPlaceholder(feedback: feedback)
                 },
-                skeletonView: nil as (() -> EmptyView)?,
+                skeletonView: { OrdersListSkeleton() },
                 content: { groupedItems in
                     List {
                         Section {
@@ -216,4 +216,41 @@ struct OrdersView: View {
 #Preview {
     OrdersView()
         .environmentObject(AppStore())
+}
+
+private struct OrdersListSkeleton: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<5, id: \.self) { index in
+                HStack(spacing: AppSpacing.sm) {
+                    SkeletonPrimitive(cornerRadius: AppRadius.pill)
+                        .frame(width: AppDimension.statusDot, height: AppDimension.statusDot)
+                    SkeletonPrimitive(cornerRadius: AppRadius.sm)
+                        .frame(width: 140, height: 16)
+                    SkeletonPrimitive(cornerRadius: AppRadius.pill)
+                        .frame(width: 30, height: 16)
+                    Spacer()
+                    SkeletonPrimitive(cornerRadius: AppRadius.pill)
+                        .frame(width: 56, height: 22)
+                }
+                .frame(minHeight: AppDimension.listRowMinHeight)
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.vertical, AppSpacing.xs)
+                .background(AppComponentColor.Card.background)
+
+                if index < 4 {
+                    Divider().overlay(AppSemanticColor.border)
+                        .padding(.leading, AppSpacing.md)
+                }
+            }
+        }
+        .background(
+            AppComponentColor.Card.background,
+            in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+        )
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.top, AppSpacing.lg)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .accessibilityHidden(true)
+    }
 }
