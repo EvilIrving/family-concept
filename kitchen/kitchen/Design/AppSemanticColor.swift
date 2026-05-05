@@ -21,7 +21,7 @@ enum AppSemanticColor {
     // MARK: - Background & Surface
     static let background          = AppPalette.gray50
     static let backgroundElevated  = AppPalette.gray100
-    static let surface             = AppPalette.pureWhite
+    static let surface             = AppPalette.surface
     static let surfaceSecondary    = AppPalette.gray100
     static let surfaceTertiary     = AppPalette.gray200
 
@@ -55,9 +55,9 @@ enum AppSemanticColor {
 
     // MARK: - Overlay & Shadow
     static let scrim        = AppPalette.gray900.opacity(0.32)
-    static let shadowSubtle = AppPalette.green900.opacity(AppOpacity.subtleShadow)
-    static let shadowCard   = AppPalette.green900.opacity(AppOpacity.cardShadow)
-    static let shadowSheet  = AppPalette.green900.opacity(AppOpacity.sheetShadow)
+    static let shadowSubtle = AppPalette.pureBlack.opacity(AppOpacity.subtleShadow)
+    static let shadowCard   = AppPalette.pureBlack.opacity(AppOpacity.cardShadow)
+    static let shadowSheet  = AppPalette.pureBlack.opacity(AppOpacity.sheetShadow)
 
     // MARK: - Toast
     static let toastBackground = AppPalette.green800

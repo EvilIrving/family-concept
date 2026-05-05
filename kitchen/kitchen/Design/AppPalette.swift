@@ -49,6 +49,10 @@ enum AppPalette {
     static let cream   = Color("cream")
     static let apricot = Color("apricot")
 
+    // MARK: - Surface
+    /// 卡片/弹层表面：light 近白、dark 取略亮于背景的深墨绿，独立于灰阶以保证暗色下卡片可见。
+    static let surface = Color("surface")
+
     // MARK: - Special
     /// 深墨色：light 取近黑墨绿、dark 取近白冷调；用于正文、相机控制等强对比场景。
     static let inkBlack = Color("inkBlack")
