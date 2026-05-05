@@ -8,7 +8,10 @@ struct OnboardingSubmitBar: View {
 
     var body: some View {
         VStack(spacing: AppSpacing.sm) {
-            AppButton(title: buttonTitle) {
+            AppButton(
+                title: buttonTitle,
+                phase: isSubmitting ? .initialLoading() : .idle
+            ) {
                 onSubmit()
             }
         }

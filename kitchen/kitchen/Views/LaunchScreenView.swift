@@ -4,9 +4,7 @@ import SwiftUI
 private enum LaunchAnimationConstants {
     // 背景呼吸动画
     static let initialScale: CGFloat = 0.8
-    static let initialOpacity: Double = 0.6
     static let targetScale: CGFloat = 1.1
-    static let targetOpacity: Double = 1.0
 
     // 3D 旋转动画
     static let rotationStart: Double = 0
@@ -18,19 +16,15 @@ private enum LaunchAnimationConstants {
 
     // 加载点动画基数
     static let dotBaseScale: CGFloat = 0.6
-    static let dotBaseOpacity: Double = 0.4
     static let dotScaleOffset: CGFloat = 0.2
-    static let dotOpacityOffset: Double = 0.15
     static let dotBottomPadding: CGFloat = 56
 
     // 辅助计算常量
     static let scaleBlend: CGFloat = 0.5
-    static let opacityBlend: CGFloat = 0.3
 }
 
 struct LaunchScreenView: View {
     @State private var scale: CGFloat = LaunchAnimationConstants.initialScale
-    @State private var opacity: Double = LaunchAnimationConstants.initialOpacity
     @State private var rotate3D: Double = LaunchAnimationConstants.rotationStart
 
     var body: some View {
@@ -62,7 +56,6 @@ struct LaunchScreenView: View {
                 .fill(AppSemanticColor.primary)
                 .frame(width: AppDimension.launchLogoSize, height: AppDimension.launchLogoSize)
                 .scaleEffect(scale)
-                .opacity(opacity)
 
             // 白色叉子图标，3D 旋转 + 跟随外圈呼吸缩放
             Image(systemName: "fork.knife")
@@ -94,7 +87,6 @@ struct LaunchScreenView: View {
                     .fill(AppSemanticColor.primary)
                     .frame(width: AppDimension.launchDotSize, height: AppDimension.launchDotSize)
                     .scaleEffect(scaleEffect(for: index))
-                    .opacity(opacityValue(for: index))
             }
         }
     }
@@ -106,16 +98,10 @@ struct LaunchScreenView: View {
         return LaunchAnimationConstants.dotBaseScale + (scale - LaunchAnimationConstants.initialScale) * (1 + offset * LaunchAnimationConstants.scaleBlend)
     }
 
-    private func opacityValue(for index: Int) -> Double {
-        let offset = Double(index) * LaunchAnimationConstants.dotOpacityOffset
-        return LaunchAnimationConstants.dotBaseOpacity + (opacity - LaunchAnimationConstants.initialOpacity) * (1 + offset * LaunchAnimationConstants.opacityBlend)
-    }
-
     private func startAnimations() {
         // 背景呼吸动画
         withAnimation(AppMotion.launchPulse) {
             scale = LaunchAnimationConstants.targetScale
-            opacity = LaunchAnimationConstants.targetOpacity
         }
 
         // 3D 旋转动画（颠勺翻转）- 使用线性动画保持流畅
