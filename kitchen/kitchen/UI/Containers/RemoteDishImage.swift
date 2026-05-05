@@ -42,7 +42,18 @@ struct RemoteDishImage<Content: View>: View {
             } else {
                 AppSkeletonImage(minHeight: AppDimension.dishArtworkHeight)
             }
-        case .initial, .refresh:
+        case .refresh:
+            if let retainedImage = context.retainedValue {
+                content(retainedImage)
+                    .overlay {
+                        AppLoadingIndicator(tone: .inverse, controlSize: .small)
+                            .padding(AppSpacing.xs)
+                            .background(AppSemanticColor.scrim, in: Capsule())
+                    }
+            } else {
+                AppSkeletonImage(minHeight: AppDimension.dishArtworkHeight)
+            }
+        case .initial:
             AppSkeletonImage(minHeight: AppDimension.dishArtworkHeight)
         }
     }

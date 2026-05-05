@@ -194,6 +194,7 @@ extension View {
 
 struct SkeletonPrimitive: View {
     @Environment(\.loadingStyle) private var style
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shimmerOffset: CGFloat = -1.2
 
     var cornerRadius: CGFloat? = nil
@@ -212,12 +213,14 @@ struct SkeletonPrimitive: View {
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
+                    .opacity(reduceMotion ? 0 : 1)
                     .rotationEffect(.degrees(18))
                     .offset(x: shimmerOffset * max(proxy.size.width, 1))
                 }
                 .clipped()
             }
             .onAppear {
+                guard !reduceMotion else { return }
                 shimmerOffset = -1.2
                 withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) {
                     shimmerOffset = 1.2
