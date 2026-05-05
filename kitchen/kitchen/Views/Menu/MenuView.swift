@@ -100,6 +100,7 @@ struct MenuView: View {
     private var menuContent: some View {
         AppLoadingBlock(
             phase: menuPhase,
+            strategy: LoadingBlockStrategy(overlaysRetainedContentOnRefresh: false),
             emptyView: { feedback in
                 MenuEmptyStateView(
                     feedback: feedback,
@@ -127,7 +128,8 @@ struct MenuView: View {
                 onDishAppear: handleDishAppear,
                 onTapBackground: { focusedField = nil },
                 onScrollBegan: handleMenuScrollBegan,
-                onScrollSettled: handleMenuScrollSettled
+                onScrollSettled: handleMenuScrollSettled,
+                onRefresh: { await store.fetchAll() }
             )
         } onRetry: {
             Task { await store.fetchAll() }

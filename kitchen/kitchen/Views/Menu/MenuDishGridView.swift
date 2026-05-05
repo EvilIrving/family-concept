@@ -17,6 +17,7 @@ struct MenuDishGridView: View {
     let onTapBackground: () -> Void
     let onScrollBegan: @MainActor @Sendable () -> Void
     let onScrollSettled: @MainActor @Sendable () -> Void
+    let onRefresh: @MainActor @Sendable () async -> Void
 
     private let gridColumns = [
         GridItem(.flexible(), spacing: AppSpacing.md),
@@ -33,7 +34,8 @@ struct MenuDishGridView: View {
         onDishAppear: @escaping (Dish) -> Void,
         onTapBackground: @escaping () -> Void,
         onScrollBegan: @escaping @MainActor @Sendable () -> Void,
-        onScrollSettled: @escaping @MainActor @Sendable () -> Void
+        onScrollSettled: @escaping @MainActor @Sendable () -> Void,
+        onRefresh: @escaping @MainActor @Sendable () async -> Void
     ) {
         self.dishes = dishes
         self._layoutMode = layoutMode
@@ -45,6 +47,7 @@ struct MenuDishGridView: View {
         self.onTapBackground = onTapBackground
         self.onScrollBegan = onScrollBegan
         self.onScrollSettled = onScrollSettled
+        self.onRefresh = onRefresh
     }
 
     private var groupedDishes: [(category: String, dishes: [Dish])] {
@@ -87,6 +90,9 @@ struct MenuDishGridView: View {
             .padding(.bottom, AppSpacing.xxl + AppDimension.floatingButtonHeight)
         }
         .scrollDismissesKeyboard(.interactively)
+        .refreshable {
+            await onRefresh()
+        }
         .simultaneousGesture(
             TapGesture().onEnded { onTapBackground() }
         )
