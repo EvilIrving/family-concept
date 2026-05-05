@@ -208,7 +208,7 @@ private struct FeedbackPresentationTokens {
         switch feedback.severity {
         case .info:
             foregroundColor = AppSemanticColor.onPrimary
-            toastBackgroundColor = Color.black.opacity(0.82)
+            toastBackgroundColor = AppSemanticColor.toastBackground
             bannerBackgroundColor = AppSemanticColor.infoForeground
         case .success:
             foregroundColor = AppSemanticColor.onPrimary

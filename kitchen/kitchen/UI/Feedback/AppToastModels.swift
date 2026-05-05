@@ -15,7 +15,7 @@ struct AppToastData: Identifiable {
     var iconSystemName: String? = nil
     var haptic: AppHapticIntent? = nil
     var foregroundColor: Color = AppSemanticColor.onPrimary
-    var backgroundColor: Color = Color.black.opacity(0.82)
+    var backgroundColor: Color = AppSemanticColor.toastBackground
 }
 
 /// Banner 数据模型
