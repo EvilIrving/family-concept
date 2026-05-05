@@ -9,6 +9,7 @@ struct MenuView: View {
     @State private var debouncedSearchText = ""
     @State private var selectedCategory = "All"
     @State private var dishFlowItem: MenuDishFlowItem?
+    @State private var dishLayoutMode: MenuDishLayoutMode = .grid
     @State private var visibleDishCount = 12
     @State private var isCartButtonCollapsed = false
     @State private var scrollSettleTask: Task<Void, Never>?
@@ -106,11 +107,12 @@ struct MenuView: View {
                 )
             },
             skeletonView: {
-                MenuDishGridSkeletonView()
+                MenuDishGridSkeletonView(layoutMode: dishLayoutMode)
             }
         ) { dishes in
             MenuDishGridView(
                 dishes: dishes,
+                layoutMode: $dishLayoutMode,
                 quantityForDish: { store.cartQuantity(for: $0) },
                 onDecrease: { dish in
                     guard store.cartQuantity(for: dish.id) > 0 else { return }
