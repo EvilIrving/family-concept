@@ -44,7 +44,8 @@ struct MainTabView: View {
                 namespace: tabSelectionNamespace,
                 canAddDish: store.canManageDishes,
                 onSelect: selectTab,
-                onAddDish: { dishFlowItem = .add }
+                onAddDish: { dishFlowItem = .add() },
+                onAddDishWithCamera: { dishFlowItem = .add(.camera) }
             )
             .padding(.horizontal, AppSpacing.md)
             .padding(.bottom, AppSpacing.sm)
@@ -127,6 +128,7 @@ private struct MainFloatingTabBar: View {
     let canAddDish: Bool
     let onSelect: (MainTab) -> Void
     let onAddDish: () -> Void
+    let onAddDishWithCamera: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -151,23 +153,29 @@ private struct MainFloatingTabBar: View {
             .shadow(color: AppSemanticColor.shadowSubtle, radius: 18, y: 8)
 
             if canAddDish {
-                Button(action: onAddDish) {
-                    Image(systemName: "plus")
-                        .font(.system(size: AppIconSize.display, weight: .medium))
-                        .foregroundStyle(AppSemanticColor.primary)
-                        .frame(width: 72, height: 72)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .overlay {
-                            Circle()
-                                .stroke(AppSemanticColor.surface.opacity(0.82), lineWidth: AppBorderWidth.regular)
-                        }
-                        .shadow(color: AppSemanticColor.shadowSubtle, radius: 18, y: 8)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(L10n.tr("Add Dish"))
+                addDishButton
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.28, extraBounce: 0.08), value: selectedTab)
+    }
+
+    private var addDishButton: some View {
+        Image(systemName: "plus")
+            .font(.system(size: AppIconSize.display, weight: .medium))
+            .foregroundStyle(AppSemanticColor.primary)
+            .frame(width: 72, height: 72)
+            .background(.ultraThinMaterial, in: Circle())
+            .overlay {
+                Circle()
+                    .stroke(AppSemanticColor.surface.opacity(0.82), lineWidth: AppBorderWidth.regular)
+            }
+            .shadow(color: AppSemanticColor.shadowSubtle, radius: 18, y: 8)
+            .contentShape(Circle())
+            .onTapGesture(perform: onAddDish)
+            .onLongPressGesture(minimumDuration: 0.45, perform: onAddDishWithCamera)
+            .accessibilityLabel(L10n.tr("Add Dish"))
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction(.default, onAddDish)
     }
 }
 

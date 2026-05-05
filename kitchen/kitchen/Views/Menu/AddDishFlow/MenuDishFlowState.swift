@@ -2,20 +2,22 @@ import Foundation
 import SwiftUI
 
 enum MenuDishFlowItem: Identifiable {
-    case add
+    case add(MenuDishFlowStart = .form)
     case edit(String, AddDishDraft)
 
     var id: String {
         switch self {
-        case .add:
-            return "add-dish-flow"
+        case .add(let start):
+            return "add-dish-flow-\(start.idSuffix)"
         case .edit(let dishID, _):
             return "edit-dish-flow-\(dishID)"
         }
     }
 
     var isAdd: Bool {
-        if case .add = self { return true }
+        if case .add = self {
+            return true
+        }
         return false
     }
 
@@ -33,6 +35,25 @@ enum MenuDishFlowItem: Identifiable {
             return AddDishDraft()
         case .edit(_, let draft):
             return draft
+        }
+    }
+
+    var startsWithCamera: Bool {
+        guard case .add(.camera) = self else { return false }
+        return true
+    }
+}
+
+enum MenuDishFlowStart {
+    case form
+    case camera
+
+    var idSuffix: String {
+        switch self {
+        case .form:
+            return "form"
+        case .camera:
+            return "camera"
         }
     }
 }

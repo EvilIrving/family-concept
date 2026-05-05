@@ -19,6 +19,7 @@ struct MenuDishFlowContainer: View {
     @State private var isPhotoPickerPresented = false
     @State private var currentCameraSessionID = UUID()
     @State private var isSaving = false
+    @State private var didLaunchInitialCamera = false
 
     private let originalDraft: AddDishDraft
 
@@ -84,8 +85,7 @@ struct MenuDishFlowContainer: View {
                     isPhotoPickerPresented = true
                 },
                 onCameraRequest: {
-                    currentCameraSessionID = UUID()
-                    navigationPath.append(.camera(currentCameraSessionID))
+                    openCamera()
                 },
                 onDelete: deleteActionIfEditing
             )
@@ -133,6 +133,9 @@ struct MenuDishFlowContainer: View {
         .task(id: item.id) {
             await seedRemoteImageIfNeeded()
         }
+        .onAppear {
+            launchInitialCameraIfNeeded()
+        }
         .onChange(of: selectedPhotoItem) { _, item in
             guard let item else { return }
             Task {
@@ -170,6 +173,21 @@ struct MenuDishFlowContainer: View {
     private func popLastRoute() {
         guard !navigationPath.isEmpty else { return }
         navigationPath.removeLast()
+    }
+
+    private func openCamera() {
+        currentCameraSessionID = UUID()
+        navigationPath.append(.camera(currentCameraSessionID))
+    }
+
+    private func launchInitialCameraIfNeeded() {
+        guard item.startsWithCamera, !didLaunchInitialCamera else { return }
+        didLaunchInitialCamera = true
+        Task { @MainActor in
+            await Task.yield()
+            guard navigationPath.isEmpty else { return }
+            openCamera()
+        }
     }
 
     private func handleCropCancel(_ route: CropRoute) {
