@@ -1,3 +1,46 @@
+## 菜单菜品展示 UX 调研：网格 vs 列表 · 2026-05-05 22:00 · Claude
+
+当前 `MenuDishGridView` 使用 2 列 `LazyVGrid` 卡片网格，菜名长度不一导致卡片高度跳动，超长菜名被截断。调研国内外点餐 App 后得出结论：
+
+**主流方案：横向列表 > 网格。** DoorDash、Uber Eats、Toast、Square、Resy 等国外点餐 App 主菜单均采用单一列表布局，网格仅用于"推荐/discovery"场景。核心理由：视线垂直扫描效率更高、拇指固定在右侧 + 按钮位置一致、一屏容纳更多菜品、长菜名天然无需截断、奇数菜收尾不留空。
+
+**典型国外列表卡布局（左文右图）：**
+- 标题左对齐，最多 2 行；下方副信息（分类/价格/简述）
+- 图片 80–96pt 靠右，`+` 按钮悬浮图片右下角或独立右侧
+- 行高固定 ~96pt，分类用 sticky section header
+- 顶部"为你推荐"horizontal carousel（AI 个性化）
+- 加菜动效：图片飞入购物车（贝塞尔曲线 + 缩放），购物车角标 bounce
+
+**kitchen 建议方向：**
+1. 主菜单改横向列表（左文右图，行高固定）
+2. 保留 sticky 分类 chip，加锚点联动
+3. `+` 按钮固定右侧，点后做小动效飞向 Tab Bar 购物车
+4. 顶部 1 行 horizontal scroll 网格作为"今日推荐/新加菜"视觉调剂
+
+**Sources：**
+- [Best Food Menu Design Ideas That Convert More Orders 2026](https://restrofood.io/best-food-menu-design-ideas-that-convert-more-orders)
+- [Top 10 Inspiring Food Delivery App UI/UX Design Examples for 2026](https://uistudioz.com/blog/top-10-inspiring-food-delivery-app-ui-ux-designs/)
+- [Building an Intuitive UI/UX for Food Delivery Apps - Autviz](https://www.autviz.com/building-an-intuitive-ui-ux-for-food-delivery-apps/)
+- [Restaurant App Design: A Guide To Excel in UI/UX](https://www.nimbleappgenie.com/blogs/restaurant-app-design-guide/)
+- [App Menu Page Ideas: Best Layouts, UI Design Tips & Examples](https://www.insaim.design/blog/app-menu-page-ideas-best-practice-examples)
+- [Mastering Card UI Design Patterns for 2026 - Layout Scene](https://www.layoutscene.com/card-ui-design-patterns-guide-2026/)
+- [Resy iOS Restaurant Map — Mobbin](https://mobbin.com/explore/screens/6355997a-cbb2-4e70-9b2e-1c70590c4f0e)
+- [Uber Eats designs on Dribbble](https://dribbble.com/tags/uber-eats)
+- [DoorDash designs on Dribbble](https://dribbble.com/tags/doordash)
+
+## shimmer/redacted 骨架屏统一方案 · 2026-05-05 21:40 · Claude
+
+新增 `ShimmerModifier`（约 35 行）到 `UI/Components/AppLoading.swift`，消费项目 token、适配 Reduce Motion，对外暴露 `.shimmering(isActive:)` View 扩展。实现采用 mask 渐变方案（参考 SwiftUI-Shimmer 库），配合 SwiftUI 原生 `.redacted(reason: .placeholder)` 使用。
+
+**为什么不自装 SwiftUI-Shimmer 包**：体量不值得加依赖；内置方案更可控且消费项目颜色/动画 token。
+
+**已替换的页面**：
+- `MembershipUpgradeSheet`：商品卡片在 StoreKit 加载期间 `.redacted(.placeholder).shimmering()`
+- `OrderHistorySheet` / `OrderHistoryDetailSheet`：骨架改为渲染真实 Row 布局 + 外层 redacted+shimmer，删掉旧的 `*RowSkeleton` 手绘结构
+- `MenuDishGridSkeletonView`：保留手绘占位块（MenuDishCard 图片区透明导致 redacted 失效），但改为外层统一 `.shimmering()` 替代各 `SkeletonPrimitive` 各自驱动动画
+
+**附修旧 bug**：`MenuView.preloadScreenCount` 原值为 12，与 `dishPageSize` 相等，导致首屏全部 12 条菜品命中分页阈值 `index >= visibleDishes.count - 12`（即 index ≥ 0），分页级联触发 → LazyVGrid 内容尺寸反复变化 → 末位分类 header 持续上下抖动。改为 4，仅当距可见末尾 4 条以内才加载下一页。
+
 ## 内购方案骨架：
 
 后端 (worker/)
