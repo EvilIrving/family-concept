@@ -21,8 +21,8 @@ struct OrderHistorySheet: View {
                 onRetry: { Task { await store.fetchOrderHistory() } }
             )
         }
-        .sheet(item: historyDetailBinding, onDismiss: { store.selectedOrderDetail = nil }) { _ in
-            OrderHistoryDetailSheet()
+        .sheet(item: historyDetailBinding, onDismiss: { store.selectedOrderDetail = nil }) { token in
+            OrderHistoryDetailSheet(orderID: token.orderID)
                 .environmentObject(store)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
@@ -35,11 +35,8 @@ struct OrderHistorySheet: View {
             AppCardList {
                 ForEach(orders) { order in
                     Button {
-                        Task {
-                            if await store.fetchOrderDetail(orderID: order.id) != nil {
-                                selectedOrderID = order.id
-                            }
-                        }
+                        selectedOrderID = order.id
+                        Task { _ = await store.fetchOrderDetail(orderID: order.id) }
                     } label: {
                         HStack(spacing: AppSpacing.sm) {
                             AppPill(title: L10n.tr("%lld dishes", order.itemCount), tint: AppSemanticColor.primary, background: AppSemanticColor.interactiveSecondary)
@@ -51,6 +48,7 @@ struct OrderHistorySheet: View {
                                 .font(.system(size: AppIconSize.xs, weight: .semibold))
                                 .foregroundStyle(AppSemanticColor.textTertiary)
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
 
