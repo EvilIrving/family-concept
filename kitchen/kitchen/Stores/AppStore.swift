@@ -153,9 +153,6 @@ final class AppStore: ObservableObject {
             if let kitchen = me.kitchen {
                 self.kitchen = kitchen
                 UserDefaults.standard.set(kitchen.id, forKey: "lastKitchenID")
-            } else if let lastKitchenID = UserDefaults.standard.string(forKey: "lastKitchenID") {
-                let k = try await apiClient.fetchKitchen(id: lastKitchenID, authToken: authToken)
-                kitchen = k
             }
         } catch APIError.unauthorized {
             clearSession()

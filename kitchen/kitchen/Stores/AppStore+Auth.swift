@@ -7,8 +7,14 @@ extension AppStore {
 
     func login(userName: String, password: String, inviteCode: String = "", kitchenName: String = "") async {
         error = nil
+        #if DEBUG
+        print("🔐 [login] tap → userName=\(userName) inviteCode=\(inviteCode.isEmpty ? "-" : inviteCode) kitchenName=\(kitchenName.isEmpty ? "-" : kitchenName)")
+        #endif
         do {
             let response = try await apiClient.login(userName: userName, password: password)
+            #if DEBUG
+            print("🔐 [login] success → accountID=\(response.account.id) nick=\(response.account.nickName) tokenPrefix=\(response.token.prefix(8))… kitchen=\(response.kitchen?.id ?? "nil")")
+            #endif
             persistAuth(response.token, account: response.account)
 
             if let kitchen = response.kitchen {
@@ -17,19 +23,19 @@ extension AppStore {
                 return
             }
 
-            if let lastKitchenID = UserDefaults.standard.string(forKey: "lastKitchenID"),
-               let k = try? await apiClient.fetchKitchen(id: lastKitchenID, authToken: authToken) {
-                kitchen = k
-                return
-            }
-
             if inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                kitchenName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                #if DEBUG
+                print("🔐 [login] account has no kitchen and no invite/create input → prompt user")
+                #endif
                 error = L10n.tr("This account hasn't joined a kitchen yet. Enter an invite code or create one.")
             } else {
                 await completeOnboarding(inviteCode: inviteCode, kitchenName: kitchenName)
             }
         } catch {
+            #if DEBUG
+            print("🔐 [login] failure → \(error)")
+            #endif
             consumeError(error)
         }
     }
