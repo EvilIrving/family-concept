@@ -2,7 +2,8 @@ import SwiftUI
 
 struct PreferencesSection: View {
     @EnvironmentObject private var languageStore: AppLanguageStore
-    @Binding var notificationsEnabled: Bool
+    // TODO: 通知开关未实现，恢复时打开下面的 Binding 与 toggleRow。
+    // @Binding var notificationsEnabled: Bool
     @Binding var hapticsEnabled: Bool
     @Binding var themeMode: String
 
@@ -11,11 +12,11 @@ struct PreferencesSection: View {
             VStack(spacing: 0) {
                 languageRow
                 rowDivider
-                toggleRow(title: L10n.tr("Notifications"), isOn: $notificationsEnabled)
-                rowDivider
-                toggleRow(title: L10n.tr("Haptics"), isOn: $hapticsEnabled)
-                rowDivider
                 AppearanceRow(themeMode: $themeMode)
+                rowDivider
+                // toggleRow(title: L10n.tr("Notifications"), isOn: $notificationsEnabled)
+                // rowDivider
+                toggleRow(title: L10n.tr("Haptics"), isOn: $hapticsEnabled)
             }
         }
     }

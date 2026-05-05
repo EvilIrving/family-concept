@@ -5,7 +5,8 @@ struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var feedbackRouter: AppFeedbackRouter
     @EnvironmentObject private var purchaseManager: PurchaseManager
-    @State private var notificationsEnabled = true
+    // TODO: 通知开关功能未实现，等接入 APNs / 本地通知后恢复。submitCart() 是新订单事件源，届时在那里触发厨师端通知。
+    // @State private var notificationsEnabled = true
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
     @AppStorage("themeMode") private var themeMode = "system"
     @StateObject private var modalRouter = ModalRouter<SheetRoute>()
@@ -41,7 +42,7 @@ struct SettingsView: View {
 
             SettingsSection(title: L10n.tr("Preferences")) {
                 PreferencesSection(
-                    notificationsEnabled: $notificationsEnabled,
+                    // notificationsEnabled: $notificationsEnabled,
                     hapticsEnabled: $hapticsEnabled,
                     themeMode: $themeMode
                 )
