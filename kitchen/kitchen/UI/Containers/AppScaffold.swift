@@ -23,7 +23,9 @@ struct AppSheetContainer<Content: View>: View {
     let title: String?
     var subtitle: String? = nil
     let dismissTitle: String
+    var dismissSystemImage: String = "xmark"
     var confirmTitle: String? = nil
+    var confirmSystemImage: String = "checkmark"
     let onDismiss: () -> Void
     var onConfirm: (() -> Void)? = nil
     var isConfirmDisabled: Bool = false
@@ -56,33 +58,27 @@ struct AppSheetContainer<Content: View>: View {
                     .allowsHitTesting(false)
 
                     HStack(alignment: .top) {
-                        Button(dismissTitle, action: onDismiss)
-                            .font(AppTypography.bodyStrong)
-                            .foregroundStyle(isConfirmLoading ? AppSemanticColor.textTertiary : AppSemanticColor.textSecondary)
-                            .disabled(isConfirmLoading)
+                        sheetIconButton(
+                            systemImage: dismissSystemImage,
+                            accessibilityLabel: dismissTitle,
+                            tone: .neutral,
+                            isDisabled: isConfirmLoading,
+                            action: onDismiss
+                        )
 
                         Spacer(minLength: AppSpacing.md)
 
                         if let confirmTitle, let onConfirm {
-                            Button(action: onConfirm) {
-                                ZStack {
-                                    Text(confirmTitle)
-                                        .opacity(isConfirmLoading ? 0 : 1)
-                                    if isConfirmLoading {
-                                        AppLoadingIndicator(tone: .primary, controlSize: .small)
-                                    }
-                                }
-                                .font(AppTypography.bodyStrong)
-                                .foregroundStyle(isConfirmDisabled ? AppSemanticColor.textTertiary : AppSemanticColor.primary)
-                                .animation(.easeInOut(duration: 0.15), value: isConfirmLoading)
-                            }
-                            .disabled(isConfirmDisabled || isConfirmLoading)
-                            .accessibilityLabel(confirmTitle)
+                            sheetIconButton(
+                                systemImage: confirmSystemImage,
+                                accessibilityLabel: confirmTitle,
+                                tone: .brand,
+                                isDisabled: isConfirmDisabled || isConfirmLoading,
+                                isLoading: isConfirmLoading,
+                                action: onConfirm
+                            )
                         } else {
-                            Text(dismissTitle)
-                                .font(AppTypography.bodyStrong)
-                                .hidden()
-                                .accessibilityHidden(true)
+                            sheetIconPlaceholder()
                         }
                     }
                 }
@@ -90,9 +86,12 @@ struct AppSheetContainer<Content: View>: View {
                 .padding(.bottom, AppSpacing.md)
             } else {
                 HStack {
-                    Button(dismissTitle, action: onDismiss)
-                        .font(AppTypography.bodyStrong)
-                        .foregroundStyle(AppSemanticColor.textSecondary)
+                    sheetIconButton(
+                        systemImage: dismissSystemImage,
+                        accessibilityLabel: dismissTitle,
+                        tone: .neutral,
+                        action: onDismiss
+                    )
                     Spacer()
                 }
                 .padding(.horizontal, AppSpacing.lg)
@@ -117,5 +116,83 @@ struct AppSheetContainer<Content: View>: View {
             )
         )
         .ignoresSafeArea(edges: .bottom)
+    }
+
+    private func sheetIconButton(
+        systemImage: String,
+        accessibilityLabel: String,
+        tone: AppIconActionButton.Tone,
+        isDisabled: Bool = false,
+        isLoading: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            ZStack {
+                Image(systemName: systemImage)
+                    .font(.system(size: AppIconSize.sm, weight: .semibold))
+                    .opacity(isLoading ? 0 : 1)
+
+                if isLoading {
+                    AppLoadingIndicator(tone: .primary, controlSize: .small)
+                }
+            }
+            .foregroundStyle(sheetIconForeground(tone: tone, isDisabled: isDisabled))
+            .frame(width: AppDimension.iconButtonSide, height: AppDimension.iconButtonSide)
+            .background(sheetIconBackground(tone: tone, isDisabled: isDisabled), in: RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
+                    .stroke(sheetIconBorder(tone: tone, isDisabled: isDisabled), lineWidth: AppBorderWidth.hairline)
+            }
+            .animation(.easeInOut(duration: 0.15), value: isLoading)
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private func sheetIconPlaceholder() -> some View {
+        Color.clear
+            .frame(width: AppDimension.iconButtonSide, height: AppDimension.iconButtonSide)
+            .accessibilityHidden(true)
+    }
+
+    private func sheetIconForeground(tone: AppIconActionButton.Tone, isDisabled: Bool) -> Color {
+        if isDisabled {
+            return AppComponentColor.IconActionButton.disabledForeground
+        }
+        switch tone {
+        case .neutral:
+            return AppComponentColor.IconActionButton.neutralForeground
+        case .brand:
+            return AppComponentColor.IconActionButton.brandForeground
+        case .danger:
+            return AppComponentColor.IconActionButton.dangerForeground
+        }
+    }
+
+    private func sheetIconBackground(tone: AppIconActionButton.Tone, isDisabled: Bool) -> Color {
+        if isDisabled {
+            return AppComponentColor.IconActionButton.disabledBackground
+        }
+        switch tone {
+        case .neutral:
+            return AppComponentColor.IconActionButton.neutralBackground
+        case .brand:
+            return AppComponentColor.IconActionButton.brandBackground
+        case .danger:
+            return AppComponentColor.IconActionButton.dangerBackground
+        }
+    }
+
+    private func sheetIconBorder(tone: AppIconActionButton.Tone, isDisabled: Bool) -> Color {
+        if isDisabled {
+            return AppComponentColor.IconActionButton.disabledBorder
+        }
+        switch tone {
+        case .neutral:
+            return AppComponentColor.IconActionButton.neutralBorder
+        case .brand, .danger:
+            return .clear
+        }
     }
 }
